@@ -1,11 +1,13 @@
 import {Router} from 'express';
-import { addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities} from '../Controllers/Project.Controllers.js';
+import { addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities, addFilesToProject, getProjectFiles} from '../Controllers/Project.Controllers.js';
 import upload from '../Middlewares/ProjectFiles.Middleware.js';
 
 const projectRoutes = Router();
  
  
 projectRoutes.post("/create/new",upload.array('files'),addNewProject)
+projectRoutes.put("/:projectId/files",upload.array('files'),addFilesToProject)
+projectRoutes.get("/list/:projectId/files",getProjectFiles)
 projectRoutes.get("/list/:projectId",getProjectById)
 projectRoutes.get("/list/:projectId/stats",getProjectStats)
 projectRoutes.get("/list/:projectId/activities",getAllActivities)

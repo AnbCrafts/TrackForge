@@ -1089,7 +1089,96 @@ const getAllActivities = async (req, res) => {
       }
 }
 
+const addFilesToProject = async (req, res) => {
+  try {
+    // Validate projectId
+    const { error } = validationUtils.projectIdValidationSchema.validate(req.params);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const { projectId } = req.params;
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const cloudResp = await uploadOnCloudinary(
+          file.path,
+          project._id.toString(),
+          file.originalname
+        );
+
+        if (cloudResp) {
+          project.files.push({
+            filename: file.originalname,
+            path: cloudResp.secure_url,
+            fileType: file.mimetype,
+            uploadedBy: req.user ? req.user._id : null, // assuming req.user is set by auth middleware
+          });
+        }
+      }
+      await project.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Files upload successful",
+      files: project.files,
+    });
+
+  } catch (error) {
+    console.error("Project Files error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+const getProjectFiles = async(req,res)=>{
+   try {
+    
+    const { error } = validationUtils.projectIdValidationSchema.validate(req.params);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const { projectId } = req.params;
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    const files = project.files;
+
+    if(!files){
+      return res.status(404).json({ success: false, message: "files not found" });
+
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Files Fetched successful",
+      files: files,
+    });
+
+  } catch (error) {
+    console.error("Project Files error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+}
 
 
 
-export { addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }
+
+
+
+
+
+export {getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }

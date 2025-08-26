@@ -4,15 +4,18 @@ const fileSchema = new mongoose.Schema({
   filename: {
     type: String,
     required: true,
-
   },
   path: {
     type: String,
     required: true,
   },
+  folder: { 
+    type: String, 
+    default: "", 
+  },
   size: {
      type: Number 
-    },                       // in bytes
+  },                       // in bytes
   fileType: { 
     type: String 
   },                   // e.g., "text/html", "application/javascript"

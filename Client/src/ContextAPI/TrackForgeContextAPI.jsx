@@ -110,7 +110,7 @@ const calculatedHash = SHA256(payload).toString();
     if (secureHash === calculatedHash) {
       localStorage.setItem("userId", user?._id);
       localStorage.setItem("userToken", token);
-      await PatchUserProfile(user?._id,"Online");
+      await PatchUserProfile(user?._id,"online");
       toast.success(message);
       navigate(`/auth/${secureHash}/${username.toLowerCase()}/workspace`);
     } else {
@@ -665,6 +665,40 @@ const deleteProject = async(id)=>{
   }
 }
 
+const [projectFiles,setProjectFiles] = useState([]);
+const getProjectFiles = async(id)=>{
+  try {
+    const response = await axios.get(`${serverURL}/project/list/${id}/files`);
+    verifyResponse(response);
+    if(response.data.success){
+      const data = response.data.files;
+      setProjectFiles(data);
+    }
+    
+  } catch (error) {
+    throwError(error)
+  }
+
+}
+
+const uploadFiles = async(id,files)=>{
+  if(!id || !files || !files.length){
+    toast.success("ID and file are required");
+  }
+      try {
+        const response = await axios.put(`${serverURL}/project/${id}/files`,files);
+        verifyResponse(response);
+        if(response.data.success){
+            toast.success(response.data.message);
+            await projectById(id);
+        }
+
+        
+      } catch (error) {
+        throwError(error)
+      }
+}
+
 
 
 
@@ -1144,7 +1178,7 @@ const postComment = async(data)=>{
 
   },[userData]);
 
-  const contextObj = {registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser};
+  const contextObj = {registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles};
 
   return (
     <TrackForgeContextAPI.Provider value={contextObj}>

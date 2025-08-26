@@ -2,7 +2,8 @@ import React, { useContext, useEffect } from 'react';
 import { 
   LayoutDashboard, FolderKanban, Bug, Users, 
   BarChart2, Bell, User, LogOut, Shield, HelpCircle, 
-  Settings
+  Settings,
+  SlidersVertical
 } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI';
@@ -31,7 +32,8 @@ const SideBar = () => {
     ${isActive(segment) ? 'text-gray-800' : 'text-gray-600 hover:text-gray-800'}`;
 
   return (
-    <div className='flex flex-col items-center justify-start gap-4 py-5'>
+    <div className='flex flex-col items-center justify-start gap-4 py-5 relative'>
+     
 
       <Link to="dashboard" className={getLinkClasses('dashboard')}>
         <LayoutDashboard className={getIconClasses('dashboard')} />
