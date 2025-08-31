@@ -6,11 +6,10 @@ import { assets } from "../assets/assets";
 import { FiBell, FiCloud, FiCloudLightning, FiLock, FiZap } from "react-icons/fi";
 import { FiUser, FiShield, FiActivity, FiUsers, FiBarChart2, FiFolder, FiTool, FiTrendingUp } from "react-icons/fi"
 import { motion } from "framer-motion";
-import ProjectShowcase from "../Components/ProjectSHowCase";
+import ProjectShowcase from "../Components/ProjectShowCase";
 import FAQSection from "../Components/FAQSection";
 import Footer from "../Components/Footer";
 import { User } from "lucide-react";
-import Intro from "./Intro";
 import PartyPopper from "../Components/Popper";
 
 
