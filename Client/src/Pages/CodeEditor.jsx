@@ -106,7 +106,17 @@ const CodeEditor = () => {
 
 
   return (
-    <div className='h-[100vh] w-full flex items-start justify-start '>
+
+    <>
+    {(!userProjects || !projectFiles) && 
+    (
+      <p className='p-10 text-center mt-10 text-xl font-medium text-gray-600'>No Projects/Project files found , you must create a project or upload your code files for the projects created</p>
+    )}
+
+    {
+      userProjects &&
+    (<div className='h-[100vh] w-full flex items-start justify-start '>
+      
        <div className="bg-gray-50 max-w-60 text-start h-[100vh] overflow-y-scroll noScroll flex flex-col items-start justify-start shadow-2xl">
   <h1 className="text-lg w-full font-medium text-center p-3 bg-gray-800 text-white overflow-hidden text-ellipsis whitespace-nowrap">
     {`${username}'s Projects`}
@@ -215,6 +225,7 @@ const CodeEditor = () => {
   )}
 </div>
 
+
        <div className='max-w-full flex-1 min-h-[100vh] overflow-y-scroll noScroll flex flex-col items-start justify-between'>
   {/* Tabs */}
   {openFiles && openFiles.length > 0 && (
@@ -260,7 +271,10 @@ const CodeEditor = () => {
     })()}
   </div>
 </div>
-    </div>
+    </div>)
+    }
+    </>
+
   )
 }
 
