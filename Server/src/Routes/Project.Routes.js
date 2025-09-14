@@ -1,13 +1,26 @@
 import {Router} from 'express';
-import { addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities, addFilesToProject, getProjectFiles} from '../Controllers/Project.Controllers.js';
+import { addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities, addFilesToProject, getProjectFiles, getUserProjectFolders, checkForProjectAuthorization, requestToJoinProject, patchJoinRequests, checkUserRequestStatus} from '../Controllers/Project.Controllers.js';
 import upload from '../Middlewares/ProjectFiles.Middleware.js';
 
 const projectRoutes = Router();
  
  
-projectRoutes.post("/create/new",upload.array('files'),addNewProject)
-projectRoutes.put("/:projectId/files",upload.array('files'),addFilesToProject)
-projectRoutes.get("/list/:projectId/files",getProjectFiles)
+projectRoutes.post("/create/new",addNewProject)
+
+projectRoutes.put(
+  "/:projectId/files",
+  upload.array("files"),  
+  addFilesToProject
+);
+
+projectRoutes.get("/:projectId/folder/files",getProjectFiles);
+
+projectRoutes.get("/list/project=:projectId/user=:userId/check-authorization",checkForProjectAuthorization)
+projectRoutes.get("/list/project=:projectId/user=:userId/check-request-status",checkUserRequestStatus)
+projectRoutes.post("/list/project=:projectId/user=:userId/send-join-request",requestToJoinProject)
+projectRoutes.patch("/list/project=:projectId/user=:userId/decision=:patch",patchJoinRequests)
+
+projectRoutes.get("/list/:userId/:projectId/folders",getUserProjectFolders)
 projectRoutes.get("/list/:projectId",getProjectById)
 projectRoutes.get("/list/:projectId/stats",getProjectStats)
 projectRoutes.get("/list/:projectId/activities",getAllActivities)

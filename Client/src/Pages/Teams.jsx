@@ -2,22 +2,24 @@ import React, { useContext, useEffect, useState } from 'react'
 import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI'
 import { Link, matchPath, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import PreviewTeam from '../Components/PreviewTeam';
-import { BusFront, Expand, Group, GroupIcon, HdmiPortIcon, Link2, Projector, Search, Send, Shrink, Trash, User } from 'lucide-react';
+import { BusFront, Expand, Group, GroupIcon, HdmiPortIcon, Link2, Projector, Search, Send, Shrink, Trash, User, X } from 'lucide-react';
+import SearchUser from '../Components/SearchUser';
+import SearchProjects from '../Components/SearchProjects';
 
 const Teams = () => {
   const location = useLocation();
 
   
-  const {userTeams,getUsersTeam,getTeamByID,teamData,getUserIDs,userIds,formatDateTime,searchTeams,searchedTeams} = useContext(TrackForgeContextAPI);
+  const {userTeams,getUsersTeam,getTeamByID,teamData,getUserIDs,userIds,formatDateTime,searchTeams,searchedTeams,createTeam} = useContext(TrackForgeContextAPI);
   const {hash,teamId,username} = useParams();
+  const id = localStorage.getItem("userId");
   useEffect(()=>{
-    const id = localStorage.getItem("userId");
     if(id){
       
       getUsersTeam(id);
     }
 
-  },[hash])
+  },[id])
 
   const navigate = useNavigate();
   const [searchTerm,setSearchTerm] = useState("");
@@ -29,24 +31,16 @@ const Teams = () => {
         
             },[searchTerm]); 
         
-            useEffect(()=>{
-                console.log(searchedTeams)
-        
-            },[searchedTeams]);
+            
 
-  
+  const [selectedProjectIds,setSelectedProjectIds] = useState([]);
+  const [selectedUserIds,setSelectedUserIds] = useState([]);
+
 
   const [teamForm,setTeamForm] = useState({
     name:"",
-    projects:[],
-    createdBy:"",
-    link:{
-      status:"Active",
-      createdBy:"",
-      validTill:"",
-      createdAt:"",
-      url:"",
-    },
+    projects:selectedProjectIds,
+    createdBy:id,
     members:[{
       participant:"",
       joinedAt:""
@@ -54,31 +48,39 @@ const Teams = () => {
   })
 
 
- useEffect(() => {
-  if (userIds && userIds.length > 0) {
-    const data = userIds.map((id) => ({
+useEffect(() => {
+  if (selectedUserIds && selectedUserIds.length > 0) {
+    const data = selectedUserIds.map((id) => ({
       participant: id,
       joinedAt: new Date().toISOString(),
     }));
+
+    console.log("Mapped members data:", data);
 
     setTeamForm((prev) => ({
       ...prev,
       members: data,
     }));
   }
-}, [userIds]);
+}, [selectedUserIds]);
+
+// Watch for updates
 
 
 
 
+useEffect(()=>{
+  if(selectedProjectIds && selectedProjectIds.length){
+    console.log("Updating teamForm.projects with", selectedProjectIds);
+    setTeamForm((prev) => ({
+        ...prev,
+        projects: [...selectedProjectIds], // force copy
+      }));
+  }
+},[selectedProjectIds]);
 
-  const [usernames,setUserNames] = useState([]);
-  useEffect(()=>{
-    if(usernames.length>0){
-        getUserIDs(usernames);
-    }
 
-  },[usernames]);
+
 
 
   const [hidePreview,setHidePreview] = useState(false);
@@ -113,20 +115,31 @@ useEffect(() => {
 
 
 
-  const [memberName,setMemberName] = useState("");
+  
 
 
-  const addUser = () => {
-    if (memberName.trim() !== "") {
-      setUserNames([...usernames, memberName.trim()]);
-      setMemberName("");
-    }
-  };
+ 
 
-  const removeUser = (index) => {
-    const updatedUsernames = usernames.filter((_, i) => i !== index);
-    setUserNames(updatedUsernames);
-  };
+
+  const submitHandler = async(e)=>{
+    e.preventDefault();
+
+    console.log(teamForm)
+   await createTeam(teamForm);
+    setTeamForm({
+       name:"",
+    projects:[],
+    createdBy:id,
+    members:[{
+      participant:"",
+      joinedAt:""
+    }]
+    })
+
+    setSelectedProjectIds([]);
+    setSelectedUserIds([]);
+  }
+
 
 
   
@@ -198,7 +211,7 @@ useEffect(() => {
           
           <PreviewTeam team={userTeams} hide={hidePreview} />
         </div>
-      <div className='flex-1 bg-white min-h-[90vh] rounded-lg shadow-lg relative'>
+      <div className='flex-1 bg-white max-h-[100vh] h-auto rounded-lg shadow-lg relative'>
        
        <Outlet/>
        
@@ -225,10 +238,10 @@ useEffect(() => {
 
 
 
-      <div className='p-5 mt-5 bg-white'>
+      <div className='p-5 mt-5 bg-white w-full'>
         <h1 className='text-3xl text-gray-900 mb-5'>Create Your own Team</h1>
 
-      <form className='border border-gray-300 w-fit p-10 rounded-lg shadow'>
+      <form onSubmit={submitHandler} className='border border-gray-300 w-full p-10 rounded-lg shadow'>
         <div className='flex items-center justify-between gap-5 mb-5 max-w-3xl'>
           <label htmlFor="name" className='flex items-center justify-start gap-2 text-gray-600 text-lg w-3xs'>
             <GroupIcon/> Team Name
@@ -239,63 +252,87 @@ useEffect(() => {
     }))} type="text" name="name" id="name" className='py-2 px-3 outline-none border border-gray-200 shadow max-w-lg w-lg rounded' placeholder='Tech-knight...' />
 
         </div>
+
+
+        <div className='flex items-center justify-between gap-5 mt-10'>
+
+        <div className='w-full'>
+      <SearchUser selectedUserIds={selectedUserIds} setSelectedUserIds={setSelectedUserIds}/>
+{
+  selectedUserIds && selectedUserIds.length > 0 && (
+    <div className="p-5 mt-5 flex flex-wrap gap-2">
+      {selectedUserIds.map((u, i) => {
+        const maskedId = u.slice(0, 5) + "*".repeat(u.length - 5);
+
+        return (
+          <span
+            key={i}
+            className="flex items-center gap-2 px-3 py-1 bg-gray-200 rounded-lg text-sm font-mono"
+          >
+            {maskedId}
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedUserIds((prev) => prev.filter((id) => id !== u))
+              }
+              className="text-red-500 hover:text-red-700"
+            >
+              <X size={14} />
+            </button>
+          </span>
+        );
+      })}
+    </div>
+  )
+}
+
+
+        </div>
+
+        <div className='w-full'>
+
+      <SearchProjects selectedProjectIds={selectedProjectIds} setSelectedProjectIds={setSelectedProjectIds}/>  
+
+      {
+  selectedProjectIds && selectedProjectIds.length > 0 && (
+    <div className="p-5 mt-5 flex flex-wrap gap-2">
+      {selectedProjectIds.map((u, i) => {
+        const maskedId = u.slice(0, 5) + "*".repeat(u.length - 5);
+
+        return (
+          <span
+            key={i}
+            className="flex items-center gap-2 px-3 py-1 bg-gray-200 rounded-lg text-sm font-mono"
+          >
+            {maskedId}
+            <button
+              type="button"
+              onClick={() =>
+                setSelectedProjectIds((prev) => prev.filter((id) => id !== u))
+              }
+              className="text-red-500 hover:text-red-700"
+            >
+              <X size={14} />
+            </button>
+          </span>
+        );
+      })}
+    </div>
+  )
+}
+
+
+        </div>
+        </div>
         
-        <div>
-      {/* Input Field */}
-      <div className='flex items-center justify-between gap-5 mb-5 max-w-3xl'>
-        <label htmlFor="participant" className='flex items-center justify-start gap-2 text-gray-600 text-lg w-3xs'>
-          <User /> Participant
-        </label>
-        <div className='max-w-lg gap-2 w-lg flex items-center justify-between'>
-          <input
-            value={memberName}
-            onChange={(e) => setMemberName(e.target.value)}
-            type="text"
-            name="participant"
-            id="participant"
-            className='flex-1 py-2 px-3 outline-none border border-gray-200 shadow rounded'
-            placeholder='Enter username and click send'
-          />
-          <Send
-            onClick={addUser}
-            className={`h-9 w-9 ${memberName.trim() !== "" ? "bg-gray-900 text-white" : "text-gray-900 border border-gray-400"} p-1 rounded shadow cursor-pointer`}
-          />
-        </div>
-      </div>
+       
 
-      {/* Usernames Preview */}
-      <div className='p-5 flex flex-wrap gap-2'>
-        {usernames.map((u, i) => (
-          <div key={i} className='flex items-center justify-start gap-1 text-sm px-2 py-1 border border-gray-300 rounded-full bg-gray-50'>
-            <span>{u}</span>
-            <Trash
-              onClick={() => removeUser(i)}
-              className='h-4 w-4 text-red-500 cursor-pointer hover:scale-110 transition'
-            />
-          </div>
-        ))}
-      </div>
-   
 
-        </div>
 
-        <div className='flex items-center justify-between gap-5 mb-5 max-w-3xl'>
-          <label htmlFor="name" className='flex items-center justify-start gap-2 text-gray-600 text-lg w-3xs'>
-            <Projector/> Project Name
-          </label>
-          <input type="text"  name="project" id="project" className='py-2 px-3 outline-none border border-gray-200 shadow max-w-lg w-lg rounded' placeholder='User Dashboard Preparation...' />
-
-        </div>
 
         
 
-        <div className='flex items-center justify-between gap-5 mb-5 max-w-3xl'>
-          <label htmlFor="name" className='flex items-center justify-start gap-2 text-gray-600 text-lg w-3xs'>
-            <Link2/> Link Validity
-          </label>
-          <input type="date" name="validTill" id="validTill" className='py-2 px-3 outline-none border border-gray-200 shadow max-w-lg w-lg rounded' placeholder='User Dashboard Preparation...' />
-
-        </div>
+       
 
 
 

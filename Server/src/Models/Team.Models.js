@@ -55,10 +55,24 @@ const TeamSchema = new mongoose.Schema(
       type:String,
       
       unique:true
-    }
+    },
+    hasAuthToSee:[{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    }],
+    joinRequests:[{
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User",
+        }],
+        rejectedJoinRequests:[{
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User",
+        }],
   },
   { timestamps: true }
 );
+
+
 
 const Team = mongoose.models.Team || mongoose.model("Team", TeamSchema);
 

@@ -28,7 +28,7 @@ const SearchTeam = ({ toggle, setSelectedTeamIds, selectedTeamIds }) => {
   }, [searchedTeams]);
 
   return (
-    <div className="flex-1 px-3 ">
+    <div className="flex-1 px-3 w-full">
       <div className="flex items-center justify-start gap-5">
         {toggle && (
           <MoveLeft
@@ -52,7 +52,7 @@ const SearchTeam = ({ toggle, setSelectedTeamIds, selectedTeamIds }) => {
           placeholder="Search by team name..."
           className="outline-none px-4 py-2 bg-gray-100 rounded flex-1 text-gray-900"
         />
-      </div>
+      </div> 
 
       <div className="p-3 border mt-5 border-gray-200 rounded w-full h-100 overflow-y-scroll noScroll">
         {searchTerm === "" ? (

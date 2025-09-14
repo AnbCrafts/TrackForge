@@ -2,7 +2,7 @@ import { MoveLeft, Search } from "lucide-react";
 import React, { useContext, useEffect, useState } from "react";
 import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 import { useParams } from "react-router-dom";
-
+ 
 const SearchProjects = ({ selectedProjectIds, setSelectedProjectIds,toggle }) => {
   const { username, hash } = useParams();
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,7 +31,11 @@ const SearchProjects = ({ selectedProjectIds, setSelectedProjectIds,toggle }) =>
   return (
     <div className="flex-1 px-3 ">
       <div className="flex items-center justify-start gap-5">
+        
+       {toggle && 
         <MoveLeft onClick={()=>toggle(false)} className="bg-gray-900 text-white rounded p-1 h-8 w-8 cursor-pointer"/>
+       
+       }
 
 
       <h1 className="text-center text-2xl">Search Projects</h1>

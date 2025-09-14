@@ -92,20 +92,23 @@ const addNewProject = async (req, res) => {
       );
     }
 
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const cloudResp = await uploadOnCloudinary(file.path, newProject._id.toString(), file.originalname);
-        if (cloudResp) {
-            newProject.files.push({
-            filename: file.originalname,
-            path: cloudResp.secure_url,
-            fileType: file.mimetype,
-            uploadedBy: validUser._id,
-          });
-        }
-      }
-      await newProject.save();
+    if (newProject.members) {
+  newProject.members.forEach(m => {
+    if (!newProject.hasAuthToSee.includes(m)) {
+      newProject.hasAuthToSee.push(m);
     }
+  });
+
+  await newProject.save();
+}
+
+
+
+    
+
+
+
+
 
     return res.status(201).json({ success: true, message: "Project created successfully", project: newProject });
   } catch (error) {
@@ -903,7 +906,7 @@ const SearchProject = async (req, res) => {
     };
 
     const [projects, total] = await Promise.all([
-      Project.find(filter).skip(skip).limit(limit),
+      Project.find(filter).select("name _id").skip(skip).limit(limit),
       Project.countDocuments(filter)
     ]); 
 
@@ -1091,41 +1094,82 @@ const getAllActivities = async (req, res) => {
 
 const addFilesToProject = async (req, res) => {
   try {
-    // Validate projectId
+
     const { error } = validationUtils.projectIdValidationSchema.validate(req.params);
-    if (error) return res.status(400).json({ error: error.details[0].message });
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
 
     const { projectId } = req.params;
+
+    let folder;
+    try {
+      folder = JSON.parse(req.body.folder);
+    } catch (err) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid folder JSON",
+      });
+    }
+
+    if (!folder || !folder.name || !folder.name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Folder object with valid name is required",
+      });
+    }
+
     const project = await Project.findById(projectId);
-
     if (!project) {
-      return res.status(404).json({ success: false, message: "Project not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
     }
 
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        const cloudResp = await uploadOnCloudinary(
-          file.path,
-          project._id.toString(),
-          file.originalname
-        );
+    let existingFolder = project.folders.find(
+      (f) => f.name.toLowerCase() === folder.name.trim().toLowerCase()
+    );
 
-        if (cloudResp) {
-          project.files.push({
-            filename: file.originalname,
-            path: cloudResp.secure_url,
-            fileType: file.mimetype,
-            uploadedBy: req.user ? req.user._id : null, // assuming req.user is set by auth middleware
-          });
-        }
+    if (!existingFolder) {
+      existingFolder = { name: folder.name.trim(), files: [] };
+      project.folders.push(existingFolder);
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No files provided for upload",
+      });
+    }
+
+    for (const file of req.files) {
+      const cloudResp = await uploadOnCloudinary(
+        file.path,
+        project._id.toString(),
+        file.originalname
+      );
+
+      if (cloudResp) {
+        existingFolder.files.push({
+          filename: file.originalname,
+          size: file.size,
+          fileType: file.mimetype,
+          uploadedBy: req.user ? req.user._id : null, 
+          uploadedAt: new Date(),
+          path: cloudResp.secure_url, 
+        });
       }
-      await project.save();
     }
+
+    project.markModified("folders");
+
+    await project.save();
 
     return res.status(200).json({
       success: true,
-      message: "Files upload successful",
-      files: project.files,
+      message: `Files uploaded to folder "${folder.name}" successfully`,
+      folders: project.folders,
     });
 
   } catch (error) {
@@ -1136,36 +1180,392 @@ const addFilesToProject = async (req, res) => {
       error: error.message,
     });
   }
-};
+};  
 
-const getProjectFiles = async(req,res)=>{
-   try {
+
+const getProjectFiles = async (req, res) => {
+  try {
     
     const { error } = validationUtils.projectIdValidationSchema.validate(req.params);
-    if (error) return res.status(400).json({ error: error.details[0].message });
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
 
     const { projectId } = req.params;
-    const project = await Project.findById(projectId);
 
+
+    const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    const files = project.files;
+    
+    if (!project.folders || project.folders.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No folders or files found for this project",
+      });
+    }
 
-    if(!files){
-      return res.status(404).json({ success: false, message: "files not found" });
+    
+    const folderWiseFiles = project.folders.map((folder) => ({
+      folderName: folder.name,
+      files: folder.files.map((file) => ({
+        filename: file.filename,
+        size: file.size,
+        fileType: file.fileType,
+        uploadedBy: file.uploadedBy,
+        uploadedAt: file.uploadedAt,
+        url: file.url,
+      })),
+    }));
 
+    return res.status(200).json({
+      success: true,
+      message: "Files fetched successfully",
+      folders: folderWiseFiles,
+    });
+  } catch (error) {
+    console.error("Get Project Files error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+
+const getUserProjectFolders = async (req, res) => {
+  try {
+    const { userId, projectId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User Id is required" });
+    }
+
+    if (!projectId) {
+      return res.status(400).json({ success: false, message: "Project Id is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    // Optional: check if user is part of the project
+    if (
+      project.owner.toString() !== userId &&
+      !project.members.some((m) => m.toString() === userId)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "User is not authorized to access this project",
+      });
+    }
+
+    const folders = project.folders || [];
+
+    if (folders.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "This project has no folders",
+        folders: [],
+      });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Files Fetched successful",
-      files: files,
+      message: "Found all project folders",
+      folders,
     });
-
   } catch (error) {
-    console.error("Project Files error:", error);
+    console.error("Project Files fetching error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+const checkForProjectAuthorization = async (req, res) => {
+  try {
+    const { projectId, userId } = req.params;
+
+    if (!projectId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Both userId and projectId are required",
+      });
+    }
+
+    const project = await Project.findById(projectId).populate("teams");
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // 🔑 Dynamic access check
+    let hasAuth =
+      project.owner?.toString() === userId ||
+      project.members?.some((m) => m.toString() === userId) ||
+      project.teams?.some((team) =>
+        team.members?.some((m) => m.toString() === userId)
+      );
+
+    if (!hasAuth) {
+      return res.status(200).json({
+        success: true,
+        hasAuth: false,
+        message: "You don't have authority to view this project",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      hasAuth: true,
+      message: "You have authority to view this project",
+    });
+  } catch (error) {
+    console.error("Authorization check error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server error",
+      error: error.message,
+    });
+  }
+};
+
+const patchJoinRequests = async (req, res) => {
+  try {
+    let { projectId, userId, patch } = req.params;
+
+    if (!projectId || !userId || !patch) {
+      return res.status(400).json({
+        success: false,
+        message: "projectId, userId, and patch status are required",
+      });
+    }
+
+    patch = patch.toLowerCase();
+
+    if (patch !== "accept" && patch !== "reject") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid patch status. Use 'accept' or 'reject'.",
+      });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Check if user has actually requested
+    if (!project.joinRequests.some((id) => id.toString() === userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "This user has no pending request for this project",
+      });
+    }
+
+    // Process request
+    if (patch === "accept") {
+      if (!project.hasAuthToSee.some((id) => id.toString() === userId)) {
+        project.hasAuthToSee.push(userId);
+        user.manages.push(projectId);
+        await user.save();
+      }
+      if (!project.members.some((id) => id.toString() === userId)) {
+        project.members.push(userId);
+      }
+      project.joinRequests.pull(userId);
+
+      await project.save();
+      return res.status(200).json({
+        success: true,
+        message: "User has been accepted into the project",
+      });
+    }
+
+    if (patch === "reject") {
+      if (!project.rejectedJoinRequests.some((id) => id.toString() === userId)) {
+        project.rejectedJoinRequests.push(userId);
+      }
+      project.joinRequests.pull(userId);
+
+      await project.save();
+      return res.status(200).json({
+        success: true,
+        message: "User's request has been rejected",
+      });
+    }
+  } catch (error) {
+    console.error("Project Join request patch error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+const requestToJoinProject = async(req,res)=>{
+   try {
+    const { projectId, userId } = req.params;
+
+    if (!projectId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Both userId and projectId are required",
+      });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Already has access?
+    const alreadyHasAccess =
+      project.hasAuthToSee.some((id) => id.toString() === userId) ||
+      project.members.some((id) => id.toString() === userId);
+
+    if (alreadyHasAccess) {
+      return res.status(200).json({
+        success: true,
+        message: "You already have permission to view the project",
+        status:"Access granted"
+      });
+    }
+
+    // Already requested?
+    if (project.joinRequests.some((id) => id.toString() === userId)) {
+      return res.status(200).json({
+        success: true,
+        message: "You have already requested to join",
+        status:"Access requested"
+
+      });
+    }
+
+    // Rejected before?
+    if (project.rejectedJoinRequests.some((id) => id.toString() === userId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You cannot join this project",
+        status:"Access denied"
+
+      });
+    }
+
+    // Send join request
+    project.joinRequests.push(userId);
+    await project.save();
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Your request has been sent. You will be added once the admin/owner approves.",
+        status:"Sent Request"
+        
+    });
+  } catch (error) {
+    console.error("Project Join request error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+}
+
+const checkUserRequestStatus = async(req,res)=>{
+       try {
+    const { projectId, userId } = req.params;
+
+    if (!projectId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Both userId and projectId are required",
+      });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Already has access?
+    const alreadyHasAccess =
+      project.hasAuthToSee.some((id) => id.toString() === userId) ||
+      project.members.some((id) => id.toString() === userId);
+
+    if (alreadyHasAccess) {
+      return res.status(200).json({
+        success: true,
+        message: "You already have permission to view the project",
+        status:"Access granted"
+      });
+    }
+
+    // Already requested?
+    if (project.joinRequests.some((id) => id.toString() === userId)) {
+      return res.status(200).json({
+        success: true,
+        message: "You have already requested to join",
+        status:"Access requested"
+
+      });
+    }
+
+    // Rejected before?
+    if (project.rejectedJoinRequests.some((id) => id.toString() === userId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You cannot join this project",
+        status:"Access denied"
+
+      });
+    }
+
+    // Send join request
+    project.joinRequests.push(userId);
+    await project.save();
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Your request has been sent. You will be added once the admin/owner approves.",
+        status:"Sent Request"
+        
+    });
+  } catch (error) {
+    console.error("Project Join request error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
@@ -1180,5 +1580,4 @@ const getProjectFiles = async(req,res)=>{
 
 
 
-
-export {getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }
+export {checkUserRequestStatus,patchJoinRequests,requestToJoinProject,checkForProjectAuthorization,getUserProjectFolders,getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }

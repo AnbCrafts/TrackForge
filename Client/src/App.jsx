@@ -75,7 +75,6 @@ const App = () => {
         <Route path='dashboard/ticket-detail/:ticketId/activity/:activityId/edit' element={<EditActivity />} />
         <Route path='projects' element={<Projects />} />
         
-        
         <Route path='bugs' element={<Bugs />} />
         <Route path='ticket-detail/:ticketId' element={<ViewDetailedBug />} />
         <Route path='ticket-detail/:ticketId/activity/:activityId/edit' element={<EditActivity />} />

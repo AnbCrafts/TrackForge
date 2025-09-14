@@ -16,10 +16,10 @@ const createTeam = async (req, res) => {
       });
     }
 
-    const { name, createdBy, members } = value;
+    const { name, createdBy, members, projects } = value;
 
+    // Prevent duplicate team
     const existingTeam = await Team.findOne({ name, createdBy }).lean();
-
     if (existingTeam) {
       return res.status(409).json({
         success: false,
@@ -27,8 +27,8 @@ const createTeam = async (req, res) => {
       });
     }
 
+    // Validate creator
     const user = await User.findById(createdBy);
-
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -36,28 +36,59 @@ const createTeam = async (req, res) => {
       });
     }
 
-
+    // Create new team
     const newTeam = new Team({
       ...value,
       members: [
-        { participant: createdBy }, // creator is the default member
-        ...(value.members || []),
+        { participant: createdBy }, // Ensure this matches schema!
+        ...(members || []),
       ],
     });
 
-    const savedTeam = await newTeam.save();
-
+    // Add team reference to user
     if (!Array.isArray(user.teams)) {
       user.teams = [];
     }
-
-    user.teams.push(savedTeam._id);
+    user.teams.push(newTeam._id);
     await user.save();
+
+    // Generate invite link
+    const link = {
+      url: `https://track-forge.com/invite/team/${newTeam._id}/creator-${createdBy}`,
+      createdAt: new Date(),
+      validTill: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      createdBy,
+      status: "Active",
+    };
+
+    newTeam.link = link;
+    const savedTeam = await newTeam.save();
+
+    if(projects && projects.length){
+      
+
+    }
+
+
+    if (newTeam.members) {
+  newTeam.members.forEach(m => {
+    if (!newTeam.hasAuthToSee.includes(m)) {
+      newTeam.hasAuthToSee.push(m);
+    }
+  });
+
+  await newTeam.save();
+}
+
+
+
+   
 
     return res.status(201).json({
       success: true,
       message: "✅ Team created successfully",
-      data: savedTeam,
+      team: savedTeam,
+      inviteLink: link,
     });
   } catch (err) {
     return res.status(500).json({
@@ -67,6 +98,7 @@ const createTeam = async (req, res) => {
     });
   }
 };
+
 const getAllTeams = async (req, res) => {
   try {
     const teams = await Team.find({});
@@ -929,6 +961,206 @@ const getTeamIdByName = async (req, res) => {
 
 
 
+const checkForTeamAuthorization = async (req, res) => {
+  try {
+    const { teamId, userId } = req.params;
+
+    if (!teamId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Both userId and teamId are required",
+      });
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ success: false, message: "Team not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // 🔑 Correct access check
+    let hasAuth =
+      team.createdBy?.toString() === userId ||
+      team.members?.some((m) => m.participant?.toString() === userId);
+
+    if (!hasAuth) {
+      return res.status(200).json({
+        success: true,
+        hasAuth: false,
+        message: "You don't have authority to view this team",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      hasAuth: true,
+      message: "You have authority to view this team",
+    });
+  } catch (error) {
+    console.error("Authorization check error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server error",
+      error: error.message,
+    });
+  }
+};
+
+
+const patchTeamJoinRequests = async (req, res) => {
+  try {
+    let { teamId, userId, patch } = req.params;
+
+    if (!teamId || !userId || !patch) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId, userId, and patch status are required",
+      });
+    }
+
+    patch = patch.toLowerCase();
+
+    if (patch !== "accept" && patch !== "reject") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid patch status. Use 'accept' or 'reject'.",
+      });
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ success: false, message: "Team not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Check if user has actually requested
+    if (!team.joinRequests.some((id) => id.toString() === userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "This user has no pending request for this team",
+      });
+    }
+
+    // Process request
+    if (patch === "accept") {
+      if (!team.hasAuthToSee.some((id) => id.toString() === userId)) {
+        team.hasAuthToSee.push(userId);
+        user.teams.push(teamId);
+        await user.save();
+      }
+      if (!team.members.some((id) => id.toString() === userId)) {
+        team.members.push(userId);
+      }
+      team.joinRequests.pull(userId);
+
+      await team.save();
+      return res.status(200).json({
+        success: true,
+        message: "User has been accepted into the team",
+      });
+    }
+
+    if (patch === "reject") {
+      if (!team.rejectedJoinRequests.some((id) => id.toString() === userId)) {
+        team.rejectedJoinRequests.push(userId);
+      }
+      team.joinRequests.pull(userId);
+
+      await team.save();
+      return res.status(200).json({
+        success: true,
+        message: "User's request has been rejected",
+      });
+    }
+  } catch (error) {
+    console.error("Team Join request patch error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+const requestToJoinTeam = async (req, res) => {
+  try {
+    const { teamId, userId } = req.params;
+
+    if (!teamId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Both userId and teamId are required",
+      });
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ success: false, message: "Team not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Already has access?
+    const alreadyHasAccess =
+      team.hasAuthToSee.some((id) => id.toString() === userId) ||
+      team.members.some((id) => id.toString() === userId);
+
+    if (alreadyHasAccess) {
+      return res.status(200).json({
+        success: true,
+        message: "You already have permission to view the team",
+        status: "Access granted",
+      });
+    }
+
+    // Already requested?
+    if (team.joinRequests.some((id) => id.toString() === userId)) {
+      return res.status(200).json({
+        success: true,
+        message: "You have already requested to join",
+        status: "Access requested",
+      });
+    }
+
+    // Rejected before?
+    if (team.rejectedJoinRequests.some((id) => id.toString() === userId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You cannot join this team",
+        status: "Access denied",
+      });
+    }
+
+    // Send join request
+    team.joinRequests.push(userId);
+    await team.save();
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Your request has been sent. You will be added once the admin/owner approves.",
+      status: "Sent Request",
+    });
+  } catch (error) {
+    console.error("Team Join request error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
 
 
 
@@ -937,5 +1169,15 @@ const getTeamIdByName = async (req, res) => {
 
 
 
-export { createTeam, getAllTeams, getTeamById, deleteTeam, addMember, getAllMembers, updateTeam, deleteMember, createTeamJoiningLink, joinUsingLink, getLinkStatus, getProject, removeProject, getAllTeamsByMember, searchTeam, getFilteredTeam, getTeamIdByName }
+
+
+
+
+
+
+
+
+
+
+export { createTeam, getAllTeams, getTeamById, deleteTeam, addMember, getAllMembers, updateTeam, deleteMember, createTeamJoiningLink, joinUsingLink, getLinkStatus, getProject, removeProject, getAllTeamsByMember, searchTeam, getFilteredTeam, getTeamIdByName,requestToJoinTeam,patchTeamJoinRequests,checkForTeamAuthorization }
 

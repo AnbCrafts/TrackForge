@@ -25,7 +25,7 @@ const registerUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    let secure_url = "";
+    let secure_url = ""; 
 
     if (req.file) {
       const filePath = req.file.path;
@@ -36,7 +36,7 @@ const registerUser = async (req, res) => {
       }
 
       secure_url = uploadedPicture.secure_url;
-      fs.unlinkSync(filePath);
+      // fs.unlinkSync(filePath);
     }
 
     const newUser = new User({
@@ -46,7 +46,7 @@ const registerUser = async (req, res) => {
       firstName,
       lastName,
       role,
-      picture: secure_url  // Will be "" if no file uploaded
+      picture: secure_url  
     });
 
     const token = generateToken(newUser._id);
@@ -74,7 +74,7 @@ const registerUser = async (req, res) => {
       token,
       secureHash,
       loginTime
-    });
+    }); 
 
   } catch (error) {
     console.error("Register Error:", error);

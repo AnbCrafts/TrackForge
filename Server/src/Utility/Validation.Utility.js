@@ -573,10 +573,13 @@ const teamValidationSchema = Joi.object({
     }),
 
   link: Joi.object({
-    url: Joi.string().pattern(/^https:\/\/track-forge\.com\/invite\/team\/[a-fA-F0-9]{24}\/creator-[a-fA-F0-9]{24}$/)
+    url: Joi.string()
+      .pattern(
+        /^https:\/\/track-forge\.com\/invite\/team\/[a-fA-F0-9]{24}\/creator-[a-fA-F0-9]{24}$/
+      )
       .required()
       .messages({
-        "string.uri": "⚠️ link.url must be a valid URI",
+        "string.pattern.base": "⚠️ link.url must follow the invite URL format",
         "any.required": "⚠️ link.url is required",
       }),
     createdAt: Joi.date().optional(),
@@ -604,20 +607,21 @@ const teamValidationSchema = Joi.object({
       }),
   }).optional(),
 
-  projects: Joi.string()
-    .custom(objectId, "ObjectId Validation")
-    .optional()
-    .messages({
-      "any.invalid": "⚠️ projects must be a valid MongoDB ObjectId",
-    }),
-  members: Joi.array().items(
+  projects: Joi.array()
+  .items(
     Joi.string()
+      .custom(objectId, "ObjectId Validation")
+      .messages({
+        "any.invalid": "⚠️ each project ID must be a valid MongoDB ObjectId",
+      })
   )
-    .optional()
-    .messages({
-      "any.invalid": "username must be valid string",
-    }),
+  .optional()
+  .messages({
+    "array.base": "⚠️ projects must be an array of valid MongoDB ObjectIds",
+  }),
+
 });
+
 const teamIdValidationSchema = Joi.object({
  teamId: Joi.string()
     .custom(objectId, "ObjectId Validation")

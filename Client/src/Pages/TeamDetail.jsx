@@ -2,11 +2,12 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI';
 import { Badge, Users, LinkIcon, Pen, Plus, Cross, Ban, Option, MoreHorizontal } from 'lucide-react';
+import RestrictedTeamView from './RestrictedTeamView';
 
 const TeamDetail = () => {
   const navigate = useNavigate();
   const { teamId } = useParams();
-  const { teamData, getTeamByID, formatDateTime ,getCurrentUserData,currUserData} = useContext(TrackForgeContextAPI);
+  const { teamData, getTeamByID, formatDateTime ,getCurrentUserData,currUserData,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam} = useContext(TrackForgeContextAPI);
 
   useEffect(()=>{
     const id = localStorage.getItem("userId");
@@ -23,6 +24,7 @@ const TeamDetail = () => {
 
   useEffect(() => {
     getTeamByID(teamId);
+    checkAuthorityToViewTeam(teamId);
   }, [teamId]);
 
   const [ hasAuthority,setHasAuthority] = useState(false);
@@ -43,8 +45,13 @@ const TeamDetail = () => {
   const { creator, members, projects, raw } = teamData;
 
   return (
-    <div className='max-w-full mx-auto min-h-[90vh] max-h-[100vh] overflow-y-scroll noScroll '>
-      {/* Header */}
+
+    <div className='max-w-full mx-auto h-fit max-h-[100vh] overflow-y-scroll noScroll '>
+
+      {
+        (hasAuthToSeeTeam !==null && hasAuthToSeeTeam)
+        ?
+        ( <div>
       <div className='p-6 bg-gray-900 rounded-t-xl text-white flex items-center justify-between '>
         <div>
             <h1 className='text-3xl font-bold'>{raw.name}</h1>
@@ -174,6 +181,17 @@ const TeamDetail = () => {
       </div>
      </div>
       </div>
+
+     </div>)
+        :
+        (
+          teamData &&
+          <RestrictedTeamView creator={creator} projects={projects} raw={ raw} members={members}  />
+        )
+      }
+     
+
+    
 
 
     </div>

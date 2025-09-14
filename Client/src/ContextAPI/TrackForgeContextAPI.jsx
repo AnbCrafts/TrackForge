@@ -25,16 +25,18 @@ export const WorkContextProvider = ({ children }) => {
 
   const verifyResponse = (response) => {
      if(!response){
-      toast.error("Response not found");
+      console.log("No response found")
+      
       return;
     }
     if(!response.data.success){
-      toast.error(response.data.message || "Cannot get positive response");
+      console.log(response)
+      // toast.error(response.data.message || "Cannot get positive response");
       return;
     }
   }
   const throwError=(error)=>{
-        toast.error(error.response?.data?.error || error.response?.data?.message || error.message || "Internal Server Error");
+        // toast.error(error.response?.data?.error || error.response?.data?.message || error.message || "Internal Server Error");
         console.log(error)
     return
   }
@@ -94,28 +96,32 @@ const registerUser = async (data, path) => {
     verifyResponse(response);
     
 
-    const { success, message, user, token, secureHash, loginTime } = response.data;
+   const { success, message, user, token, secureHash, loginTime } = response.data;
+  //  console.log(response)
 
-    if (!success) {
-      toast.error(message || "Server responded with failure");
-      return;
-    }
+if (!success) {
+  toast.error(message || "Server responded with failure");
+  return;
+}
 
-    setUserData(user);
+setUserData(user);
 
-    const { username } = user;
-    const secret = getHashSecret(response.data.loginTime.toString().slice(-4));
-const payload = user?._id?.toString() + response?.data?.loginTime + secret;
+const payload = user?._id?.toString() + loginTime + getHashSecret(loginTime.toString().slice(-4));
 const calculatedHash = SHA256(payload).toString();
-    if (secureHash === calculatedHash) {
-      localStorage.setItem("userId", user?._id);
-      localStorage.setItem("userToken", token);
-      await PatchUserProfile(user?._id,"online");
-      toast.success(message);
-      navigate(`/auth/${secureHash}/${username.toLowerCase()}/workspace`);
-    } else {
-      toast.error("Hash Verification Failed - False Login Attempt");
-    }
+
+
+
+
+if (secureHash === calculatedHash) {
+  localStorage.setItem("userId", user._id);   // ✅ consistent naming
+  localStorage.setItem("userToken", token);
+  await PatchUserProfile(user._id, "online");
+  toast.success(message);
+  navigate(`/auth/${secureHash}/${user.username.toLowerCase()}/workspace`);
+} else {
+  toast.error("Hash Verification Failed - False Login Attempt");
+}
+
 
   } catch (error) {
   throwError(error)
@@ -383,6 +389,33 @@ const logoutUser = async()=>{
 // PROJECTS ENDPOINTS
 
 
+const [userProjects,setUserProjects] = useState({
+  projects:[],
+  length:0
+});
+
+const getUserProjects = async(id)=>{
+  if(!id){
+    toast.warn("ID is required");
+  }
+  try {
+    const response = await axios.get(`${serverURL}/project/list-all/project/${id}`);
+    verifyResponse(response);
+    if(response.data.success){
+      const data= response.data.projects;
+      const length = response.data.total;
+
+
+      setUserProjects({
+        projects:data,
+        length:length
+      });
+    }
+  } catch (error) {
+   throwError(error); 
+  }
+}
+
 const [currProject,setCurrProject] = useState(null);
 
 const createProject = async(data)=>{
@@ -397,12 +430,110 @@ const createProject = async(data)=>{
       const data = response.data.project;
       setCurrProject(data);
 
+      const id = localStorage.getItem("userId");
+      await getUserProjects(id);
+
     }
   } catch (error) {
     throwError(error);
   }
 
 }
+
+const [uploadedFolders, setUploadedFolders]= useState([]);
+const uploadProjectFILES = async(id, data)=>{
+      if(!id){
+        toast.warn("ID is required");
+      }
+      if(!data){
+        toast.warn("Data is required");
+
+      }
+      try {
+        const response = await axios.put(`${serverURL}/project/${id}/files`,data);
+        verifyResponse(response);
+
+        if(response.data.success){
+          toast.success(response.data.message)
+          setUploadedFolders(response.data.folders);
+        }
+        
+      } catch (error) {
+        throwError(error);
+      }
+}
+
+
+
+const [thisProjectFiles,setThisProjectFiles] = useState([]);
+const fetchProjectFiles = async(id)=>{
+  if(!id){
+    toast.warn("ID is required");
+  }
+  try {
+    const uId = localStorage.getItem("userId");
+    const response = await axios.get(`${serverURL}/project/list/${uId}/${id}/folders`);
+    verifyResponse(response);
+    if (response.data.success){
+        const data = response.data.folders;
+        setThisProjectFiles(data);
+    }
+    
+  } catch (error) {
+    throwError(error)
+  }
+}
+
+
+// projectRoutes.get("/list/project=:projectId/user=:userId/check-authorization",checkForProjectAuthorization)
+// projectRoutes.post("/list/project=:projectId/user=:userId/send-join-request",requestToJoinProject)
+// projectRoutes.patch("/list/project=:projectId/user=:userId/decision=:patch",patchJoinRequests)
+
+const [hasAuthToSeeProject, setHasAuthToSeeProject] = useState(null);
+
+const checkAuthorityToViewProject = async(projectId)=>{
+      if(!projectId){
+        toast.warn("Project ID is required");
+      }
+      try {
+        const userId = localStorage.getItem("userId");
+        const response = await axios.get(`${serverURL}/project/list/project=${projectId}/user=${userId}/check-authorization`);
+        verifyResponse(response);
+        if(response.data.success){
+          const data = response.data.hasAuth;
+          setHasAuthToSeeProject(data);
+          toast.success(response.data.message);
+
+        }
+
+        
+      } catch (error) {
+        throwError(error);
+      }
+
+}
+
+
+
+
+const patchProjectJoinRequest = async(projectId,patch)=>{
+    if(!projectId || !patch){
+        toast.warn("ID and patch are required");
+      }
+      try {
+        const userId = localStorage.getItem("userId");
+        const response = await axios.post(`${serverURL}/project/list/project=${projectId}/user=${userId}/decision=${patch}`);
+        verifyResponse(response);
+        if(response.data.success){
+          toast.success(response.data.message);
+          
+        }
+        
+      } catch (error) {
+        throwError(error)
+      }
+}
+
 
 const [allProjects,setAllProjects] = useState(null);
 const getAllProjects = async(page)=>{
@@ -578,31 +709,7 @@ const getProjectStats = async(id)=>{
     throwError(error)
   }
 }
-const [userProjects,setUserProjects] = useState({
-  projects:[],
-  length:0
-});
-const getUserProjects = async(id)=>{
-  if(!id){
-    toast.warn("ID is required");
-  }
-  try {
-    const response = await axios.get(`${serverURL}/project/list-all/project/${id}`);
-    verifyResponse(response);
-    if(response.data.success){
-      const data= response.data.projects;
-      const length = response.data.total;
 
-
-      setUserProjects({
-        projects:data,
-        length:length
-      });
-    }
-  } catch (error) {
-   throwError(error); 
-  }
-}
 
 const [searchedProjects,setSearchedProjects] = useState(null);
 
@@ -700,12 +807,75 @@ const uploadFiles = async(id,files)=>{
 }
 
 
+const [reqStatus,setReqStatus] = useState("");
+
+const sendProjectJoinRequest = async(projectId)=>{
+      if(!projectId){
+        toast.warn("ID is required");
+      }
+      try {
+        const userId = localStorage.getItem("userId");
+        const response = await axios.post(`${serverURL}/project/list/project=${projectId}/user=${userId}/send-join-request`);
+        verifyResponse(response);
+        if(response.data.success){
+          const data = response.data.status;
+          setReqStatus(data);
+         
+          toast.success(response.data.message);
+          await projectById(projectId)
+        }
+        
+      } catch (error) {
+        throwError(error)
+      }
+}
+
+
+const checkProjectJoinRequest = async(projectId)=>{
+      if(!projectId){
+        toast.warn("ID is required");
+      }
+
+      try {
+        const userId = localStorage.getItem("userId");
+        const response = await axios.get(`${serverURL}/project/list/project=${projectId}/user=${userId}/check-request-status`);
+        verifyResponse(response);
+        if(response.data.success){
+          const data = response.data.status;
+          setReqStatus(data);
+          await projectById(projectId)
+        }
+        
+      } catch (error) {
+        throwError(error)
+      }
+}
+
+
 
 
 
 
 
 // TEAMS ENDPOINTS 
+
+const createTeam = async(data)=>{
+  if(!data){
+    toast.warn("Data is required");
+  }
+  try {
+    const response = await axios.post(`${serverURL}/team/create`,data);
+    verifyResponse(response);
+    if(response.data.success){
+      toast.success("Team Created successfully");
+      const id = localStorage.getItem("userId");
+      await getUsersTeam(id);
+      
+    }
+  } catch (error) {
+    throwError(error);
+  }
+}
 
 const [teamData,setTeamData] = useState(null);
 
@@ -797,6 +967,82 @@ const updateTeam = async(teamId,updates,path)=>{
         throwError(error)
       }
 }
+
+
+
+// TeamRoutes.get("/list/project=:projectId/user=:userId/check-authorization",checkForTeamAuthorization)
+// TeamRoutes.post("/list/project=:projectId/user=:userId/send-join-request",requestToJoinTeam)
+// TeamRoutes.patch("/list/project=:projectId/user=:userId/decision=:patch",patchTeamJoinRequests)
+
+
+const [hasAuthToSeeTeam, setHasAuthToSeeTeam] = useState(null);
+
+const checkAuthorityToViewTeam = async (teamId) => {
+  if (!teamId) {
+    toast.warn("Team ID is required");
+    return;
+  }
+  try {
+    const userId = localStorage.getItem("userId");
+    const response = await axios.get(
+      `${serverURL}/team/list/team=${teamId}/user=${userId}/check-authorization`
+    );
+    verifyResponse(response);
+
+    if (response.data.success) {
+      const data = response.data.hasAuth;
+      setHasAuthToSeeTeam(data);
+      toast.success(response.data.message);
+    }
+  } catch (error) {
+    throwError(error);
+  }
+};
+const patchTeamJoinRequest = async (teamId, patch) => {
+  if (!teamId || !patch) {
+    toast.warn("Team ID and patch are required");
+    return;
+  }
+  try {
+    const userId = localStorage.getItem("userId");
+    const response = await axios.post(
+      `${serverURL}/team/list/team=${teamId}/user=${userId}/decision=${patch}`
+    );
+    verifyResponse(response);
+
+    if (response.data.success) {
+      toast.success(response.data.message);
+    }
+  } catch (error) {
+    throwError(error);
+  }
+};
+
+const [teamReqStatus,setTeamReqStatus] = useState("");
+const sendTeamJoinRequest = async (teamId) => {
+  if (!teamId) {
+    toast.warn("Team ID is required");
+    return;
+  }
+  try {
+    const userId = localStorage.getItem("userId");
+    const response = await axios.post(
+      `${serverURL}/team/list/team=${teamId}/user=${userId}/send-join-request`
+    );
+    verifyResponse(response);
+
+    if (response.data.success) {
+      const data = response.data.status;
+      setTeamReqStatus(data);
+      toast.success(response.data.message);
+      await getTeamByID(teamId); // 🔄 refresh team details after sending request
+    }
+  } catch (error) {
+    throwError(error);
+  }
+};
+
+
 
 
 // Ticket ROutes
@@ -1169,16 +1415,17 @@ const postComment = async(data)=>{
 
 
 
-
-
+// console.log(localStorage.getItem("userId"))
 
 
   useEffect(()=>{
     setUserData(userData);
 
+
   },[userData]);
 
-  const contextObj = {registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles};
+
+  const contextObj = {sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,checkProjectJoinRequest,reqStatus,patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,fetchProjectFiles,thisProjectFiles,uploadProjectFILES,uploadedFolders,createTeam,registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles};
 
   return (
     <TrackForgeContextAPI.Provider value={contextObj}>

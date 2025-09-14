@@ -87,7 +87,7 @@ const SearchUser = ({ toggle, setSelectedUserIds, selectedUserIds }) => {
         ) : (
           <p className="text-md text-gray-400">
             No Users found for this search!!!
-          </p>
+          </p> 
         )}
       </div>
     </div>

@@ -17,11 +17,16 @@ import {
   X,
   Flag, CheckCircle, Eye, Trash2,
   MoveLeft,
-  MoveRight
+  MoveRight,
+  File,
+  Folder,
+  FileIcon,
+  FileCode
 } from "lucide-react";
 import SearchUser from "../Components/SearchUser";
 import SearchTeam from "../Components/SearchTeams";
 import { toast } from "react-toastify";
+import RestrictedProjectCard from "../Components/RestrictedProjectCard";
 // import { getFileIcon } from "../Components/Icons";
 
 const ProjectDetail = () => {
@@ -31,15 +36,15 @@ const ProjectDetail = () => {
     project,
     projectById,
     getProjectStats,
-    projectStats,
     addMember,
     addTeam,
     getProjectComments,
-    projectComments,
     createTicket,
-    ticket,
     deleteProject,
-    getThisProjectTickets,thisProjectTickets
+    getThisProjectTickets,thisProjectTickets,
+    uploadProjectFILES,uploadedFolders,
+    fetchProjectFiles,thisProjectFiles,
+    patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,reqStatus
   } = useContext(TrackForgeContextAPI);
 
   const { projectId, username,hash } = useParams();
@@ -62,6 +67,8 @@ const ProjectDetail = () => {
       projectById(projectId);
       getProjectStats(projectId);
       getProjectComments(projectId, page);
+      // fetchProjectFiles(projectId)
+      checkAuthorityToViewProject(projectId)
     }
   }, [projectId]);
 
@@ -179,16 +186,98 @@ const handleViewDetails = async(id)=>{
 } 
 
 
-useEffect(()=>{
-  console.log(project);
-},[project])
+
+const [file,setFile] = useState({
+        filename:"",
+        size: 0,  
+        path:"",                     
+        fileType: "",                  
+        uploadedAt: Date.now(),
+        uploadedBy: localStorage.getItem("userId")
+      
+});
+
+const [folderForm,setFolderForm] = useState({
+  name:"",
+  files:[
+    file
+  ]
+})
+
+
+const uploadProjectFolder = async (e) => {
+  e.preventDefault();
+
+  const formData = new FormData();
+
+  // ✅ Folder only has name + files (no path)
+  formData.append(
+    "folder",
+    JSON.stringify({
+      name: folderForm.name,
+      files: folderForm.files.map((f) => ({
+        filename: f.filename,
+        size: f.size,
+        fileType: f.fileType,
+        path: f.path, // ✅ path stays at file level only
+        uploadedAt: f.uploadedAt,
+        uploadedBy: f.uploadedBy,
+      })),
+    })
+  );
+
+  // Attach actual file objects
+  folderForm.files.forEach((f) => {
+    if (f.fileObj) {
+      formData.append("files", f.fileObj);
+    }
+  });
+
+  // API call
+  await uploadProjectFILES(projectId, formData);
+
+  // Reset state
+  setFile({
+    filename: "",
+    size: 0,
+    path: "", // ✅ keep path for files
+    fileType: "",
+    uploadedAt: Date.now(),
+    uploadedBy: localStorage.getItem("userId"),
+  });
+
+  setFolderForm({
+    name: "",
+    files: [],
+  });
+};
+
+
+
+const handleJoinRequest = ()=>{
+     
+      sendProjectJoinRequest(projectId);
+
+}
+
+
 
 
 
 
   return (
     <div className="min-h-screen p-6 bg-white text-gray-900 space-y-8">
-      {/* Project Title */}
+     
+
+      {
+        (hasAuthToSeeProject !==null && hasAuthToSeeProject)
+        ?
+        
+      (<div>
+
+    
+
+
       <div>
         <div className="flex items-start justify-between">
           <h1 className="text-4xl font-bold mb-2">{projectInfo?.name}</h1>
@@ -475,8 +564,174 @@ useEffect(()=>{
       )}
 
 
-   
 
+        <div className="border text-white border-gray-200 rounded-lg p-4 bg-gray-800 ">
+          <h1 className="text-2xl font-medium text-gray-200 mb-5">Upload Project files</h1>
+
+          <div className="py-5 mt-5 flex items-center justify-start gap-5">
+            <div className="w-xl flex items-center justify-start gap-5">
+              <label htmlFor="folder" className="w-20">
+                <Folder/>
+              </label>
+              <input value={folderForm.name} onChange={(e)=>{
+                setFolderForm((prev)=>({
+                  ...prev,
+                  name:e.target.value
+                }))
+              }} type="text" name="folder" id="folder" placeholder="Create a new folder" className="h-12 block flex-1 outline-none border border-gray-400 rounded shadow px-6 py-1" />
+
+
+            </div>
+
+            <span>OR</span>
+
+            <div className=" w-sm">
+              <select value={folderForm.name} onChange={(e)=>{
+                setFolderForm((prev)=>({
+                  ...prev,
+                  name:e.target.value
+                }))
+              }} className="w-full px-6 py-1 block h-12 bg-gray-800 border border-gray-400 rounded outline-none" name="folder" id="folder">
+                <option value="">
+                  Select existing folders
+                </option>
+                <option value="">
+                  No existing folders found
+                </option>
+              </select>
+
+            </div>
+
+           <div>
+
+           </div>
+            
+
+          </div>
+
+          <div className="py-5 flex items-start justify-start gap-5 mb-5 min-h-[60vh]">
+        <div className="py-5 flex items-center justify-start gap-5 mb-5 w-xl">
+  <label htmlFor="files" className="font-medium w-20">
+    <File />
+  </label>
+
+  <input
+    type="file"
+    id="files"
+    name="files"
+    multiple
+    onChange={(e) => {
+  const selectedFiles = Array.from(e.target.files);
+
+  const mappedFiles = selectedFiles.map((f) => ({
+    filename: f.name,
+    size: f.size,
+    fileType: f.type,
+    uploadedAt: new Date().toISOString(),
+    uploadedBy: localStorage.getItem("userId"),
+    fileObj: f, // ✅ store raw file for preview
+  }));
+
+  setFolderForm((prev) => ({
+    ...prev,
+    files: [...(prev.files || []), ...mappedFiles],
+  }));
+
+  e.target.value = null;
+}}
+
+    className="flex-1 border border-gray-400 rounded shadow px-3 py-2 cursor-pointer"
+  />
+</div>
+       {/* Preview Section */}
+      <div className="pt-5 flex-1">
+    <h2 className="font-semibold text-lg mb-3">
+      Folder: {folderForm.name || "No folder chosen yet"}
+    </h2>
+  
+
+  {folderForm.files.length > 0 ? (
+    <ul className="space-y-3 flex items-start justify-start gap-4 flex-wrap h-80 overflow-y-scroll noScroll">
+      {folderForm.files.map((file, i) => {
+        const isImage =
+  file.fileType.startsWith("image/") ||
+  file.filename.match(/\.(png|jpe?g|gif|webp)$/i);
+
+        const previewUrl = isImage && file.fileObj ? URL.createObjectURL(file.fileObj) : null;
+
+        const isTextOrCode = file.fileType.startsWith("text/") || file.filename.match(/\.(html|js|css|json|txt)$/);
+
+        // Temporary preview for images (needs actual File object for full preview)
+        // const previewUrl = isImage && file.fileObj ? URL.createObjectURL(file.fileObj) : null;
+
+        return (
+          <li
+            key={i}
+            className="flex items-center gap-4 border p-2 rounded-md bg-gray-50 w-xs shadow-sm relative"
+          >
+            {/* Preview Section */}
+            {isImage && previewUrl ? (
+              <img
+                src={previewUrl}
+                alt={file.filename}
+                className="w-12 h-12 object-cover rounded"
+              />
+            ) : isTextOrCode ? (
+              <div className="w-12 h-12 flex items-center justify-center bg-blue-100 rounded">
+                <FileCode className="text-blue-600" size={24} />
+              </div>
+            ) : (
+              <div className="w-12 h-12 flex items-center justify-center bg-gray-200 rounded">
+                <FileIcon className="text-gray-600" size={24} />
+              </div>
+            )}
+
+            {/* File Info */}
+            <div className="flex-1">
+              <p className="font-medium text-sm">{file.filename}</p>
+              <p className="text-xs text-gray-500">
+                {(file.size / 1024).toFixed(2)} KB
+              </p>
+            </div>
+
+            {/* Remove Button */}
+            <button
+              onClick={() =>
+                setFolderForm((prev) => ({
+                  ...prev,
+                  files: prev.files.filter((_, index) => index !== i),
+                }))
+              }
+              className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
+            >
+              <X className="p-1 cursor-pointer h-5 w-5 rounded-full bg-gray-800 text-white" />
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  ) : (
+    <p className="text-gray-500">No files selected yet.</p>
+  )}
+</div>
+
+          </div>
+
+
+
+
+          <div className="w-fit mx-auto my-10">
+            <button onClick={uploadProjectFolder}  className="px-20 py-2.5 rounded border border-gray-50 text-white font-medium hover:bg-white hover:text-gray-800 cursor-pointer transition-all">
+              Upload Folder
+            </button>
+          </div>
+
+
+     
+
+
+
+        </div>
 
       <div className="mt-10 px-3 py-5 border-t border-gray-200  rounded bg-white text-gray-900">
         <h1 className="text-2xl font-semibold mb-5">Create a ticket</h1>
@@ -869,6 +1124,21 @@ useEffect(()=>{
           </button>
         </div>
       </div>
+
+        </div>)
+       
+        :
+        (
+          <RestrictedProjectCard project={projectInfo} onRequestJoin={handleJoinRequest} status={reqStatus} projectId={projectId} />
+
+        )
+
+
+      }
+
+
+
+
     </div>
   );
 };

@@ -5,14 +5,11 @@ const fileSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  path: {
+  path: { // <-- add this
     type: String,
-    required: true,
+    required: true, // because you’ll need it to fetch/open the file
   },
-  folder: { 
-    type: String, 
-    default: "", 
-  },
+  
   size: {
      type: Number 
   },                       // in bytes
@@ -30,14 +27,24 @@ const fileSchema = new mongoose.Schema({
 
 })
 
+
+const FolderSchema = new mongoose.Schema({
+  name: { type: String, 
+    
+  required: true 
+},
+  files: [fileSchema], 
+});
+
+
 const ProjectSchema = new mongoose.Schema(
   {
     name: {
       type: String,
       required: true,
     },
-    files:[
-      fileSchema
+    folders:[
+      FolderSchema
     ],
     description: {
       type: String,
@@ -78,6 +85,18 @@ const ProjectSchema = new mongoose.Schema(
         default: [],
       },
     ],
+    hasAuthToSee:[{
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+    }],
+    joinRequests:[{
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+    }],
+    rejectedJoinRequests:[{
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+    }],
   },
   { timestamps: true }
 );
