@@ -7,7 +7,7 @@ import RestrictedTeamView from './RestrictedTeamView';
 const TeamDetail = () => {
   const navigate = useNavigate();
   const { teamId } = useParams();
-  const { teamData, getTeamByID, formatDateTime ,getCurrentUserData,currUserData,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam} = useContext(TrackForgeContextAPI);
+  const { teamData, getTeamByID, formatDateTime ,getCurrentUserData,currUserData,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,getTeamJoinRequests,teamJoinReqList} = useContext(TrackForgeContextAPI);
 
   useEffect(()=>{
     const id = localStorage.getItem("userId");
@@ -25,6 +25,7 @@ const TeamDetail = () => {
   useEffect(() => {
     getTeamByID(teamId);
     checkAuthorityToViewTeam(teamId);
+    getTeamJoinRequests(teamId);
   }, [teamId]);
 
   const [ hasAuthority,setHasAuthority] = useState(false);
@@ -38,7 +39,7 @@ const TeamDetail = () => {
   },[currUserData])
 
   
-  
+ 
   
   
   if (!teamData || !teamData.raw) return <p className="text-center text-gray-500">Loading Team Details...</p>;

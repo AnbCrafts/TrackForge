@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { addMember, checkForTeamAuthorization, createTeam, createTeamJoiningLink, deleteMember, deleteTeam, getAllMembers, getAllTeams, getAllTeamsByMember, getFilteredTeam, getLinkStatus, getProject, getTeamById, getTeamIdByName, joinUsingLink, patchTeamJoinRequests, requestToJoinTeam, searchTeam, updateTeam } from "../Controllers/Team.Controllers.js";
+import { addMember, checkForTeamAuthorization, createTeam, createTeamJoiningLink, deleteMember, deleteTeam, getAllMembers, getAllTeams, getAllTeamsByMember, getFilteredTeam, getJoinRequest, getLinkStatus, getProject, getTeamById, getTeamIdByName, joinUsingLink, patchTeamJoinRequests, requestToJoinTeam, searchTeam, updateTeam } from "../Controllers/Team.Controllers.js";
 
 const TeamRoutes = Router();
 
 
 
 TeamRoutes.get("/list/team=:teamId/user=:userId/check-authorization",checkForTeamAuthorization)
+TeamRoutes.get("/list/team=:teamId/user=:userId/join-req-list",getJoinRequest)
 TeamRoutes.post("/list/team=:teamId/user=:userId/send-join-request",requestToJoinTeam)
 TeamRoutes.patch("/list/team=:teamId/user=:userId/decision=:patch",patchTeamJoinRequests)
 

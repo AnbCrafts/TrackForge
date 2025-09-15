@@ -186,7 +186,7 @@ const Gateway = () => {
   
   return (
     <div className="min-h-[100vh] w-full mx-auto ">
-      {
+      {/* {
         showBox && 
       <div className="min-w-lg p-5 flex items-start justify-start gap-5 flex-col min-h-80 fixed top-[50vh] right-0 z-50 border-gray-200 border rounded-2xl bg-white/20">
         <X onClick={()=>setShowBox(false)} className="bg-gray-900 text-white p-1 h-8 w-8 rounded-full cursor-pointer shadow-2xl float-right  " />
@@ -208,7 +208,7 @@ const Gateway = () => {
       }
    
 
-      
+       */}
 
       <div className="px-4 md:px-10 py-1 bg-gray-800 flex flex-col md:flex-row items-center md:justify-between gap-3 md:gap-5">
   {/* Logo + Name */}

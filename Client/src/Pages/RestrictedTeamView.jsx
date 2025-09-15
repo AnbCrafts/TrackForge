@@ -5,10 +5,11 @@ import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 
 export default function RestrictedTeamView({ creator, projects, members, raw }) {
     const {teamId} = useParams();
-    const {sendTeamJoinRequest,teamReqStatus,getTeamByID} = useContext(TrackForgeContextAPI);
+    const {sendTeamJoinRequest,teamReqStatus,getTeamByID,checkAuthorityToViewTeam} = useContext(TrackForgeContextAPI);
 
     useEffect(()=>{
-        getTeamByID(teamId);;
+        getTeamByID(teamId);
+        checkAuthorityToViewTeam(teamId)
     },[teamId])
 
     const joinReqHandler = ()=>{

@@ -1478,6 +1478,18 @@ const requestToJoinProject = async(req,res)=>{
       });
     }
 
+
+    // Example response structure
+// if (!project.joinRequests.includes(userId)) {
+//   return res.status(200).json({
+//     success: true,
+//     status: "not_requested",
+//   });
+// }
+
+
+
+
     // Send join request
     project.joinRequests.push(userId);
     await project.save();
@@ -1574,10 +1586,72 @@ const checkUserRequestStatus = async(req,res)=>{
   }
 }
 
+const getJoinRequest = async (req, res) => {
+  try {
+    let { projectId, userId } = req.params;
+
+    if (!projectId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "projectId and userId are required",
+      });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    const user = await User.findById(userId).select("role");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // ✅ Allow only admin/owner to see requests
+    if (user.role !== "admin" && user.role !== "owner") {
+      return res.status(200).json({
+        success: true,
+        message: "You are not authorized to view join requests",
+        userData: [], // return empty data instead of error
+      });
+    }
+
+    if (!project.joinRequests?.length) {
+      return res.status(200).json({
+        success: true,
+        message: "No pending requests for this project",
+        userData: [],
+      });
+    }
+
+    const userData = await Promise.all(
+      project.joinRequests.map(async (u) =>
+        await User.findById(u).select("username _id")
+      )
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Got all pending requests for this project",
+      userData,
+    });
+  } catch (error) {
+    console.error("Project Join request fetch error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
 
 
 
 
 
 
-export {checkUserRequestStatus,patchJoinRequests,requestToJoinProject,checkForProjectAuthorization,getUserProjectFolders,getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }
+
+
+
+
+export {getJoinRequest,checkUserRequestStatus,patchJoinRequests,requestToJoinProject,checkForProjectAuthorization,getUserProjectFolders,getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }

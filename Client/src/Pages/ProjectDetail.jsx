@@ -44,7 +44,7 @@ const ProjectDetail = () => {
     getThisProjectTickets,thisProjectTickets,
     uploadProjectFILES,uploadedFolders,
     fetchProjectFiles,thisProjectFiles,
-    patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,reqStatus
+    patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,reqStatus,getPendingProjectRequests,pendingProjectReqLists
   } = useContext(TrackForgeContextAPI);
 
   const { projectId, username,hash } = useParams();
@@ -69,6 +69,7 @@ const ProjectDetail = () => {
       getProjectComments(projectId, page);
       // fetchProjectFiles(projectId)
       checkAuthorityToViewProject(projectId)
+      getPendingProjectRequests(projectId);
     }
   }, [projectId]);
 
@@ -562,6 +563,28 @@ const handleJoinRequest = ()=>{
           </div>
         </div>
       )}
+
+
+        <div className="p-5 mt-5">
+          {
+      pendingProjectReqLists && pendingProjectReqLists.length
+      ?
+      pendingProjectReqLists.map((r)=>{
+        (
+        <ul>
+          <li key={r._id}>
+            <span>{r.username}</span>
+          </li>
+        </ul>
+
+      )
+      })
+      :(
+        <p className="font-medium text-gray-800">No pending requests</p>
+      )
+      
+        }
+      </div>
 
 
 
@@ -1124,6 +1147,9 @@ const handleJoinRequest = ()=>{
           </button>
         </div>
       </div>
+
+      
+    
 
         </div>)
        

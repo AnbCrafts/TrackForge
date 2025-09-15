@@ -807,7 +807,7 @@ const uploadFiles = async(id,files)=>{
 }
 
 
-const [reqStatus,setReqStatus] = useState("");
+const [reqStatus,setReqStatus] = useState("not_requested");
 
 const sendProjectJoinRequest = async(projectId)=>{
       if(!projectId){
@@ -851,7 +851,30 @@ const checkProjectJoinRequest = async(projectId)=>{
       }
 }
 
+const [pendingProjectReqLists, setPendingProjectReqLists] = useState([]);
+const getPendingProjectRequests = async(projectId)=>{
+      if(!projectId){
+        toast.warn("ID is required");
 
+      }
+      try {
+        const userId = localStorage.getItem("userId");
+        const response = await axios.get(`${serverURL}/project/list/project=${projectId}/user=${userId}/pending-request-list`);
+        verifyResponse(response);
+        if(response.data.success){
+          const data = response.data.userData;
+          setPendingProjectReqLists(data);
+        }
+        
+      } catch (error) {
+        throwError(error);
+      }
+}
+ 
+
+useEffect(()=>{
+    console.log("pendingProjectReqLists",pendingProjectReqLists);
+},[pendingProjectReqLists])
 
 
 
@@ -1041,6 +1064,25 @@ const sendTeamJoinRequest = async (teamId) => {
     throwError(error);
   }
 };
+
+const [teamJoinReqList, setTeamJoinReqList] = useState([]);
+const getTeamJoinRequests = async(teamId)=>{
+      if(!teamId){
+        toast.warn("ID is required");
+      }
+      try {
+        const userId = localStorage.getItem("userId");
+        const response = await axios.get(`${serverURL}/team/list/team=${teamId}/user=${userId}/join-req-list`);
+        verifyResponse(response);
+        if(response.data.success){
+          const data = response.data.userData;
+          setTeamJoinReqList(data);
+        }
+        
+      } catch (error) {
+        throwError(error)
+      }
+}
 
 
 
@@ -1425,7 +1467,7 @@ const postComment = async(data)=>{
   },[userData]);
 
 
-  const contextObj = {sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,checkProjectJoinRequest,reqStatus,patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,fetchProjectFiles,thisProjectFiles,uploadProjectFILES,uploadedFolders,createTeam,registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles};
+  const contextObj = {getTeamJoinRequests,teamJoinReqList,getPendingProjectRequests,pendingProjectReqLists,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,checkProjectJoinRequest,reqStatus,patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,fetchProjectFiles,thisProjectFiles,uploadProjectFILES,uploadedFolders,createTeam,registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles};
 
   return (
     <TrackForgeContextAPI.Provider value={contextObj}>

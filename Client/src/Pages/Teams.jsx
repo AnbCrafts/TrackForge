@@ -203,14 +203,20 @@ useEffect(() => {
 
      
         {
-        userTeams && userTeams.length>0
+        ((userTeams && userTeams.length>0) || searchedTeams)
         ?
         (
       <div className='flex  gap-3 items-start justify-between'>
-        <div>
+        {
+          (userTeams && userTeams.length>0)
+          ?
+          (<div>
           
           <PreviewTeam team={userTeams} hide={hidePreview} />
-        </div>
+        </div>)
+          :("")
+        }
+        
       <div className='flex-1 bg-white max-h-[100vh] h-auto rounded-lg shadow-lg relative'>
        
        <Outlet/>

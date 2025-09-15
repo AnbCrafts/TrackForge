@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import { addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities, addFilesToProject, getProjectFiles, getUserProjectFolders, checkForProjectAuthorization, requestToJoinProject, patchJoinRequests, checkUserRequestStatus} from '../Controllers/Project.Controllers.js';
+import { addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities, addFilesToProject, getProjectFiles, getUserProjectFolders, checkForProjectAuthorization, requestToJoinProject, patchJoinRequests, checkUserRequestStatus, getJoinRequest} from '../Controllers/Project.Controllers.js';
 import upload from '../Middlewares/ProjectFiles.Middleware.js';
 
 const projectRoutes = Router();
@@ -16,6 +16,7 @@ projectRoutes.put(
 projectRoutes.get("/:projectId/folder/files",getProjectFiles);
 
 projectRoutes.get("/list/project=:projectId/user=:userId/check-authorization",checkForProjectAuthorization)
+projectRoutes.get("/list/project=:projectId/user=:userId/pending-request-list",getJoinRequest)
 projectRoutes.get("/list/project=:projectId/user=:userId/check-request-status",checkUserRequestStatus)
 projectRoutes.post("/list/project=:projectId/user=:userId/send-join-request",requestToJoinProject)
 projectRoutes.patch("/list/project=:projectId/user=:userId/decision=:patch",patchJoinRequests)

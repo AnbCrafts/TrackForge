@@ -5,11 +5,11 @@ import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 export default function RestrictedProjectCard({ project, onRequestJoin,status, projectId }) {
   const {checkProjectJoinRequest, reqStatus} = useContext(TrackForgeContextAPI);
 
-  useEffect(()=>{
-      if(projectId && checkProjectJoinRequest){
-        checkProjectJoinRequest(projectId)
-      } 
-  },[projectId])
+  // useEffect(()=>{
+  //     if(projectId && checkProjectJoinRequest){
+  //       checkProjectJoinRequest(projectId)
+  //     } 
+  // },[projectId])
 
   const StatusBadge = ({ status }) => {
   let styles = "px-3 py-1 rounded text-sm font-medium inline-block ";
@@ -56,20 +56,19 @@ export default function RestrictedProjectCard({ project, onRequestJoin,status, p
       </div>
 
         <div>
-          {
-            status === ""
-            ?
-            (<button
-          onClick={onRequestJoin}
-          className="flex cursor-pointer items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          <Send className="h-4 w-4" /> Request to Join
-        </button>)
-            :
-            (
-              <StatusBadge status={status}/>
-            )
-          }
+         {
+  status === "" || status === "not_requested"
+    ? (
+      <button
+        onClick={onRequestJoin}
+        className="flex cursor-pointer items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+      >
+        <Send className="h-4 w-4" /> Request to Join
+      </button>
+    )
+    : <StatusBadge status={status} />
+}
+
         
 
         </div>

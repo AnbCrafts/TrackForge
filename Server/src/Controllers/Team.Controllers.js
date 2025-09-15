@@ -959,8 +959,6 @@ const getTeamIdByName = async (req, res) => {
   }
 };
 
-
-
 const checkForTeamAuthorization = async (req, res) => {
   try {
     const { teamId, userId } = req.params;
@@ -1009,8 +1007,7 @@ const checkForTeamAuthorization = async (req, res) => {
     });
   }
 };
-
-
+ 
 const patchTeamJoinRequests = async (req, res) => {
   try {
     let { teamId, userId, patch } = req.params;
@@ -1162,6 +1159,64 @@ const requestToJoinTeam = async (req, res) => {
   }
 };
 
+const getJoinRequest = async (req, res) => {
+  try {
+    let { teamId, userId } = req.params;
+
+    if (!teamId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "teamId and userId are required",
+      });
+    }
+
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ success: false, message: "team not found" });
+    }
+
+    const user = await User.findById(userId).select("role");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // ✅ Allow only admin/owner to see requests
+    if (user.role !== "admin" && user.role !== "owner") {
+      return res.status(200).json({
+        success: true,
+        message: "You are not authorized to view join requests",
+        userData: [], 
+      });
+    }
+
+    if (!team.joinRequests?.length) {
+      return res.status(200).json({
+        success: true,
+        message: "No pending requests for this project",
+        userData: [],
+      });
+    }
+
+    const userData = await Promise.all(
+      team.joinRequests.map(async (u) =>
+        await User.findById(u).select("username _id")
+      )
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Got all pending requests for this team",
+      userData,
+    });
+  } catch (error) {
+    console.error("team Join request fetch error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
 
 
 
@@ -1179,5 +1234,6 @@ const requestToJoinTeam = async (req, res) => {
 
 
 
-export { createTeam, getAllTeams, getTeamById, deleteTeam, addMember, getAllMembers, updateTeam, deleteMember, createTeamJoiningLink, joinUsingLink, getLinkStatus, getProject, removeProject, getAllTeamsByMember, searchTeam, getFilteredTeam, getTeamIdByName,requestToJoinTeam,patchTeamJoinRequests,checkForTeamAuthorization }
+
+export {getJoinRequest, createTeam, getAllTeams, getTeamById, deleteTeam, addMember, getAllMembers, updateTeam, deleteMember, createTeamJoiningLink, joinUsingLink, getLinkStatus, getProject, removeProject, getAllTeamsByMember, searchTeam, getFilteredTeam, getTeamIdByName,requestToJoinTeam,patchTeamJoinRequests,checkForTeamAuthorization }
 
