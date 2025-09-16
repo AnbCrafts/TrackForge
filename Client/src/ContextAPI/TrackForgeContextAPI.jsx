@@ -439,7 +439,7 @@ const createProject = async(data)=>{
   }
 
 }
-
+ 
 const [uploadedFolders, setUploadedFolders]= useState([]);
 const uploadProjectFILES = async(id, data)=>{
       if(!id){
@@ -787,7 +787,7 @@ const getProjectFiles = async(id)=>{
   }
 
 }
-
+ 
 const uploadFiles = async(id,files)=>{
   if(!id || !files || !files.length){
     toast.success("ID and file are required");
@@ -872,9 +872,6 @@ const getPendingProjectRequests = async(projectId)=>{
 }
  
 
-useEffect(()=>{
-    console.log("pendingProjectReqLists",pendingProjectReqLists);
-},[pendingProjectReqLists])
 
 
 

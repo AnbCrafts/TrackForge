@@ -9,7 +9,7 @@ projectRoutes.post("/create/new",addNewProject)
 
 projectRoutes.put(
   "/:projectId/files",
-  upload.array("files"),  
+  upload.array("files"),   
   addFilesToProject
 );
 

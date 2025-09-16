@@ -21,7 +21,10 @@ import {
   File,
   Folder,
   FileIcon,
-  FileCode
+  FileCode,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import SearchUser from "../Components/SearchUser";
 import SearchTeam from "../Components/SearchTeams";
@@ -67,7 +70,7 @@ const ProjectDetail = () => {
       projectById(projectId);
       getProjectStats(projectId);
       getProjectComments(projectId, page);
-      // fetchProjectFiles(projectId)
+       fetchProjectFiles(projectId)
       checkAuthorityToViewProject(projectId)
       getPendingProjectRequests(projectId);
     }
@@ -264,6 +267,16 @@ const handleJoinRequest = ()=>{
 
 
 
+useEffect(()=>{
+  console.log("thisProjectFiles",thisProjectFiles);
+},[thisProjectFiles])
+
+
+
+const [openedFolder,setOpenedFolder] = useState({
+  key:0,
+  open:false
+})
 
 
   return (
@@ -311,7 +324,7 @@ const handleJoinRequest = ()=>{
       </div>
 
       {/* Owner Details */}
-      <div className="border border-gray-200 rounded-lg p-4">
+      <div className="border border-gray-200 rounded-lg p-4 my-3">
         <h2 className="text-2xl font-semibold mb-2">👑 Owner</h2>
         <div className="text-sm space-y-1">
           <p>
@@ -330,7 +343,7 @@ const handleJoinRequest = ()=>{
       </div>
 
       {/* Members */}
-      <div className="border border-gray-200 rounded-lg p-4 ">
+      <div className="border border-gray-200 rounded-lg p-4 my-3 ">
         <h2 className="text-2xl font-semibold mb-4">
           👥 Members ({members.length})
         </h2>
@@ -355,7 +368,7 @@ const handleJoinRequest = ()=>{
 
 
       {/* Tickets */}
-      <div className="border border-gray-200 rounded-lg p-4  ">
+      <div className="border border-gray-200 rounded-lg p-4 my-3  ">
         <div className="flex items-start justify-start gap-5">
         <h1 className="text-2xl font-semibold mb-4">
           🎫 Tickets ({thisProjectTickets?.totalTickets || 0})
@@ -524,7 +537,7 @@ const handleJoinRequest = ()=>{
       </div>
 
       {/* Activity */}
-      <div className="border border-gray-200 rounded-lg p-4 ">
+      <div className="border border-gray-200 rounded-lg p-4 my-3 ">
         <h2 className="text-2xl font-semibold mb-4">
           📌 Activity Log ({activities.length})
         </h2>
@@ -546,7 +559,7 @@ const handleJoinRequest = ()=>{
 
       {/* Teams (if any) */}
       {data.teams && data.teams.length > 0 && (
-        <div className="border border-gray-200 rounded-lg p-4">
+        <div className="border border-gray-200 rounded-lg p-4 my-3">
           <h2 className="text-2xl font-semibold mb-4">🛡️ Teams</h2>
           <div className="space-y-2">
             {data.teams.map((team) => (
@@ -563,6 +576,78 @@ const handleJoinRequest = ()=>{
           </div>
         </div>
       )}
+
+
+
+     <div className="border my-5 border-gray-200 rounded-lg p-4">
+      <h1 className="text-2xl font-medium text-gray-800 flex items-center justify-start gap-10">📂 Uploaded files
+
+        <Link to={`code-editor/view-project`} className="text-sm bg-gray-800 text-white px-4 py-1 rounded cursor-pointer">Open in Code Editor</Link>
+      </h1>
+  {thisProjectFiles && thisProjectFiles.length ? (
+    <ul className="mt-5 py-5">
+      {thisProjectFiles.map((f, i) => (
+        <li key={i} className="mb-3">
+          {/* Folder header */}
+          <div
+            onClick={() =>
+              setOpenedFolder({
+                key: i,
+                open: openedFolder.key === i ? !openedFolder.open : true,
+              })
+            }
+            className="px-4 cursor-pointer py-2 rounded text-lg font-medium max-w-60 bg-gray-800 text-white flex items-center justify-between"
+          >
+            📂 {f.name}
+            {openedFolder.key === i && openedFolder.open ? (
+              <ChevronDown />
+            ) : (
+              <ChevronRight />
+            )}
+          </div>
+
+          {/* Folder contents */}
+          {openedFolder.key === i && openedFolder.open && (
+            <ul className="ml-8 mt-2 space-y-1">
+              {f.files && f.files.length > 0 ? (
+                f.files.map((file, idx) => (
+                  <li
+                    key={idx}
+                    className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer font-medium mb-2 gap-1 p-1 rounded hover:bg-gray-700 hover:text-white transition-all  border border-gray-300 max-w-50 overflow-hidden text-ellipsis whitespace-nowrap"
+                  >
+                    📄{" "}
+                    <a
+
+                      href={file.path}
+                      target="_blank"
+                      rel="noreferrer"
+                      
+                    >
+                      {file.filename}
+                    </a>
+                    <span className="text-xs text-gray-500">
+                      ({Math.round(file.size / 1024)} KB)
+                    </span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-sm text-gray-500">No files in this folder</li>
+              )}
+            </ul>
+          )}
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p>No Files for this project</p>
+  )}
+
+
+  
+</div>
+
+
+
 
 
         <div className="p-5 mt-5">
@@ -618,9 +703,23 @@ const handleJoinRequest = ()=>{
                 <option value="">
                   Select existing folders
                 </option>
-                <option value="">
-                  No existing folders found
+
+                {
+                  thisProjectFiles && thisProjectFiles.length
+                  ?
+                  thisProjectFiles.map((f,i)=>{
+                    return(
+                      <option value={f?.name} key={i}>
+                  {f?.name}
                 </option>
+                    )
+                  })
+                  :
+                  ( <option value="">
+                  No existing folders found
+                </option>)
+                }
+               
               </select>
 
             </div>

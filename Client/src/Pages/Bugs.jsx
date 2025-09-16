@@ -5,11 +5,12 @@ import { useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { useState } from 'react';
 import { Bug, Wrench, Star, User, Clock, AlertTriangle, CheckCircle, ListChecks, Check, Text, Flag, Flame, AlertCircle, MessageSquareOff, MessageSquareText, MoveLeft, MoveRight, Paperclip, Folder, Calendar, AlignLeft, FileText, ActivityIcon, Hash, Copy, CheckCheck, AlignCenter, Send } from "lucide-react";
+import { useParams } from 'react-router-dom';
 
 
 const Bugs = () => {
   const {getUserTickets,userTickets,createActivity,getTicketComments,ticketComments,postComment} = useContext(TrackForgeContextAPI);
-
+  const {ticketId} = useParams();
   const [currPage,setCurrPage] = useState(1);
   const [currTickPage,setCurrTickPage] = useState(1);
   const [userId,setUserId] = useState(null);
@@ -46,8 +47,8 @@ const [commentForm,setCommentForm] = useState({
   
 
   useEffect(()=>{
-    const tId = localStorage.getItem("currTicketId") ||(userTickets && userTickets[currPage] && userTickets[currPage]?.raw?._id)
-    const pId = localStorage.getItem("currProjectId")||(userTickets && userTickets[currPage] && userTickets[currPage]?.project?._id)
+    const tId = localStorage.getItem("currTicketId") ||(userTickets && userTickets[currPage] && userTickets[currPage]?.raw?._id) || ticketId;
+    const pId = localStorage.getItem("currProjectId")||(userTickets && userTickets[currPage] && userTickets[currPage]?.project?._id) || projectId;
     if(pId && tId){
 
       getTicketComments(tId,currTickPage);

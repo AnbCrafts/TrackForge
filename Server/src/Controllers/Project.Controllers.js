@@ -1091,10 +1091,8 @@ const getAllActivities = async (req, res) => {
     return res.status(500).json({ success: false, message: "Internal Server Error" });
       }
 }
-
 const addFilesToProject = async (req, res) => {
   try {
-
     const { error } = validationUtils.projectIdValidationSchema.validate(req.params);
     if (error) {
       return res.status(400).json({ error: error.details[0].message });
@@ -1102,14 +1100,14 @@ const addFilesToProject = async (req, res) => {
 
     const { projectId } = req.params;
 
-    let folder;
-    try {
-      folder = JSON.parse(req.body.folder);
-    } catch (err) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid folder JSON",
-      });
+    
+    let folder = req.body.folder;
+    if (typeof folder === "string") {
+      try {
+        folder = JSON.parse(folder);
+      } catch {
+        folder = { name: folder }; // fallback
+      }
     }
 
     if (!folder || !folder.name || !folder.name.trim()) {
@@ -1119,6 +1117,7 @@ const addFilesToProject = async (req, res) => {
       });
     }
 
+    // Find project
     const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({
@@ -1127,15 +1126,19 @@ const addFilesToProject = async (req, res) => {
       });
     }
 
+    // Find or create folder
     let existingFolder = project.folders.find(
       (f) => f.name.toLowerCase() === folder.name.trim().toLowerCase()
     );
-
     if (!existingFolder) {
-      existingFolder = { name: folder.name.trim(), files: [] };
-      project.folders.push(existingFolder);
+      project.folders.push({ name: folder.name.trim(), files: [] });
+      await project.save();
+      existingFolder = project.folders.find(
+        (f) => f.name.toLowerCase() === folder.name.trim().toLowerCase()
+      );
     }
 
+    // Check files
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
@@ -1143,6 +1146,7 @@ const addFilesToProject = async (req, res) => {
       });
     }
 
+    // Upload each file
     for (const file of req.files) {
       const cloudResp = await uploadOnCloudinary(
         file.path,
@@ -1150,19 +1154,17 @@ const addFilesToProject = async (req, res) => {
         file.originalname
       );
 
-      if (cloudResp) {
+      if (cloudResp?.secure_url) {
         existingFolder.files.push({
           filename: file.originalname,
           size: file.size,
           fileType: file.mimetype,
-          uploadedBy: req.user ? req.user._id : null, 
+          uploadedBy: req.user?._id || null,
           uploadedAt: new Date(),
-          path: cloudResp.secure_url, 
+          path: cloudResp.secure_url,
         });
       }
     }
-
-    project.markModified("folders");
 
     await project.save();
 
@@ -1180,7 +1182,8 @@ const addFilesToProject = async (req, res) => {
       error: error.message,
     });
   }
-};  
+};
+
 
 
 const getProjectFiles = async (req, res) => {
@@ -1234,7 +1237,6 @@ const getProjectFiles = async (req, res) => {
     });
   }
 };
-
 
 const getUserProjectFolders = async (req, res) => {
   try {

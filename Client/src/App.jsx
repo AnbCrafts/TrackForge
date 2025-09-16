@@ -59,7 +59,7 @@ const App = () => {
     
 
     
-      
+       
       
       <Routes>
         <Route path='/' element={<Gateway/>} />
@@ -67,13 +67,14 @@ const App = () => {
         <Route path='/login' element={<Login/>} />
         <Route path='/register' element={<Login/>} />
         <Route path='/auth/:hash/:username/workspace/' element={<Home />}>
-        <Route path='code-editor' element={<CodeEditor />} />
+        <Route path='code-editor/view-project' element={<CodeEditor />} />
         <Route path='help' element={<Help />} />
         <Route path='admin' element={<Admin />} />
         <Route path='logout' element={<Logout />} />
         <Route path='dashboard' element={<Dashboard />} />
         <Route path='dashboard/ticket-detail/:ticketId/activity/:activityId/edit' element={<EditActivity />} />
         <Route path='projects' element={<Projects />} />
+        <Route path='projects/:projectId/code-editor/view-project' element={<CodeEditor />} />
         
         <Route path='bugs' element={<Bugs />} />
         <Route path='ticket-detail/:ticketId' element={<ViewDetailedBug />} />

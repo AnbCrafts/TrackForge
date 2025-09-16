@@ -4,10 +4,10 @@ export default function CodeViewer({ file }) {
   return (
     <div className="w-full h-[97vh]">
       <Editor
-      width="100%"
+        width="100%"
         height="100%"
-        defaultLanguage={getLanguageFromExtension(file?.filename)}
-        defaultValue={file?.content} // fetched file text
+        language={getLanguageFromExtension(file?.filename)} // ✅ use language
+        value={file?.content || ""}                          // ✅ use value
         theme="vs-dark"
         options={{
           readOnly: true,

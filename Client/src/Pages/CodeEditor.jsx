@@ -1,281 +1,202 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI'
-import {  useParams } from 'react-router-dom';
-import { ChevronDown, ChevronRight, File, Folder, X } from "lucide-react";
+import React, { useContext, useEffect, useState } from 'react';
+import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI';
+import { Link, useParams } from 'react-router-dom';
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from 'react-toastify';
 import CodeViewer from '../Components/CodeViewer';
 
 const CodeEditor = () => {
-    const {getUserProjects,userProjects,getProjectFiles,projectFiles,uploadFiles} = useContext(TrackForgeContextAPI);
-    const id = localStorage.getItem("userId");
-    const {username,hash} = useParams();
+  const { fetchProjectFiles, thisProjectFiles } = useContext(TrackForgeContextAPI);
+  const { username, hash, projectId } = useParams();
+  const basePath = `/auth/${hash}/${username}/workspace`;
 
-    useEffect(()=>{
-        getUserProjects(id);
-    }, [id])
+  useEffect(() => {
+    fetchProjectFiles(projectId);
+  }, [projectId]);
 
-    const [expand,setExpand] = useState({
-      index:"",
-      value:false
-    });
+  const [openedFolder, setOpenedFolder] = useState({ key: 0, open: false });
 
-    const pId = localStorage.getItem("thisProject");
-    useEffect(()=>{
-      if(pId) getProjectFiles(pId);
-    },[pId])
+  // multiple opened files like VS Code
+  const [openedFiles, setOpenedFiles] = useState([]);
+  const [activeFile, setActiveFile] = useState(null);
 
-    const [openFiles,setOpenFiles] = useState([]);
-    const [activeFile,setActiveFile] = useState(null);
-    const [fileContents,setFileContents] = useState({});
+  const handleFileClick = async (file) => {
+  try {
+    if (!file?.path) throw new Error("File path missing");
 
-    const fetchFileData = async () => {
-      const newContent = {};
+    const response = await fetch(file.path);
+    const text = await response.text();
 
-      if (projectFiles && projectFiles.length) {
-        await Promise.all(
-          projectFiles.map(async (f) => {
-            try {
-              const res = await fetch(f.path);   // fetch file from URL
-              const text = await res.text();     // get raw content
-              newContent[f._id] = text;
-            } catch (err) {
-              newContent[f._id] = "// ❌ Error loading file";
-            }
-          })
-        );
-      }
-
-      setFileContents(newContent); // update state
+    const opened = {
+      ...file,
+      content: text,
     };
 
-    useEffect(()=>{
-      if(openFiles.length) fetchFileData();
-    },[openFiles, projectFiles]);
+    // Add to opened tabs if not already
+    setOpenedFiles((prev) => {
+      const exists = prev.find((f) => f.path === file.path);
+      if (exists) return prev; // already open
+      return [...prev, opened];
+    });
 
-    useEffect(()=>{
-      // If activeFile is removed, set activeFile to last open file
-      if(openFiles.length && (!activeFile || !openFiles.includes(activeFile))){
-        setActiveFile(openFiles[openFiles.length - 1]);
-      } else if(openFiles.length === 0){
-        setActiveFile(null);
-      }
-    }, [openFiles]);
-
-    const [createFile,setCreateFile] = useState(false);
-    const [createFolder,setCreateFolder] = useState(false);
-    const [newFileName,setNewFileName] = useState("");
-    const [newFolderName,setNewFolderName] = useState("");
-
-
-    const fileCreationSubmitHandler = async (e) => {
-          e.preventDefault();
-      const id = localStorage.getItem("userId");
-  const pId = localStorage.getItem("thisProject");
-  if (!newFileName) {
-    toast.error("File name cannot be empty");
-    return;
+    setActiveFile(opened);
+  } catch (error) {
+    console.error("Error loading file:", error);
+    toast.error("Failed to load file content");
   }
-
-  // Create new file object
-  const newFile = {
-    _id: `temp-${Date.now()}`, 
-    filename: newFileName,
-    fileType: "text/plain",   
-    path: "",                  
-    folder:  "", 
-    uploadedAt: new Date().toISOString(),
-    uploadedBy: id,
-  };
-
-  uploadFiles(pId,newFile);
-
-  // setActiveFile(newFile.filename);
-
-  // setFileContents((prev) => ({
-  //   ...prev,
-  //   [newFile._id]: "",
-  // }));
-
-  toast.success(`File "${newFileName}" created successfully!`);
-
-  // Reset input field if you have one
-  setNewFileName("");
-  setCreateFile(false);
 };
 
 
 
+  
+
+
+  const closeFile = (file) => {
+    const remaining = openedFiles.filter(f => f.path !== file.path);
+    setOpenedFiles(remaining);
+
+    // if closing active file, switch to last opened
+    if (activeFile?.path === file.path) {
+      setActiveFile(remaining.length ? remaining[remaining.length - 1] : null);
+    }
+  };
+
+
+  // When switching tabs
+const handleTabClick = async (file) => {
+  try {
+    const response = await fetch(file.path);
+    const text = await response.text();
+
+    const refreshedFile = {
+      ...file,
+      content: text,
+    };
+
+    // Replace with fresh content in openedFiles
+    setOpenedFiles((prev) =>
+      prev.map((f) => (f.path === file.path ? refreshedFile : f))
+    );
+
+    setActiveFile(refreshedFile);
+  } catch (error) {
+    console.error("Error reloading file:", error);
+    toast.error("Failed to reload file content");
+  }
+};
+
+
+
+const blockedFolders = ["images", "pictures", "photos", "photo", "img", "pic"];
+
+
   return (
-
-    <>
-    {(!userProjects || !projectFiles) && 
-    (
-      <p className='p-10 text-center mt-10 text-xl font-medium text-gray-600'>No Projects/Project files found , you must create a project or upload your code files for the projects created</p>
-    )}
-
-    {
-      userProjects &&
-    (<div className='h-[100vh] w-full flex items-start justify-start '>
-      
-       <div className="bg-gray-50 max-w-60 text-start h-[100vh] overflow-y-scroll noScroll flex flex-col items-start justify-start shadow-2xl">
-  <h1 className="text-lg w-full font-medium text-center p-3 bg-gray-800 text-white overflow-hidden text-ellipsis whitespace-nowrap">
-    {`${username}'s Projects`}
-  </h1>
-
-  {userProjects && userProjects.projects && userProjects.projects.length ? (
-    userProjects.projects
-      .slice() // to avoid mutating original array
-      .sort(
-        (a, b) => new Date(b.project.createdAt) - new Date(a.project.createdAt)
-      ) // newest first
-      .map((p, i) => {
-        const isOpen = expand.index === i && expand.value;
-        return (
-          <React.Fragment key={p?.project?._id}>
-          <div
-            onClick={() =>
-            {
-              setExpand({
-                index: i,
-                value: !isOpen,
-              }),
-              localStorage.setItem("thisProject",p?.project?._id);
-            }
-            }
-            className={`flex items-center justify-between p-4 transition-all border-b border-gray-200 hover:bg-gray-900 ${isOpen?"bg-gray-900 text-white":""} w-full hover:text-white cursor-pointer overflow-hidden`}
+    <div className='min-h-[100vh] w-full mx-auto'>
+      <div className="border border-gray-200 rounded-lg p-4">
+        <h1 className="text-2xl font-medium text-gray-800 flex items-center justify-start gap-10">
+           
+          <Link
+            to={`${basePath}/projects/${projectId}`}
+            className="text-sm bg-gray-800 text-white px-4 py-1 rounded cursor-pointer"
           >
+            Go back to project
+          </Link>
+        </h1>
+
+        {thisProjectFiles && thisProjectFiles.length ? 
+        (
+          <ul className="mt-5 py-5 flex items-start justify-start gap-5 flex-wrap">
+            {
             
-            <span  className="font-medium block max-w-40 overflow-hidden text-ellipsis whitespace-nowrap">
-              {p?.project?.name}
-            </span>
-            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-          </div>
+            thisProjectFiles.map((f, i) =>
+            (!(blockedFolders.includes(f?.name?.toLowerCase())) ) &&
+            (
+              <li key={i} className="mb-3">
+                {/* Folder header */}
+                <div
+                  onClick={() =>
+                    setOpenedFolder({
+                      key: i,
+                      open: openedFolder.key === i ? !openedFolder.open : true,
+                    })
+                  }
+                  className="px-4 cursor-pointer py-2 rounded text-lg font-medium w-60 bg-gray-800 text-white flex items-center justify-between relative "
+                >
+                  📂 {f.name}
+                  {openedFolder.key === i && openedFolder.open ? (
+                    <ChevronDown />
+                  ) : (
+                    <ChevronRight />
+                  )}
+                </div>
 
-          {
-            isOpen && <div className='mb-4 flex flex-col items-start justify-between w-full bg-gray-200 '>
-              <div className='flex items-center justify-start gap-3 w-full px-4 py-1 bg-gray-700 text-white relative'>
-               {createFile && (
-  <div className="absolute top-8 left-0 flex items-center justify-between gap-3">
-    <input
-      type="text"
-      value={newFileName}
-      onChange={(e) => setNewFileName(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          if (!newFileName.trim()) return;
-          fileCreationSubmitHandler();
-        }
-      }}
-      className="py-1 flex-1 px-2 outline-none border border-gray-200 bg-gray-100 text-gray-900 block w-full"
-      placeholder="Enter file name and press enter"
-    />
+                {/* Folder contents */}
+                {openedFolder.key === i && openedFolder.open && (
+                  <ul className="ml-8 mt-2 space-y-1 max-h-80 overflow-y-scroll noScroll">
+                    {f.files && f.files.length > 0 ? (
+                      f.files.map((file, idx) => (
+                        <li
+                          key={idx}
+                          className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer font-medium mb-2 gap-1 p-1 rounded hover:bg-gray-700 hover:text-white transition-all border border-gray-300 max-w-50 overflow-hidden text-ellipsis whitespace-nowrap"
+                          onClick={() => handleFileClick(file)}
+                        >
+                          📄 <span>{file.filename}</span>
+                          <span className="text-xs text-gray-500">
+                            ({Math.round(file.size / 1024)} KB)
+                          </span>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="text-sm text-gray-500">No files in this folder</li>
+                    )}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No Files for this project</p>
+        )}
+      </div>
 
-    <button
-      type="button"
-      onClick={fileCreationSubmitHandler}
-      className="text-sm p-0.5 text-white bg-gray-800"
-    >
-      Create
-    </button>
+      {/* Opened files (Tabs like VS Code) */}
+      {/* Opened files (Tabs like VS Code) */}
+{openedFiles.length > 0 && (
+  <div className="mt-5 border-b flex bg-gray-800 text-white">
+    {openedFiles.map((file) => (
+      <div
+        key={file.path}
+        className={`px-4 py-2 flex items-center gap-2 cursor-pointer ${
+          activeFile?.path === file.path ? "bg-gray-900" : "bg-gray-700"
+        }`}
+        onClick={() => handleTabClick(file)}  // <-- fetch fresh content on switch
+      >
+        <span>{file.filename}</span>
+        <button
+        className='cursor-pointer'
+          onClick={(e) => {
+            e.stopPropagation();
+            closeFile(file);
+          }}
+        >
+          ❌
+        </button>
+      </div>
+    ))}
   </div>
 )}
 
-                { createFolder  && <div className='absolute w-full top-8 left-0'>
-                  <input value={newFolderName} onChange={(e)=>setNewFolderName(e.target.value)} type="text" className='py-1 px-2 outline-none border border-gray-200 bg-gray-100 text-gray-900 block w-full' placeholder='enter folder name' />
-                    
 
-                </div>}
-               <span>Add new</span>
-                <File onClick={()=>setCreateFile(!createFile)} className='hover:bg-white hover:text-gray-900 transition-all rounded p-0.5 cursor-pointer' size={22}/>
-                <Folder onClick={()=>setCreateFolder(!createFolder)} className='hover:bg-white hover:text-gray-900 transition-all rounded p-0.5 cursor-pointer' size={22}/>
-              </div>
-
-              {
-                projectFiles && projectFiles.length
-                ?
-                projectFiles.map((f,i)=>(
-                 
-                  <span
-                    onClick={() => {
-                      setOpenFiles((prev) =>
-                        prev.includes(f.filename) ? prev : [...prev, f.filename]
-                      )
-                      setActiveFile(f.filename)
-                    }}
-                    className={`px-4 py-1 block w-full border-b border-gray-300 cursor-pointer hover:bg-gray-900 hover:text-white transition-all ${activeFile ===f.filename && "bg-gray-800 text-white"}`}
-                    key={i}
-                  >
-                    {f.filename}
-                  </span>
-
-
-                ))
-                :(
-                  <p>No files found for this project</p>
-                )
-              }
-            </div>
-          }
-          </React.Fragment>
-        );
-      })
-  ) : (
-    <span>No Projects Found</span>
-  )}
-</div>
-
-
-       <div className='max-w-full flex-1 min-h-[100vh] overflow-y-scroll noScroll flex flex-col items-start justify-between'>
-  {/* Tabs */}
-  {openFiles && openFiles.length > 0 && (
-    <div className='bg-gray-800 flex items-center justify-start overflow-x-scroll noScroll w-full'>
-      {openFiles.map((filename, i) => (
-        <span
-          className={`px-4 text-gray-400 w-40 flex items-center justify-between border-r border-gray-300 cursor-pointer transition-all ${
-            filename === activeFile ? "bg-gray-900 text-white font-bold" : ""
-          }`}
-          key={i}
-          onClick={() => setActiveFile(filename)}
-        >
-          {filename}
-          <X
-            className='p-0.5 bg-white text-gray-800 rounded'
-            size={18}
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenFiles((prev) => prev.filter((f) => f !== filename));
-            }}
-          />
-        </span>
-      ))}
+      {/* Active file editor */}
+      <div className="">
+        {activeFile ? (
+          <CodeViewer file={activeFile} />
+        ) : (
+          <p className="text-gray-500">No file open</p>
+        )}
+      </div>
     </div>
-  )}
+  );
+};
 
-  {/* Editor */}
-  <div className='flex-1 w-full'>
-    {activeFile && (() => {
-      const fileObj = projectFiles.find((f) => f.filename === activeFile);
-      if (fileObj && fileContents[fileObj._id]) {
-        return (
-          <CodeViewer
-            key={fileObj._id}
-            file={{
-              ...fileObj,
-              content: fileContents[fileObj._id],
-            }}
-          />
-        );
-      }
-      return <div className="p-4 text-gray-500">Loading {activeFile}...</div>;
-    })()}
-  </div>
-</div>
-    </div>)
-    }
-    </>
-
-  )
-}
-
-export default CodeEditor
+export default CodeEditor;

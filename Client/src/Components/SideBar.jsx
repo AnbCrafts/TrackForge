@@ -42,7 +42,7 @@ const SideBar = () => {
     <FolderKanban className={getIconClasses('projects')} />
   </Link>
 
-  <Link to="code-editor" className={getLinkClasses('code-editor')}>
+  <Link to="code-editor/view-project" className={getLinkClasses('code-editor/view-project')}>
     <Code className={getIconClasses('code-editor')} />
   </Link>
 
