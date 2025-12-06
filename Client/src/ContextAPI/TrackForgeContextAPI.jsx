@@ -21,7 +21,7 @@ export const WorkContextProvider = ({ children }) => {
   const navigate = useNavigate();
   const {hash,username} = useParams();
 
-  const serverURL = "https://trackforge.onrender.com";
+  const serverURL = "https://trackforge.onrender.com/api";
 
 
   const verifyResponse = (response) => {
