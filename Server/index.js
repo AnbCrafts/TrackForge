@@ -8,7 +8,7 @@ import TeamRoutes from './src/Routes/Team.Routes.js';
 import TicketRoutes from './src/Routes/Ticket.Routes.js';
 import ActivityRoutes from './src/Routes/Activity.Routes.js';
 import CommentRoutes from './src/Routes/Comment.Routes.js';
-import GoogleOAuthRouter from './src/Routes/GoogleOAuth.Routes.js';
+
 import AIMailRoute from './src/Routes/AIMailer.Routes.js';
 
 import session from "express-session";
@@ -16,6 +16,7 @@ import passport from "passport";
 
 import dotenv from "dotenv"; 
 import GithubOAuthRouter from './src/Routes/GithubAuth.Routes.js';
+import GoogleOAuthRouter from './src/Routes/GoogleOAuth.Routes.js';
 dotenv.config();
 
 
