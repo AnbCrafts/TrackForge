@@ -44,7 +44,7 @@ const TeamSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-    },
+    }, 
     members: [MemberSchema],
     link: LinkSchema,
     projects: [{
@@ -63,11 +63,11 @@ const TeamSchema = new mongoose.Schema(
     joinRequests:[{
               type: mongoose.Schema.Types.ObjectId,
               ref: "User",
-        }],
+     }],
         rejectedJoinRequests:[{
               type: mongoose.Schema.Types.ObjectId,
               ref: "User",
-        }],
+      }],
   },
   { timestamps: true }
 );

@@ -1,0 +1,139 @@
+===============================
+TRACKFORGE - NEON BLUE × BLACK THEME SYSTEM
+===============================
+
+-----------------------------------
+1. CORE BACKGROUND COLORS
+-----------------------------------
+Main Background:          #0A0A0C
+Secondary Background:     #0D0F14
+Card Background:          #111318
+Hover Surface:            #16181F
+Border Color:             #24272E
+
+-----------------------------------
+2. PRIMARY NEON COLORS
+-----------------------------------
+Neon Blue (Primary):      #00E5FF
+Neon Blue (Bright/Hover): #1AFFFF
+Neon Blue (Soft Accent):  #0BD7F2
+
+-----------------------------------
+3. TEXT COLORS
+-----------------------------------
+Primary Text:             #E6F7FF
+Secondary Text:           #A3B8C2
+Muted Text:               #6C7A85
+Disabled/Low Emphasis:    #4C5660
+
+-----------------------------------
+4. GLASSMORPHISM SETTINGS
+-----------------------------------
+Glass Background:         rgba(255,255,255,0.06)
+Glass Border:             rgba(255,255,255,0.18)
+Glass Blur Amount:        blur(12px)
+
+Glass Card CSS:
+background: rgba(255,255,255,0.06);
+border: 1px solid rgba(255,255,255,0.18);
+backdrop-filter: blur(12px);
+border-radius: 16px;
+
+-----------------------------------
+5. NEON GRADIENTS
+-----------------------------------
+Main Gradient:
+linear-gradient(90deg, #00E5FF, #14B8FF, #3B82F6)
+
+Vertical Gradient:
+linear-gradient(180deg, #00E5FF, #14B8FF, #3B82F6)
+
+Glow Gradient:
+linear-gradient(90deg, #00E5FF, #00E5FF55, #00E5FF00)
+
+-----------------------------------
+6. GLOW & SHADOW EFFECTS
+-----------------------------------
+Text Glow:
+0 0 10px #00E5FF, 0 0 20px #00E5FF
+
+Button Glow:
+0 0 15px #00E5FF55,
+0 0 30px #00E5FF33,
+inset 0 0 8px #00E5FF44
+
+Card Hover Glow:
+0 0 20px #00E5FF33
+
+-----------------------------------
+7. BORDERS & DIVIDERS
+-----------------------------------
+Standard Border:          #24272E
+Neon Active Border:       #00E5FF
+Soft Divider Line:        rgba(255,255,255,0.08)
+
+-----------------------------------
+8. BUTTON STYLES
+-----------------------------------
+Primary Button:
+- Background: #00E5FF
+- Text: #0A0A0C
+- Hover: #1AFFFF
+- Glow: Enabled
+
+Secondary Outline Button:
+- Border: #00E5FF
+- Text: #00E5FF
+- Hover Background: rgba(0,229,255,0.1)
+
+-----------------------------------
+9. COMPONENT DEFAULTS
+-----------------------------------
+Cards:
+- Background: #111318
+- Border: #24272E
+- Text: #E6F7FF
+
+Inputs:
+- Background: #0D0F14
+- Border: #24272E
+- Text: #E6F7FF
+- Focus Border: #00E5FF
+
+Sidebar:
+- Background: #0A0A0C
+- Active Text: #00E5FF
+- Active Border: #00E5FF
+
+Navbar:
+- Background: #0D0F14
+- Border Bottom: #24272E
+
+-----------------------------------
+10. BACKGROUND DECORATIONS
+-----------------------------------
+Particle Glow:            rgba(0,229,255,0.3)
+Subtle Grid Lines:        rgba(255,255,255,0.03)
+Corner Light Fade:        rgba(0,229,255,0.1)
+
+-----------------------------------
+11. TAILWIND THEME MAPPING
+-----------------------------------
+bgPrimary:     #0A0A0C
+bgSecondary:   #0D0F14
+bgCard:        #111318
+bgHover:       #16181F
+
+neonBlue:       #00E5FF
+neonBlueBright: #1AFFFF
+neonBlueSoft:   #0BD7F2
+
+textPrimary:   #E6F7FF
+textSecondary: #A3B8C2
+textMuted:     #6C7A85
+
+borderColor:   #24272E
+
+-----------------------------------
+END OF THEME FILE
+-----------------------------------

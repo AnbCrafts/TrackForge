@@ -17,6 +17,7 @@ export const WorkContextProvider = ({ children }) => {
 
 
 
+
   const navigate = useNavigate();
   const {hash,username} = useParams();
 
@@ -164,6 +165,30 @@ const getCurrentUserData = async(id)=>{
 
       setCurrUserData(response.data.user);
     }
+
+    
+  } catch (error) {
+    throwError(error)
+  }
+
+}
+
+
+const unLinkThisUserGithub = async()=>{
+  const id = localStorage.getItem("userId");
+  if(!id){
+    toast.warn("ID is required for fetching repo");
+  }
+  try {
+    const response = await axios.delete(`${serverURL}/user/github/unlink/${id}`);
+    verifyResponse(response);
+    if(response.data.success){
+      toast.success("Github profile unlinked successfully");
+      navigate(`/auth/${hash}/${username}/workspace`)
+    }
+
+
+
 
     
   } catch (error) {
@@ -423,15 +448,15 @@ const createProject = async(data)=>{
     toast.warn("Data is required");
   }
   try {
+    const id = localStorage.getItem("userId");
     const response =  await axios.post(`${serverURL}/project/create/new`,data);
     verifyResponse(response);
     if(response.data.success){
       toast.success("Project Created Successfully")
       const data = response.data.project;
       setCurrProject(data);
-
-      const id = localStorage.getItem("userId");
       await getUserProjects(id);
+
 
     }
   } catch (error) {
@@ -482,6 +507,54 @@ const fetchProjectFiles = async(id)=>{
   } catch (error) {
     throwError(error)
   }
+}
+
+const [githubRepo,setGithubRepo] = useState([]);
+
+const getThisUserGithubRepo = async()=>{
+  const id = localStorage.getItem("userId");
+  if(!id){
+    toast.warn("ID is required for fetching repo");
+  }
+  try {
+    const response = await axios.get(`${serverURL}/api/authorize/github-repo/${id}`);
+    verifyResponse(response);
+    if(response.data.success){
+      const data = response.data.repos;
+      setGithubRepo(data);
+
+    }
+
+
+
+
+    
+  } catch (error) {
+    throwError(error)
+  }
+
+}
+const linkThisUserGithub = async()=>{
+  const id = localStorage.getItem("userId");
+  if(!id){
+    toast.warn("ID is required for fetching repo");
+  }
+  try {
+    const response = await axios.put(`${serverURL}/api/authorize/github/link/${id}`);
+    verifyResponse(response);
+    if(response.data.success){
+      toast.success("Github profile added successfully");
+      navigate(`/auth/${hash}/${username}/workspace`)
+    }
+
+
+
+
+    
+  } catch (error) {
+    throwError(error)
+  }
+
 }
 
 
@@ -870,6 +943,9 @@ const getPendingProjectRequests = async(projectId)=>{
         throwError(error);
       }
 }
+
+
+
  
 
 
@@ -1349,6 +1425,7 @@ const createActivity = async(data)=>{
     }
   } catch (error) {
     throwError(error);
+    console.log(error)
     
   }
 }
@@ -1451,6 +1528,71 @@ const postComment = async(data)=>{
 }
 
 
+// MAILING
+
+
+ const [loading, setLoading] = useState(false);
+const [lastResponse, setLastResponse] = useState(null);
+const [error, setError] = useState(null);
+
+/**
+ * 🧠 1️⃣ Direct Mail (user ↔ user/admin)
+ * Endpoint: POST /api/ai-mail/direct
+ */
+const sendDirectMail = async (senderName, senderEmail, receiverEmail, subject, context) => {
+  setLoading(true);
+  setError(null);
+  setLastResponse(null);
+
+  try {
+    const res = await axios.post(`${serverURL}/ai-mail/direct`, {
+      senderName,
+      senderEmail,
+      receiverEmail,
+      subject,
+      context,
+    });
+
+    setLastResponse(res.data);
+    return res.data; // component handles the result
+  } catch (err) {
+    console.error("❌ Direct Mail error:", err);
+    setError(err.response?.data || "Server error");
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
+
+/**
+ * 🧠 2️⃣ Complaint Mail (user → platform owner/admin)
+ * Endpoint: POST /api/ai-mail/complaint
+ */
+const sendComplaintMail = async (senderName, senderEmail, subject, context) => {
+  setLoading(true);
+  setError(null);
+  setLastResponse(null);
+
+  try {
+    const res = await axios.post(`${serverURL}/ai-mail/complaint`, {
+      senderName,
+      senderEmail,
+      subject,
+      context,
+    });
+
+    setLastResponse(res.data);
+    return res.data;
+  } catch (err) {
+    console.error("❌ Complaint Mail error:", err);
+    setError(err.response?.data || "Server error");
+    throw err;
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
 
 
@@ -1464,7 +1606,11 @@ const postComment = async(data)=>{
   },[userData]);
 
 
-  const contextObj = {getTeamJoinRequests,teamJoinReqList,getPendingProjectRequests,pendingProjectReqLists,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,checkProjectJoinRequest,reqStatus,patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,fetchProjectFiles,thisProjectFiles,uploadProjectFILES,uploadedFolders,createTeam,registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles};
+  const contextObj = {unLinkThisUserGithub,linkThisUserGithub,getThisUserGithubRepo,githubRepo,getTeamJoinRequests,teamJoinReqList,getPendingProjectRequests,pendingProjectReqLists,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,checkProjectJoinRequest,reqStatus,patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,fetchProjectFiles,thisProjectFiles,uploadProjectFILES,uploadedFolders,createTeam,registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles, sendDirectMail,
+    sendComplaintMail,
+    loading,
+    lastResponse,
+    error,};
 
   return (
     <TrackForgeContextAPI.Provider value={contextObj}>

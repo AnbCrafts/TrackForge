@@ -1,23 +1,69 @@
 import { Facebook, Twitter, Instagram, Linkedin, Github } from 'lucide-react';
 
-const SocialIcons = () => (
-  <div className="flex gap-5 justify-center mt-6">
-    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-600 transition">
-      <Facebook size={24} />
-    </a>
-    <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-sky-500 transition">
-      <Twitter size={24} />
-    </a>
-    <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-pink-500 transition">
-      <Instagram size={24} />
-    </a>
-    <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-blue-700 transition">
-      <Linkedin size={24} />
-    </a>
-    <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-black transition">
-      <Github size={24} />
-    </a>
-  </div>
-);
+const SocialIcons = () => {
+  const iconList = [
+    {
+      name: "GitHub",
+      icon: Github,
+      onClick: () => (window.location.href = "http://localhost:9000/api/authorize/github"),
+      color: "hover:text-black",
+      type: "button",
+    },
+    {
+      name: "Facebook",
+      icon: Facebook,
+      url: "https://facebook.com",
+      color: "hover:text-blue-600",
+    },
+    {
+      name: "Twitter",
+      icon: Twitter,
+      url: "https://twitter.com",
+      color: "hover:text-sky-500",
+    },
+    {
+      name: "Instagram",
+      icon: Instagram,
+      url: "https://instagram.com",
+      color: "hover:text-pink-500",
+    },
+    {
+      name: "LinkedIn",
+      icon: Linkedin,
+      url: "https://linkedin.com",
+      color: "hover:text-blue-700",
+    },
+  ];
+
+  return (
+    <div className="flex gap-5 justify-center mt-6">
+      {iconList.map((item, index) => {
+        const Icon = item.icon;
+
+        return item.type === "button" ? (
+          <button
+            key={index}
+            onClick={item.onClick}
+            className={`text-gray-600 transition transform hover:scale-110 ${item.color}`}
+            aria-label={item.name}
+          >
+            <Icon size={24} />
+          </button>
+        ) : (
+          <a
+            key={index}
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={item.name}
+            className={`text-gray-600 transition transform hover:scale-110 ${item.color}`}
+          >
+            <Icon size={24} />
+          </a>
+        );
+      })}
+    </div>
+  );
+};
 
 export default SocialIcons;

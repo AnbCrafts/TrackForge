@@ -1184,7 +1184,7 @@ const addFilesToProject = async (req, res) => {
   }
 };
 
-
+   
 
 const getProjectFiles = async (req, res) => {
   try {
@@ -1461,7 +1461,7 @@ const requestToJoinProject = async(req,res)=>{
     }
 
     // Already requested?
-    if (project.joinRequests.some((id) => id.toString() === userId)) {
+    if (project.joinRequests.some((id) => id.toString() === userId) || user.projectJoinRequests.some((id) => id.toString() === userId)) {
       return res.status(200).json({
         success: true,
         message: "You have already requested to join",
@@ -1494,7 +1494,9 @@ const requestToJoinProject = async(req,res)=>{
 
     // Send join request
     project.joinRequests.push(userId);
+    user.projectJoinRequests.push(userId);
     await project.save();
+    await user.save();
 
     return res.status(201).json({
       success: true,
@@ -1628,7 +1630,7 @@ const getJoinRequest = async (req, res) => {
 
     const userData = await Promise.all(
       project.joinRequests.map(async (u) =>
-        await User.findById(u).select("username _id")
+        await User.findById(u).select("username _id email picture firstName lastName")
       )
     );
 

@@ -1,99 +1,94 @@
-import React from 'react'
-import {ArrowBigRightDashIcon, ChevronRight, Expand, Eye, Forward, Leaf, PersonStanding, Presentation, Projector, RectangleVertical, Text, User} from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
+const ProjectPreview = ({ projects }) => {
+  const heads = [
+    "Id",
+    "Project",
+    "Owner",
+    "Admin",
+    "Teams",
+    "Bugs",
+    "Started On",
+    "Deadline",
+  ];
 
-const ProjectPreview = ({projects}) => {
+  const navigate = useNavigate();
 
-    // const {project,owner,members} = projects
   return (
+    <div className="mb-10 w-full">
+      <p className="italic text-gray-400 mb-3">
+        Click any project to view details...
+      </p>
 
-    <>
-
-   
-    <div className=' flex items-center  justify-start flex-wrap gap-10'>
-        {
-            projects 
-            ?(
-                projects?.projects?.map((p,i)=>{
-                    const {project,members,owner,actvities} = p;
-                    return(
-                        <div key={i} className='p-3 bg-gray-900 shadow rounded-lg max-w-xl min-h-72'>
-                            <div className='text-start text-sm flex items-center justify-start gap-3 flex-wrap max-h-30 max-w-full overflow-hidden text-ellipsis whitespace-break-spaces'>
-
-                                <span className=' inline-flex items-center justify-start gap-2 text-2xl font-medium text-white'>
-
-                                    
-                                    <Leaf className='h-8 w-8 p-1 rounded text-gray-900 bg-white'/>
-                                  
-                                    {project.name} - 
-                                </span>
-                                     <span className='flex items-center gap-5 text-gray-300'>
-                                        <Text/>
-                                {project.description}
-                                    </span>
-
-
-                            </div>
-                            <div className='mt-3'>
-                                <p className='flex items-center justify-start gap-2 font-medium text-gray-400'>
-                                    <PersonStanding className='h-8 w-8 p-1 rounded text-gray-900 bg-white'/>
-                                    {owner.username} | {owner.email}
-                                </p>
-                            </div>
-                            <div className='mt-3'>
-  <div className="flex items-center -space-x-2.5">
-    {members.slice(0,3).map((m, i) => (
-      <span
-        key={i}
-        className="h-8 w-8 flex items-center justify-center text-sm font-medium rounded-full bg-green-500 text-white shadow border-2 border-white"
-      >
-        {m.username.charAt(0).toUpperCase()}
-      </span>
-    ))}
-    {members.length > 3 && (
-      <div className="h-8 w-8 flex items-center justify-center text-xs font-bold rounded-full bg-white text-gray-700 shadow border-2 border-white">
-        +{members.length - 3}
+      {/* ----------- HEADERS ----------- */}
+      <div className="hidden md:flex items-center text-center justify-between gap-1">
+        {heads.map((h, i) => (
+          <h1
+            key={i}
+            className="w-40 max-w-40 p-2 border border-purple-600 bg-purple-700 rounded text-white font-medium text-sm overflow-hidden text-ellipsis whitespace-nowrap"
+          >
+            {h}
+          </h1>
+        ))}
       </div>
-    )}
-<span className='px-5 flex items-center -space-x-6'>
-    <ChevronRight className='h-8 w-8 text-green-500 hover:text-green-800 transition-all cursor-pointer' />
-    <ChevronRight className='h-8 w-8 text-green-500 hover:text-green-800 transition-all cursor-pointer' />
-    <ChevronRight className='h-8 w-8 text-green-500 hover:text-green-800 transition-all cursor-pointer' />
-    </span>
-  </div>
 
-  <div className='mt-3 mx-auto w-fit'>
-    <Link to={project._id} className='flex items-center justify-start gap-2 px-6 py-1.5 bg-green-500 text-white rounded shadow'>
-    <Eye/>
-    Visit Project
-    
-    </Link>
+      {/* ----------- BODY ----------- */}
+      <div className="mt-2 space-y-2">
+        {projects ? (
+          projects.projects.map((p, i) => {
+            const { project, owner, members } = p;
 
-  </div>
-</div>
+            const rowData = {
+              Id: project._id,
+              Project: project.name,
+              Owner: owner.username,
+              Admin: owner.email,
+              Teams: members.length,
+              Bugs: project.bugs?.length || 0,
+              "Started On": project.createdAt?.slice(0, 10),
+              Deadline: project.deadline?.slice(0, 10) || "N/A",
+            };
 
+            return (
+              <div
+                key={i}
+                onClick={() => navigate(project._id)}
+                className="bg-gray-50 border border-gray-200 md:flex items-center justify-between gap-1 rounded cursor-pointer hover:shadow-md hover:bg-purple-100 transition-all p-3 text-center"
+              >
+                {/* Desktop layout */}
+                <div className="hidden md:flex w-full items-center justify-between">
+                  {heads.map((h, idx) => (
+                    <div
+                      key={idx}
+                      className="w-40 max-w-40 px-2 py-1 text-sm font-medium text-gray-700 overflow-hidden text-ellipsis whitespace-nowrap"
+                    >
+                      {rowData[h]}
+                    </div>
+                  ))}
+                </div>
 
-                            
-                         
-
-                        </div>
-                    )
-
-                })
-            )
-            :(
-                <p>
-                    No Project Found
-                </p>
-            )
-      }
+                {/* Mobile stacked layout */}
+                <div className="flex flex-col gap-1 md:hidden">
+                  {heads.map((h, idx) => (
+                    <div
+                      key={idx}
+                      className="flex justify-between text-sm border-b border-gray-200 pb-1"
+                    >
+                      <span className="font-semibold text-gray-700">{h}:</span>
+                      <span className="text-gray-600">{rowData[h]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <p className="text-purple-500">No Projects Found</p>
+        )}
+      </div>
     </div>
+  );
+};
 
-
-   
-    </>
-  )
-}
-
-export default ProjectPreview
+export default ProjectPreview;

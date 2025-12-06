@@ -1,63 +1,76 @@
-import React, {  useState } from "react";
-import { AlertTriangle, Clock, CheckCircle, Edit, RefreshCcw } from "lucide-react";
+import React, { useState, useContext } from "react";
+import {
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  Edit,
+  RefreshCcw,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { useNavigate, useParams } from "react-router-dom";
-import { useContext } from "react";
 import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
+import { motion } from "framer-motion";
 
 const TicketList = ({ userTickets }) => {
-  const {hash,username} = useParams();
-  const [filterRange, setFilterRange] = useState("all"); // default: last 3 days
-  const {patchTicketStatus} = useContext(TrackForgeContextAPI);
+  const { hash, username } = useParams();
+  const navigate = useNavigate();
 
+  const [filterRange, setFilterRange] = useState("all");
+  const { patchTicketStatus } = useContext(TrackForgeContextAPI);
 
-  
   const getFilteredTickets = () => {
-  if (!userTickets || !userTickets.tickets) return [];
+    if (!userTickets?.tickets) return [];
 
-  const now = new Date();
-  let compareDate = new Date();
+    if (filterRange === "all") return userTickets.tickets;
 
-  switch (filterRange) {
-    case "1day":
-      compareDate.setDate(now.getDate() - 1);
-      break;
-    case "1week":
-      compareDate.setDate(now.getDate() - 7);
-      break;
-    case "1month":
-      compareDate.setMonth(now.getMonth() - 1);
-      break;
-    case "3days":
-      compareDate.setDate(now.getDate() - 3);
-      break;
-    case "all":
-      return userTickets.tickets; // ✅ return all tickets without filtering
-    default:
-      compareDate.setDate(now.getDate() - 3);
-      break;
-  }
+    const now = new Date();
+    let compareDate = new Date();
 
-  return userTickets.tickets.filter((ticket) => {
-    if (!ticket.assignedOn) return false;
-    const assignedOn = new Date(ticket.assignedOn);
-    return assignedOn <= compareDate; // ✅ changed to >= to include recent tickets
-  });
-};
+    switch (filterRange) {
+      case "1day":
+        compareDate.setDate(now.getDate() - 1);
+        break;
+      case "3days":
+        compareDate.setDate(now.getDate() - 3);
+        break;
+      case "1week":
+        compareDate.setDate(now.getDate() - 7);
+        break;
+      case "1month":
+        compareDate.setMonth(now.getMonth() - 1);
+        break;
+      default:
+        return userTickets.tickets;
+    }
 
+    return userTickets.tickets.filter((t) => {
+      if (!t.assignedOn) return false;
+      return new Date(t.assignedOn) >= compareDate;
+    });
+  };
 
   const filteredTickets = getFilteredTickets();
 
+  // ✨ Smooth reveal animation
+  const fadeUp = {
+    hidden: { opacity: 0, y: 8 },
+    show: { opacity: 1, y: 0 },
+  };
 
-const navigate = useNavigate();
+  return (
+    <div className="p-4 bg-white min-h-screen">
 
-  return ( 
-    <div className="p-3 bg-gray-100 min-h-[100vh]">
-      {/* Dropdown Filter */}
-      <div className="mb-4 flex items-center gap-2">
-        <label className="font-medium">Show tickets from:</label>
+      {/* FILTER */}
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        animate="show"
+        transition={{ duration: 0.4 }}
+        className="mb-4 flex flex-wrap items-center gap-3"
+      >
+        <label className="font-medium text-gray-700">Show tickets from:</label>
         <select
-          className="border px-2 py-1 rounded"
+          className="border border-gray-300 px-3 py-1 rounded bg-white text-gray-700"
           value={filterRange}
           onChange={(e) => setFilterRange(e.target.value)}
         >
@@ -67,149 +80,160 @@ const navigate = useNavigate();
           <option value="1week">Last 1 Week</option>
           <option value="1month">Last 1 Month</option>
         </select>
-      </div>
+      </motion.div>
 
-      {/* Ticket Results */}
+      {/* TICKETS */}
       {filteredTickets.length > 0 ? (
-        filteredTickets.map((t) => (
-          <div
+        filteredTickets.map((t, index) => (
+          <motion.div
             key={t._id}
-            className="border border-gray-300 rounded bg-white p-3 my-2 shadow-sm"
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            transition={{ duration: 0.4, delay: index * 0.05 }}
+            className="border border-gray-200 rounded-xl bg-white p-5 my-4 
+                       shadow-sm hover:shadow-md transition-all hover:-translate-y-1"
           >
-            <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg">{t.title}</h2>
-             
-             <div className="flex items-center justify-start gap-3">
 
+            {/* HEADER */}
+            <div className="flex flex-wrap items-center justify-between">
+              <h2 className="font-semibold text-xl text-gray-900">{t.title}</h2>
 
-             <span onClick={()=>{
-              t.status === "Closed"
-              ?
-              patchTicketStatus(t._id,"Open")
-              :
-              patchTicketStatus(t._id,"Closed")
-              
-              }} className={`p-1 flex items-center justify-start gap-3 rounded shadow ${t.status==="Closed"?"bg-teal-500":"bg-red-500"} text-white hover:border-transparent transition-all cursor-pointer`}>
-                        <RefreshCcw />
-                        {t.status ==="Closed"?"Activate":"Close"}
-              </span>
-             <span className="p-1 border text-teal-500 border-gray-300 rounded shadow hover:bg-teal-500 hover:text-white hover:border-transparent transition-all cursor-pointer">
-                        <Edit />
-              </span>
+              <div className="flex items-center gap-3">
+                {/* Status toggle */}
+                <button
+                  onClick={() =>
+                    patchTicketStatus(t._id, t.status === "Closed" ? "Open" : "Closed")
+                  }
+                  className={`px-4 py-1.5 flex items-center gap-2 rounded-lg text-white transition-all
+                  ${t.status === "Closed" ? "bg-purple-600 hover:bg-purple-700" : "bg-gray-600 hover:bg-gray-700"}
+                `}
+                >
+                  <RefreshCcw size={16} />
+                  {t.status === "Closed" ? "Activate" : "Close"}
+                </button>
 
-             </div>
-
+                <button
+                  className="p-2 border border-gray-300 rounded-lg text-purple-600 hover:bg-purple-600 hover:text-white transition"
+                >
+                  <Edit size={18} />
+                </button>
+              </div>
             </div>
-            
-            <div className="flex items-center justify-start gap-3">
-            <p className="text-gray-600">
-              Assigned on:{" "}
-              {new Date(t.assignedOn).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </p>
-            |
 
-            <p className="text-red-600">
-              Valid for:{" "}
-              {new Date(t.validFor).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </p>
-            |
-            <div className="mt-2 w-fit">
-  {(() => {
-    if (!t.validFor) return null;
+            {/* META INFO */}
+            <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-gray-600">
 
-    const today = new Date();
-    const validForDate = new Date(t.validFor);
+              <p>
+                Assigned:{" "}
+                {new Date(t.assignedOn).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </p>
 
-    // Strip time to compare only dates
-    today.setHours(0, 0, 0, 0);
-    validForDate.setHours(0, 0, 0, 0);
+              <span>|</span>
 
-    const diffTime = validForDate - today;
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+              <p className="text-purple-600 font-medium">
+                Valid:{" "}
+                {new Date(t.validFor).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </p>
 
-    if (diffDays === 0) {
-      return (
-        <div className="flex items-center gap-2 text-red-600 bg-red-100 border border-red-300 rounded p-2">
-          <AlertTriangle size={18} />
-          <span>⚠️ Ticket expires <b>today</b>!</span>
-        </div>
-      );
-    } else if (diffDays === 1) {
-      return (
-        <div className="flex items-center gap-2 text-orange-600 bg-orange-100 border border-orange-300 rounded p-2">
-          <Clock size={18} />
-          <span>⏳ Ticket will expire <b>tomorrow</b>.</span>
-        </div>
-      );
-    } else if (diffDays > 1) {
-      return (
-        <div className="flex items-center gap-2 text-green-600 bg-green-100 border border-green-300 rounded p-2">
-          <CheckCircle size={18} />
-          <span>✅ Ticket valid for <b>{diffDays}</b> more days.</span>
-        </div>
-      );
-    } else {
-      return (
-        <div className="flex items-center gap-2 text-gray-600 bg-gray-100 border border-gray-300 rounded p-2">
-          <AlertTriangle size={18} />
-          <span>❌ Ticket already expired.</span>
-        </div>
-      );
-    }
-  })()}
-</div>
+              <span>|</span>
+
+              {/* Validity Badge */}
+              <div className="mt-1">
+                {(() => {
+                  const today = new Date();
+                  const validDate = new Date(t.validFor);
+                  today.setHours(0, 0, 0, 0);
+                  validDate.setHours(0, 0, 0, 0);
+
+                  const diff = Math.round((validDate - today) / (1000 * 60 * 60 * 24));
+
+                  if (diff === 0)
+                    return (
+                      <span className="text-red-600 bg-red-100 border border-red-200 px-2 py-1 rounded text-xs flex items-center gap-1">
+                        <AlertTriangle size={14} /> Expires today
+                      </span>
+                    );
+
+                  if (diff === 1)
+                    return (
+                      <span className="text-orange-600 bg-orange-100 border border-orange-200 px-2 py-1 rounded text-xs flex items-center gap-1">
+                        <Clock size={14} /> Tomorrow
+                      </span>
+                    );
+
+                  if (diff > 1)
+                    return (
+                      <span className="text-green-600 bg-green-100 border border-green-200 px-2 py-1 rounded text-xs flex items-center gap-1">
+                        <CheckCircle size={14} /> {diff} days left
+                      </span>
+                    );
+
+                  return (
+                    <span className="text-gray-600 bg-gray-100 border border-gray-200 px-2 py-1 rounded text-xs flex items-center gap-1">
+                      <AlertTriangle size={14} /> Expired
+                    </span>
+                  );
+                })()}
+              </div>
             </div>
-            
 
+            {/* DESCRIPTION */}
+            <p className="text-gray-700 mt-4">{t.description}</p>
 
-            <p className="text-gray-700">{t.description}</p>
-            <div className=" mt-5 flex items-center justify-start gap-5">
-<button
-  onClick={() => {
-    const today = new Date();
-    const validForDate = new Date(t.validFor);
+            {/* BUTTONS */}
+            <div className="flex flex-wrap items-center gap-4 mt-5">
 
-    // Normalize both dates to midnight (strip time)
-    today.setHours(0, 0, 0, 0);
-    validForDate.setHours(0, 0, 0, 0);
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  const validDate = new Date(t.validFor);
 
-    if (today > validForDate) {
-      toast.error("This ticket has expired");
-    } else {
-        navigate(`/auth/${hash}/${username}/workspace/ticket-detail/${t._id}`)
+                  today.setHours(0, 0, 0, 0);
+                  validDate.setHours(0, 0, 0, 0);
 
-    }
-  }}
-  className={`px-8 py-1 border border-gray-300 rounded shadow cursor-pointer bg-gray-900 text-white hover:-translate-y-1.5 transition-all`}
->
-  Add an activity
-</button>
+                  if (today > validDate) return toast.error("This ticket has expired");
 
-<button
-  onClick={() => {
-    
-        navigate(`/auth/${hash}/${username}/workspace/ticket-detail/${t._id}`);
-    
-  }}
-  className={`px-8 py-1 border border-gray-300 rounded shadow cursor-pointer bg-gray-900 text-white hover:-translate-y-1.5 transition-all`}
->
-  View activities
-</button>
+                  navigate(
+                    `/auth/${hash}/${username}/workspace/ticket-detail/${t._id}`
+                  );
+                }}
+                className="px-6 py-2 rounded-lg bg-purple-600 text-white shadow-sm 
+                           hover:bg-purple-700 hover:-translate-y-1 transition"
+              >
+                Add Activity
+              </button>
 
-
+              <button
+                onClick={() =>
+                  navigate(`/auth/${hash}/${username}/workspace/ticket-detail/${t._id}`)
+                }
+                className="px-6 py-2 rounded-lg bg-gray-800 text-white shadow-sm 
+                           hover:bg-gray-900 hover:-translate-y-1 transition"
+              >
+                View Activities
+              </button>
             </div>
-          </div>
+
+          </motion.div>
         ))
       ) : (
-        <p className="text-gray-500 italic">No tickets found for this range.</p>
+        <motion.p
+          variants={fadeUp}
+          initial="hidden"
+          animate="show"
+          className="text-gray-500 italic mt-10"
+        >
+          No tickets found for this range.
+        </motion.p>
       )}
     </div>
   );

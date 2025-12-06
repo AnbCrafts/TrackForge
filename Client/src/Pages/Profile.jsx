@@ -6,9 +6,10 @@ import TeamListPreview from '../Components/TeamListPreview';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { AlertCircle, AlertTriangle, AlignCenter, Calendar, Check, CheckCheck, Copy, Flag, Flame, MessageSquareOff, MessageSquareText, Send, User, Wrench,Text, FileText, Folder, ActivityIcon, Hash, MoveLeft, MoveRight, CheckCircle, Clock, Trash } from 'lucide-react';
+import LinkGithubButton from '../Components/LinkGithubButton';
 
 const Profile = () => {
-  const{patchTicketStatus,createActivity,postComment, authUserData,ticketComments,getUserDataById,userProjects, getUserProjects,userTeams,getUsersTeam,getUserAssignedTickets,userAssignedTickets,getTicketComments,deleteActivity,deleteTicket} = useContext(TrackForgeContextAPI);
+  const{unLinkThisUserGithub,createActivity,postComment, authUserData,ticketComments,getUserDataById,userProjects, getUserProjects,userTeams,getUsersTeam,getUserAssignedTickets,userAssignedTickets,getTicketComments,deleteActivity,deleteTicket} = useContext(TrackForgeContextAPI);
   
 const [currTickPage, setCurrTickPage] = useState(1);
   const{hash} = useParams();
@@ -229,9 +230,10 @@ else{
   },[currTickPage,userId])
 
 
-  useEffect(()=>{
-    console.log(userAssignedTickets);
-  },[userAssignedTickets])
+ 
+
+
+  
 
   return (
     <div className='p-5 min-h-[100vh]'>
@@ -276,6 +278,28 @@ else{
         <span className="font-medium text-gray-800">{authUserData?.teams?.length || 0}</span>
       </div>
 
+      {
+  authUserData && authUserData.githubAccessToken === null
+    ? (
+      <div className="flex justify-between">
+        <LinkGithubButton />
+      </div>
+    )
+    : (
+      <div><div className="flex justify-between">
+        <span className="text-green-600 font-medium">GitHub Linked: {authUserData?.githubUsername}</span>
+        
+      </div>
+      <button
+          onClick={unLinkThisUserGithub} // function to unlink
+         className="flex  cursor-pointer items-center gap-2 text-gray-600 hover:text-white hover:bg-gray-800 transition-all mt-6 border border-gray-300 rounded px-4 py-1"
+        >
+          Unlink
+        </button></div>
+    )
+}
+
+
     </div>
       </div>
 
@@ -289,7 +313,7 @@ else{
 <div className='mt-10 bg-white px-5 py-5 shadow rounded'>
   <h1 className='text-2xl text-gray-800 mb-3'>Ticket assigned by me </h1>
 
-  <div className='text-white'>
+  <div className='text-gray-900'>
     {
       userAssignedTickets && userAssignedTickets.tickets && userAssignedTickets.tickets.length>0
       ?
@@ -302,295 +326,234 @@ else{
                       return(
           
           
-                        <div key={t.raw._id} className="flex items-start justify-between w-full shadow-2xl rounded-md min-h-[80vh] relative">
-                          <Trash onClick={()=>deleteTicket(t.raw._id)} className='absolute p-1 h-7 w-7 m-1 rounded-full bg-red-500 cursor-pointer '/> 
+                        <div 
+  key={t.raw._id}
+  className="rounded-xl border border-gray-300 bg-white shadow hover:shadow-lg transition-all mb-10 overflow-hidden"
+>
+  {/* Header */}
+  <div className="flex items-center justify-between px-6 py-4 bg-gray-900 text-white">
+    <h1 className="text-xl font-semibold flex items-center gap-3">
+      <Flag className="w-6 h-6 text-blue-400" />
+      {t.raw.title}
+    </h1>
 
-          
-            {/* Header */}
-          
-            <div className='flex-1 rounded-l-md bg-gray-900 h-full p-5 max-h-[100vh] overflow-y-scroll noScroll'>
-          
-           
-          
-            <div className="flex items-start justify-between flex-wrap font-semibold text-green-500 py-4 border-b border-gray-600">
-              <h1 className="text-2xl">{t.raw.title}</h1>
-          
-              <div className="text-right">
-                
-                <h1 className="font-bold text-gray-200 max-w-2xs overflow-hidden text-ellipsis whitespace-normal flex items-center justify-start gap-1">
-                  {!ticket?<Copy
-            className="cursor-pointer"
-            onClick={() => {
-              navigator.clipboard.writeText(t.raw._id);
-              toast.success("Ticket ID copied to clipboard!");
-              setTicket(true);
-          
-            }}
-          />:<Check/>}
-                  <span className="font-medium text-gray-500">#Bug ID- </span>
-                  {hideTicketID(t.raw._id)}
-                </h1>
-          
-                <span>
-                  <PriorityBadge priority={t.raw.priority} />
-                </span>
-              </div>
-            </div>
-          
-            {/* Meta Info */}
-            <div className="mt-5 text-gray-400 space-y-1 pb-4 border-b border-gray-600">
-              <h1>
-                Issued for -{" "}
-                <span className="text-gray-200">{t.doer.username}</span>
-              </h1>
-              <div className='flex items-center justify-start gap-5'>
-          
-              <h1 className="text-lg">
-                Project - <span className="text-gray-200">{t.project?.name}</span>
-              </h1>
-              <h1 className="font-bold text-gray-200 max-w-xs  overflow-hidden text-ellipsis whitespace-normal flex items-center justify-start gap-3">
-                  {!projectId?<Copy
-            className="cursor-pointer"
-            onClick={() => {
-              navigator.clipboard.writeText(t.project?._id);
-              toast.success("Project ID copied to clipboard!");
-              setProjectId(true);
-          
-            }}
-          />:<Check/>}
-                  <span className="font-medium text-gray-500">#Bug ID- </span>
-                  {hideTicketID(t.project?._id)}
-                </h1>
-              </div>
-              <h1>
-                Assigned On -{" "}
-                <span className="text-gray-200">
-                  {new Date(t.raw.assignedOn).toLocaleDateString()}
-                </span>
-              </h1>
-             <div className='flex items-center justify-start gap-3'>
-       <p className="text-red-600">
-                    Valid for:{" "}
-                    {new Date(t.raw.validFor).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
+    {/* Priority & Status */}
+    <div className="flex items-center gap-3">
+      <PriorityBadge priority={t.raw.priority} />
+
+      <span
+        className={`px-3 py-1 rounded-md text-sm font-medium ${
+          t.raw.status === "Open"
+            ? "bg-blue-100 text-blue-700"
+            : t.raw.status === "In Progress"
+            ? "bg-yellow-100 text-yellow-700"
+            : "bg-green-100 text-green-700"
+        }`}
+      >
+        {t.raw.status}
+      </span>
+
+      <Trash
+        onClick={() => deleteTicket(t.raw._id)}
+        className="h-8 w-8 p-1 bg-red-500 text-white rounded-lg cursor-pointer hover:bg-red-600"
+      />
+    </div>
+  </div>
+
+  {/* Body */}
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6 bg-gray-50">
+    
+    {/* LEFT: Meta Info */}
+    <div className="space-y-5 col-span-1">
+
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h2 className="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+          <Hash className="w-5 h-5 text-gray-500" />
+          Ticket Meta
+        </h2>
+
+        <div className="text-gray-600 space-y-2 text-sm">
+          <p>
+            <span className="font-medium text-gray-800">Assigned To:</span>{" "}
+            {t.doer.username}
+          </p>
+
+          <p>
+            <span className="font-medium text-gray-800">Project:</span>{" "}
+            {t.project?.name}
+          </p>
+
+          <p>
+            <span className="font-medium text-gray-800">Assigned On:</span>{" "}
+            {new Date(t.raw.assignedOn).toLocaleDateString()}
+          </p>
+
+          {/* Validity */}
+          <div className="mt-3">
+            {(() => {
+              if (!t.raw.validFor) return null;
+
+              const today = new Date();
+              const validForDate = new Date(t.raw.validFor);
+              today.setHours(0,0,0,0);
+              validForDate.setHours(0,0,0,0);
+
+              const diffDays = Math.round((validForDate - today) / (1000*3600*24));
+
+              if (diffDays < 0)
+                return (
+                  <p className="text-sm bg-gray-100 border border-gray-300 text-gray-700 rounded px-3 py-1">
+                    ❌ Ticket expired
                   </p>
-                  |
-                  <div className="mt-2 w-fit">
-        {(() => {
-          if (!t.raw.validFor) return null;
-      
-          const today = new Date();
-          const validForDate = new Date(t.raw.validFor);
-      
-          // Strip time to compare only dates
-          today.setHours(0, 0, 0, 0);
-          validForDate.setHours(0, 0, 0, 0);
-      
-          const diffTime = validForDate - today;
-          const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      
-          if (diffDays === 0) {
-            return (
-              <div className="flex items-center gap-2 text-red-600 bg-red-100 border border-red-300 rounded p-2">
-                <AlertTriangle size={18} />
-                <span>⚠️ Ticket expires <b>today</b>!</span>
-              </div>
-            );
-          } else if (diffDays === 1) {
-            return (
-              <div className="flex items-center gap-2 text-orange-600 bg-orange-100 border border-orange-300 rounded p-2">
-                <Clock size={18} />
-                <span>⏳ Ticket will expire <b>tomorrow</b>.</span>
-              </div>
-            );
-          } else if (diffDays > 1) {
-            return (
-              <div className="flex items-center gap-2 text-green-600 bg-green-100 border border-green-300 rounded p-2">
-                <CheckCircle size={18} />
-                <span>✅ Ticket valid for <b>{diffDays}</b> more days.</span>
-              </div>
-            );
-          } else {
-            return (
-              <div className="flex items-center gap-2 text-gray-600 bg-gray-100 border border-gray-300 rounded p-2">
-                <AlertTriangle size={18} />
-                <span>❌ Ticket already expired.</span>
-              </div>
-            );
-          }
-        })()}
+                );
+
+              if (diffDays === 0)
+                return (
+                  <p className="text-sm bg-red-100 border border-red-300 text-red-600 rounded px-3 py-1">
+                    ⚠️ Expires today
+                  </p>
+                );
+
+              if (diffDays === 1)
+                return (
+                  <p className="text-sm bg-orange-100 border border-orange-300 text-orange-600 rounded px-3 py-1">
+                    ⏳ Expires tomorrow
+                  </p>
+                );
+
+              return (
+                <p className="text-sm bg-green-100 border border-green-300 text-green-600 rounded px-3 py-1">
+                  ✅ Valid for {diffDays} more days
+                </p>
+              );
+            })()}
+          </div>
+        </div>
+      </div>
+
+      {/* Steps To Reproduce */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <h2 className="text-lg font-semibold text-red-500 mb-3 flex items-center gap-2">
+          <AlertTriangle className="w-6 h-6" />
+          Steps to Reproduce
+        </h2>
+        <ul className="space-y-2">
+          {t.raw.stepsToReproduce?.map((s, i) => (
+            <li
+              key={i}
+              className="text-sm bg-gray-100 p-2 rounded flex items-center gap-2"
+            >
+              <Wrench className="w-5 h-5 text-green-600" />
+              {s}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
-            </div>
-          
-            {/* Description */}
-            <div className="mt-3 text-lg pb-4 border-b border-gray-600">
-              <span className="flex items-center justify-start text-2xl gap-3 text-gray-400">
-                <Text /> Details
-              </span>
-              <p className="text-lg my-2">{t.raw.description}</p>
-            </div>
-          
-            {/* Steps to reproduce */}
-            <div>
-              <h1 className="text-2xl my-3 font-semibold text-red-500 flex items-center justify-start gap-3">
-                <AlertTriangle className="h-8 w-8 p-1.5 bg-red-500 text-white rounded-md shadow-2xl" />
-                Steps to reproduce -
-              </h1>
-          
-              <ul>
-                {t.raw.stepsToReproduce &&
-                  t.raw.stepsToReproduce.map((s, i) => (
-                    <li key={i} className="flex items-center justify-start gap-3 mb-2">
-                      <Wrench className="h-6 w-6 p-1 bg-green-500 rounded-full" />
-                      {s}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-            <div className='mt-15'>
-              <h1 className="text-2xl my-3 font-semibold text-green-500 flex items-center justify-start gap-3">
-                <CheckCheck className="h-8 w-8 p-1.5 bg-green-500 text-white rounded-md shadow-2xl" />
-                Activities done -
-              </h1>
-          
-              <ul>
-                {t.raw.activityLog &&
-                  t.raw.activityLog.map((s, i) => (
-                    <li key={i} className="flex items-start justify-start flex-wrap gap-3 mb-2 bg-gray-200 text-gray-900 p-3 rounded-md shadow">
-                      <div className='flex items-start justify-start gap-4 max-w-lg border border-gray-300 p-1 rounded'>
-                      <AlignCenter className="h-7 w-7 text-white p-1 bg-green-500 rounded-full shrink-0" />
-          <p className=' flex-1 font-medium'>
-          
-                      {s.details}
-          </p>
-                      </div>
-                      
-                     <div className='flex items-center flex-col flex-1 p-1 border border-gray-300 rounded'>
-                      <span className='px-3 py-1 bg-green-500 rounded text-white'>
-                      {s.actionType}
-                      </span>
-                      <span className='max-w-full mt-3 flex items-center justify-start gap-1 overflow-hidden text-ellipsis whitespace-nowrap font-medium'>
-                     <Calendar className='w-5 h-5 bg-gray-900 text-white rounded-full p-0.5'/>
-                     { new Date(s.doneOn).toDateString()}
-          
-          
-                      </span>
-                      <span className='max-w-full mt-3 flex items-center justify-start gap-1 overflow-hidden text-ellipsis whitespace-nowrap font-medium'>
-                      <User className='w-5 h-5 bg-gray-900 text-white rounded-full p-0.5'/>
-                      {s.performedBy.username}
-          
-                      </span>
-                     <span onClick={()=>deleteActivity(s._id,s.ticketId._id)} className='px-3 py-1 cursor-pointer bg-red-500 rounded text-white mt-3'>
-                      <Trash className='w-5 h-5'/>
-                      </span>
-          
-                      </div> 
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          
-          
-          
-          
-          
-             </div>
-          
-          
-          
-          <div className="p-5 min-h-[100vh] rounded-r-md w-xl flex flex-col items-center justify-between">
-              { userAssignedTickets && ticketComments?.comments?.length > 0 ? (
-            <div className="text-gray-700 flex-1 max-h-[100vh] space-y-3 overflow-y-scroll noScroll w-full">
-              {ticketComments.comments.map((c) => (
-               <div
-            key={c._id}
-            className="flex flex-col p-3 border border-gray-200 rounded shadow w-full"
+
+    {/* MIDDLE: Description */}
+    <div className="col-span-1 lg:col-span-1 bg-white p-5 rounded-lg shadow">
+      <h2 className="text-xl font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <Text className="w-6 h-6 text-gray-500" />
+        Description
+      </h2>
+      <p className="text-gray-700 leading-relaxed">{t.raw.description}</p>
+
+      {/* Activity Log */}
+      <h2 className="mt-8 text-xl font-semibold text-green-600 flex items-center gap-2">
+        <CheckCheck className="w-6 h-6 bg-green-500 text-white rounded p-1" />
+        Activity Log
+      </h2>
+
+      <ul className="space-y-4 mt-3">
+        {t.raw.activityLog?.map((a) => (
+          <li
+            key={a._id}
+            className="border border-gray-200 bg-gray-100 p-3 rounded-lg shadow"
           >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start justify-start gap-2">
-                <MessageSquareText className="w-7 shrink-0 h-7 p-1 text-blue-500" />
-                <p className="text-lg font-bold text-gray-800">{c.message}</p>
+            <p className="font-medium text-gray-800">{a.details}</p>
+            <div className="text-xs text-gray-600 mt-2 space-y-1">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" /> {new Date(a.doneOn).toDateString()}
               </div>
-              <span className="text-xs shrink-0 text-gray-500 self-start">
-          {new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4" /> {a.performedBy.username}
+              </div>
             </div>
-          
-            <span className="text-sm text-gray-500 mt-1">
-              - user {c?.userId?.username}
-            </span>
-          </div>
-          
-              ))}
+
+            <button
+              onClick={() => deleteActivity(a._id, a.ticketId._id)}
+              className="text-red-500 hover:text-red-700 text-xs mt-2 flex items-center gap-1"
+            >
+              <Trash className="w-4 h-4" /> Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    {/* RIGHT: Comments */}
+    <div className="col-span-1 bg-white p-5 rounded-lg shadow flex flex-col">
+      <h2 className="text-xl font-semibold text-gray-700 mb-3 flex items-center gap-2">
+        <MessageSquareText className="w-6 h-6 text-blue-500" />
+        Comments
+      </h2>
+
+      <div className="flex-1 overflow-y-scroll noScroll space-y-3">
+        {ticketComments?.comments?.length ? (
+          ticketComments.comments.map((c) => (
+            <div
+              key={c._id}
+              className="p-3 border border-gray-200 bg-gray-50 rounded-lg"
+            >
+              <p className="font-medium text-gray-800">{c.message}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                by {c.userId.username} •{" "}
+                {new Date(c.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
             </div>
-          ) : (
-            <div className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 w-full">
-              <MessageSquareOff className="w-5 h-5" />
-              <p className="text-sm italic">No comments have been added yet.</p>
-            </div>
-          )}
-          
-          
-          
-          
-          
-             <div className="p-3 border border-gray-300 rounded-lg w-full bg-white">
-            {/* Message Input */}
-            <input
-              type="text"
-              value={commentForm.message}
-              onChange={(e) =>
-                setCommentForm((prev) => ({
-                  ...prev,
-                  message: e.target.value,
-                }))
-              }
-              className="outline-none rounded focus:shadow-md p-2 w-full text-gray-900 bg-gray-50 border border-gray-200 mb-3"
-              placeholder="Type message here..."
-            />
-          
-            {/* Select + Send Button */}
-            <div className="flex items-center gap-3">
-              <select
-                name="type"
-                className="border border-gray-300 rounded px-3 py-2 outline-none focus:bg-gray-700 focus:text-white text-gray-900"
-                value={commentForm.type}
-                onChange={(e) =>
-                  setCommentForm((prev) => ({
-                    ...prev,
-                    type: e.target.value,
-                  }))
-                }
-              >
-                {["Text", "Status Change", "System"].map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-          
-              <Send
-                onClick={
-                  submitCommentHandler
-                }
-                className="text-white bg-teal-500 h-10 w-10 p-1.5 rounded-full cursor-pointer shadow hover:bg-teal-600 transition"
-              />
-            </div>
-          </div>
-          
-          
-          
-          
-            </div>
-          
-          
-          
-          
-          </div>
+          ))
+        ) : (
+          <p className="text-gray-500 text-sm italic">No comments yet.</p>
+        )}
+      </div>
+
+      {/* Comment Form */}
+      <div className="mt-4">
+        <input
+          type="text"
+          value={commentForm.message}
+          onChange={(e) =>
+            setCommentForm((prev) => ({ ...prev, message: e.target.value }))
+          }
+          className="w-full p-2 border rounded-md mb-2"
+          placeholder="Write a comment…"
+        />
+        <div className="flex items-center gap-2">
+          <select
+            value={commentForm.type}
+            onChange={(e) =>
+              setCommentForm((prev) => ({ ...prev, type: e.target.value }))
+            }
+            className="border rounded px-3 py-2"
+          >
+            {["Text", "Status Change", "System"].map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+          <Send
+            onClick={submitCommentHandler}
+            className="h-10 w-10 p-2 rounded-full bg-blue-500 text-white cursor-pointer hover:bg-blue-600"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
           
                       )
           
@@ -781,6 +744,18 @@ else{
          
 
         </div>
+
+</div>
+
+<div className='mt-10 bg-white px-5 py-5 shadow rounded'>
+    <h1 className='text-2xl text-gray-800 mb-3'>Projects Requested to join</h1>
+
+    <div className='mt-5 flex items-center justify-start gap-3'>
+      
+
+
+    </div>
+
 
 </div>
 

@@ -43,12 +43,15 @@ const UserSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: true,
+      required: function() {
+    return !this.oauthProvider;
+  },
       validate: {
         validator: validatePassword,
         message:
           "Password must be at least 8 characters, contain at least 3 numbers, 4 letters, and 1 special character.",
       },
+
     },
     status: {
       type: String,
@@ -58,7 +61,7 @@ const UserSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["Owner", "Admin", "Tester", "Developer", "Debugger"],
+      enum: ["Owner", "Admin", "Tester", "Developer", "Debugger","Member"],
       required: true,
     },
     teams: [
@@ -86,6 +89,27 @@ const UserSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    oauthProvider: {
+  type: String,
+  default: null
+},githubAccessToken: {
+  type: String,
+  default: null
+} ,
+projectJoinRequests:[
+  {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Project",
+        default: [],
+  },
+],
+teamJoinRequests:[
+  {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Team",
+        default: [],
+      },
+],
     
   },
   { timestamps: true }

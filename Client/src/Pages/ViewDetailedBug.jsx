@@ -1,677 +1,535 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI';
-import { toast } from 'react-toastify';
-import {Text, ActivityIcon, AlertCircle, AlertTriangle, AlignCenter, Calendar, Check, CheckCheck, CheckCircle, Clock, Copy, FileText, Flag, Flame, Folder, Hash, MessageSquareOff, MessageSquareText, Send, User, Wrench } from 'lucide-react';
+import React, { useContext, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
+import { toast } from "react-toastify";
+import {
+  Text,
+  ActivityIcon,
+  AlertCircle,
+  AlertTriangle,
+  Calendar,
+  CheckCircle,
+  Clock,
+  Copy,
+  FileText,
+  Hash,
+  MessageSquare,
+  MessageSquareOff,
+  Send,
+  User,
+  AlignLeft,
+  Flag,
+  Flame,
+} from "lucide-react";
+import { CreateActivityForm } from "../Components/ActivityForm";
 
 const ViewDetailedBug = () => {
-    const {ticketId} = useParams();
-    const {updateTicket,getSingleTicket,singleTicket,createActivity,getTicketComments,ticketComments,postComment,getThisTicketActivities,thisTicketActivities} = useContext(TrackForgeContextAPI);
-  const [currTickPage,setCurrTickPage] = useState(1);
-  const [userId,setUserId] = useState(null);
-    
-     useEffect(()=>{
-    const userId = localStorage.getItem("userId");
-    setUserId(userId);
-    
-  },[]);
-    useEffect(()=>{
-        if(ticketId){
-            getSingleTicket(ticketId)
-            getTicketComments(ticketId,currTickPage);
-            getThisTicketActivities(ticketId);
+  const { ticketId } = useParams();
+  const {
+    updateTicket,
+    getSingleTicket,
+    singleTicket,
+    createActivity,
+    getTicketComments,
+    ticketComments,
+    postComment,
+    getThisTicketActivities,
+    thisTicketActivities,
+  } = useContext(TrackForgeContextAPI);
 
-        }
-    },[ticketId]);
-
-
+  const [currTickPage, setCurrTickPage] = useState(1);
+  const [userId, setUserId] = useState(null);
+  const [leftOpen, setLeftOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(false);
 
   const [activityForm, setActivityForm] = useState({
-  actionType: "",
-  ticketId: "",
-  performedBy: "",
-  performedOn: "",
-  details: "",
-  doneOn: ""
-});
+    actionType: "",
+    ticketId: "",
+    performedBy: "",
+    performedOn: "",
+    details: "",
+    doneOn: "",
+  });
 
-const [commentForm,setCommentForm] = useState({
-  message:"",
-  userId:"",
-  projectId:"",
-  ticket:"",
-  type:"Text"
-});
- 
+  const [commentForm, setCommentForm] = useState({
+    message: "",
+    userId: "",
+    projectId: "",
+    ticket: "",
+    type: "Text",
+  });
 
-  
+  useEffect(() => {
+    const uid = localStorage.getItem("userId");
+    setUserId(uid);
+  }, []);
 
+  useEffect(() => {
+    if (ticketId) {
+      getSingleTicket(ticketId);
+      getTicketComments(ticketId, currTickPage);
+      getThisTicketActivities(ticketId);
+    }
+  }, [ticketId]);
 
-  
-
-  
-
-  useEffect(()=>{
+  useEffect(() => {
     const tId = localStorage.getItem("currTicketId") || ticketId;
-    const pId = localStorage.getItem("currProjectId") || (singleTicket && singleTicket.project._id);
-    if(pId && tId){
+    const pId =
+      localStorage.getItem("currProjectId") ||
+      (singleTicket && singleTicket.project?._id);
 
+    if (pId && tId) {
+      setCommentForm((prev) => ({
+        ...prev,
+        projectId: pId,
+        ticket: tId,
+      }));
+    }
+  }, [ticketComments, singleTicket]);
+
+  useEffect(() => {
+    if (userId) {
+      setActivityForm((prev) => ({
+        ...prev,
+        performedBy: userId,
+      }));
 
       setCommentForm((prev) => ({
-      ...prev,
-      projectId:pId,
-      ticket:tId,
-    }))
-    }
-    
-  },[ticketComments,singleTicket])
-
-
-
-  const hideTicketID = (ticketID) => {
-  if (ticketID && typeof ticketID === "string") {
-    if (ticketID.length > 10) {
-      return ticketID.slice(0, 10) + "*".repeat(ticketID.length - 10);
-    }
-    return ticketID; 
-  }
-  return "";
-};
-
-
-const priorityStyles = {
-  low: {
-    className: "bg-yellow-100 text-yellow-800 border border-yellow-300 px-2 py-1 rounded  flex items-center gap-1  mt-2 text-lg",
-    icon: Flag,
-  },
-  medium: {
-    className: "bg-yellow-200 text-yellow-900 border border-yellow-400 px-2 py-1 rounded  flex items-center gap-1  mt-2 text-lg",
-    icon: AlertTriangle,
-  },
-  high: {
-    className: "bg-orange-200 text-orange-900 border border-orange-400 px-2 py-1 rounded  flex items-center gap-1  mt-2 text-lg",
-    icon: Flame,
-  },
-  critical: {
-    className: "bg-red-200 text-red-900 border border-red-400 px-2 py-1 rounded  flex items-center gap-1  mt-2 text-lg",
-    icon: AlertCircle,
-  },
-};
-
-function PriorityBadge({ priority }) {
-  const p = priorityStyles[priority?.toLowerCase()] || priorityStyles.low;
-  const Icon = p.icon;
-
-  return (
-    <span className={p.className}>
-      <Icon size={14} />
-      {priority}
-    </span>
-  );
-}
-
-
-
-useEffect(() => {
-
-  if ( userId) {
-    setActivityForm(prev => ({
-      ...prev,
-      performedBy: userId || prev.performedBy,
-    }));
-
-    setCommentForm((prev) => ({
-      ...prev,
-      userId:userId,
-
-    }))
-  }
-}, [ userId]);
-
-
-const [ticket,setTicket] = useState(false);
-const [projectId,setProjectId] = useState(false);
-
-useEffect(()=>{
-    setTimeout(() => {
-      setTicket(false);
-    }, 3000);
-},[ticket])
-
-useEffect(()=>{
-    setTimeout(() => {
-      setProjectId(false);
-    }, 3000);
-},[projectId])
-
-
-const submitHandler = async(e)=>{
-  e.preventDefault();
-  const hasEmptyField = Object.values(activityForm).some(
-  value => value === "" || value === null || value === undefined
-);
-
-if (hasEmptyField) {
-  toast.warn("Please fill all fields before submitting!");
-  return;
-}
-else{
-  await createActivity(activityForm);
-  setActivityForm({
-     actionType: "",
-  ticketId: "",
-  performedBy: "",
-  performedOn: "",
-  details: "",
-  doneOn: ""
-  })
-}
-
-}
-
-
-const submitCommentHandler = async(e)=>{
-  e.preventDefault();
-
-    const hasEmptyField = Object.values(commentForm).some(
-  value => value === "" || value === null || value === undefined
-);
-
-
-
-if (hasEmptyField) {
-  toast.warn("Please fill all fields before submitting!");
-  return;
-}
-else{
-
-
-  await  postComment(commentForm);
-
-  setCommentForm((prev) => ({
         ...prev,
-        message: "",
-      }))
-}
+        userId: userId,
+      }));
+    }
+  }, [userId]);
 
-  
-}
+  /** PRIORITY STYLES */
+  const priorityStyles = {
+    low: { className: "bg-yellow-100 text-yellow-800 border border-yellow-300", icon: Flag },
+    medium: { className: "bg-yellow-200 text-yellow-900 border border-yellow-400", icon: AlertTriangle },
+    high: { className: "bg-orange-200 text-orange-900 border border-orange-400", icon: Flame },
+    critical: { className: "bg-red-200 text-red-900 border border-red-400", icon: AlertCircle },
+  };
 
+  const PriorityBadge = ({ priority }) => {
+    const p = priorityStyles[priority?.toLowerCase()] || priorityStyles.low;
+    const Icon = p.icon;
+    return (
+      <span className={`px-2 py-1 rounded flex items-center gap-1 text-sm ${p.className}`}>
+        <Icon size={14} /> {priority}
+      </span>
+    );
+  };
 
+  const hideTicketID = (id) => {
+    if (!id) return "";
+    if (id.length <= 10) return id;
+    return id.slice(0, 10) + "*".repeat(id.length - 10);
+  };
 
+  /** Copy helpers */
+  const copyToClipboard = (value) => {
+    if (!value) return toast.info("Nothing to copy");
+    navigator.clipboard.writeText(value);
+    toast.success("Copied to clipboard!");
+  };
 
+  /** Submit Activity */
+  const submitActivity = async (e) => {
+    e.preventDefault && e.preventDefault();
 
-useEffect(() => {
-  if ( singleTicket && singleTicket?.validFor) {
+    const hasEmpty = Object.values(activityForm).some(
+      (x) => x === "" || x === null || x === undefined
+    );
+    if (hasEmpty) return toast.warn("Please fill all fields!");
+
+    await createActivity(activityForm);
+    setActivityForm({
+      actionType: "",
+      ticketId: "",
+      performedBy: userId,
+      performedOn: "",
+      details: "",
+      doneOn: "",
+    });
+  };
+
+  /** Submit Comment */
+  const submitComment = async (e) => {
+    e.preventDefault && e.preventDefault();
+    const hasEmpty = Object.values(commentForm).some(
+      (x) => x === "" || x === null || x === undefined
+    );
+    if (hasEmpty) return toast.warn("Please fill all fields!");
+
+    await postComment(commentForm);
+
+    setCommentForm((prev) => ({ ...prev, message: "" }));
+  };
+
+  /** Ticket expiry logic */
+  useEffect(() => {
+    if (!singleTicket?.validFor) return;
     const today = new Date();
-    const validForDate = new Date(singleTicket.validFor);
-
+    const expiry = new Date(singleTicket.validFor);
     today.setHours(0, 0, 0, 0);
-    validForDate.setHours(0, 0, 0, 0);
+    expiry.setHours(0, 0, 0, 0);
 
-    if (validForDate < today && singleTicket.status !=="Closed") {
-      updateTicket(singleTicket._id, "Closed"); 
+    if (expiry < today && singleTicket.status !== "Closed") {
+      updateTicket(singleTicket._id, "Closed");
     }
-  }
-}, [singleTicket, singleTicket?.validFor]);
+  }, [singleTicket]);
 
-
-
+  /** days left */
+  const daysLeft = (() => {
+    if (!singleTicket?.validFor) return null;
+    const today = new Date();
+    const expiry = new Date(singleTicket.validFor);
+    today.setHours(0, 0, 0, 0);
+    expiry.setHours(0, 0, 0, 0);
+    return Math.round((expiry - today) / (1000 * 60 * 60 * 24));
+  })();
 
   return (
-     <div className='min-h-[100vh] w-full p-5 text-white'>
+    <div className="min-h-screen bg-gray-50">
+      {/* small animation style */}
+      <style>{`
+        @keyframes slideIn { from { transform: translateX(-100%);} to { transform: translateX(0);} }
+        .animate-slideIn { animation: slideIn 0.22s ease-out; }
+        @keyframes slideInRight { from { transform: translateX(100%);} to { transform: translateX(0);} }
+        .animate-slideInRight { animation: slideInRight 0.22s ease-out; }
+      `}</style>
 
-     
-        
-        <div className=''>
-        
-         { singleTicket &&
-          <div  className="flex items-start justify-between w-full shadow-2xl rounded-md min-h-[80vh]">
+      <div className="w-full min-h-screen bg-gray-100 flex">
 
-  {/* Header */}
+        {/* LEFT SIDEBAR (desktop) */}
+        <div className="w-[260px] bg-white border-r p-6 space-y-6 hidden md:block shadow-sm">
+          <h1 className="text-xl font-semibold">Project</h1>
 
-  <div className='flex-1 rounded-l-md bg-gray-900 h-full p-5 max-h-[100vh] overflow-y-scroll noScroll'>
+          <p className="text-xs text-gray-500 flex items-center gap-2">
+            Project ID: {singleTicket?.project?._id}
+            <button
+              onClick={() => copyToClipboard(singleTicket?.project?._id)}
+              className="px-2 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 rounded border"
+            >
+              Copy
+            </button>
+          </p>
 
- 
+          <div className="pt-6 space-y-2 text-sm">
+            <p className="uppercase text-gray-500 text-xs font-semibold">Sections</p>
+            <p className="hover:text-blue-600 cursor-pointer">Overview</p>
+            <p className="hover:text-blue-600 cursor-pointer">Activity</p>
+            <p className="hover:text-blue-600 cursor-pointer">Comments</p>
+          </div>
+        </div>
 
-  <div className="flex items-start justify-between flex-wrap font-semibold text-green-500 py-4 border-b border-gray-600">
-    <div>
-        <h1 className="text-2xl">{singleTicket.title}</h1>
-        <h1 className={`text-sm px-4 py-1 rounded w-fit text-white 
-            ${singleTicket.status ==="Open"?"bg-green-500":singleTicket.status==="Closed"?"bg-red-500":"bg-yellow-300"}
-            `}>{singleTicket.status}</h1>
-    </div>
+        {/* MAIN CONTENT */}
+        <div className="flex-1 p-6 md:p-10 space-y-10 overflow-y-auto">
 
-    <div className="text-right">
-      
-      <h1 className="font-bold text-gray-200 max-w-2xs overflow-hidden text-ellipsis whitespace-normal flex items-center justify-start gap-1">
-        {!ticket?<Copy
-  className="cursor-pointer"
-  onClick={() => {
-    navigator.clipboard.writeText(singleTicket._id);
-    toast.success("Ticket ID copied to clipboard!");
-    setTicket(true);
+          {/* MOBILE Header Controls */}
+          <div className="md:hidden flex items-center justify-between mb-3">
+            <button onClick={() => setLeftOpen(true)} className="px-3 py-1 bg-gray-200 rounded">
+              Ticket
+            </button>
 
-  }}
-/>:<Check/>}
-        <span className="font-medium text-gray-500">#Bug ID- </span>
-        {hideTicketID(singleTicket._id)}
-      </h1>
+            <div className="flex items-center gap-2">
+              <button onClick={() => copyToClipboard(singleTicket?._id)} className="px-3 py-1 bg-gray-200 rounded">
+                Copy ID
+              </button>
 
-      <span>
-        <PriorityBadge priority={singleTicket.priority} />
-      </span>
-    </div>
-  </div>
-
-  {/* Meta Info */}
-  <div className="mt-5 text-gray-400 space-y-1 pb-4 border-b border-gray-600">
-    <h1>
-      Issued By -{" "}
-      <span className="text-gray-200">{singleTicket.giver.username}</span>
-    </h1>
-    <div className='flex items-center justify-start gap-5'>
-
-    <h1 className="text-lg">
-      Project - <span className="text-gray-200">{singleTicket.project?.name}</span>
-    </h1>
-    <h1 className="font-bold text-gray-200 max-w-xs  overflow-hidden text-ellipsis whitespace-normal flex items-center justify-start gap-3">
-        {!projectId?<Copy
-  className="cursor-pointer"
-  onClick={() => {
-    navigator.clipboard.writeText(singleTicket.project?._id);
-    toast.success("Project ID copied to clipboard!");
-    setProjectId(true);
-
-  }}
-/>:<Check/>}
-        <span className="font-medium text-gray-500">#Bug ID- </span>
-        {hideTicketID(singleTicket.project?._id)}
-      </h1>
-    </div>
-    <h1>
-      Assigned On -{" "}
-      <span className="text-gray-200">
-        {new Date(singleTicket.assignedOn).toLocaleDateString()}
-      </span>
-    </h1>
-    
-
-    <div className='flex items-center justify-start gap-3'>
-       <p className="text-red-600">
-                    Valid for:{" "}
-                    {new Date(singleTicket.validFor).toLocaleDateString("en-GB", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                  |
-                  <div className="mt-2 w-fit">
-        {(() => {
-          if (!singleTicket.validFor) return null;
-      
-          const today = new Date();
-          const validForDate = new Date(singleTicket.validFor);
-      
-          // Strip time to compare only dates
-          today.setHours(0, 0, 0, 0);
-          validForDate.setHours(0, 0, 0, 0);
-      
-          const diffTime = validForDate - today;
-          const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      
-          if (diffDays === 0) {
-            return (
-              <div className="flex items-center gap-2 text-red-600 bg-red-100 border border-red-300 rounded p-2">
-                <AlertTriangle size={18} />
-                <span>⚠️ Ticket expires <b>today</b>!</span>
-              </div>
-            );
-          } else if (diffDays === 1) {
-            return (
-              <div className="flex items-center gap-2 text-orange-600 bg-orange-100 border border-orange-300 rounded p-2">
-                <Clock size={18} />
-                <span>⏳ Ticket will expire <b>tomorrow</b>.</span>
-              </div>
-            );
-          } else if (diffDays > 1) {
-            return (
-              <div className="flex items-center gap-2 text-green-600 bg-green-100 border border-green-300 rounded p-2">
-                <CheckCircle size={18} />
-                <span>✅ Ticket valid for <b>{diffDays}</b> more days.</span>
-              </div>
-            );
-          } else {
-            return (
-              <div className="flex items-center gap-2 text-gray-600 bg-gray-100 border border-gray-300 rounded p-2">
-                <AlertTriangle size={18} />
-                <span>❌ Ticket already expired.</span>
-              </div>
-            );
-          }
-        })()}
-      </div>
-    </div>
-    
-  </div>
-
-  {/* Description */}
-  <div className="mt-3 text-lg pb-4 border-b border-gray-600">
-    <span className="flex items-center justify-start text-2xl gap-3 text-gray-400">
-      <Text /> Details
-    </span>
-    <p className="text-lg my-2">{singleTicket.description}</p>
-  </div>
-
-  {/* Steps to reproduce */}
-  <div>
-    <h1 className="text-2xl my-3 font-semibold text-red-500 flex items-center justify-start gap-3">
-      <AlertTriangle className="h-8 w-8 p-1.5 bg-red-500 text-white rounded-md shadow-2xl" />
-      Steps to reproduce -
-    </h1>
-
-    <ul>
-      {singleTicket.stepsToReproduce &&
-        singleTicket.stepsToReproduce.map((s, i) => (
-          <li key={i} className="flex items-center justify-start gap-3 mb-2">
-            <Wrench className="h-6 w-6 p-1 bg-green-500 rounded-full" />
-            {s}
-          </li>
-        ))}
-    </ul>
-  </div>
-
-  <div className='mt-15'>
-    <h1 className="text-2xl my-3 font-semibold text-green-500 flex items-center justify-start gap-3">
-      <CheckCheck className="h-8 w-8 p-1.5 bg-green-500 text-white rounded-md shadow-2xl" />
-      Activities done -
-    </h1>
-
-    <ul >
-      {singleTicket.activityLog &&
-      thisTicketActivities &&
-        thisTicketActivities.map((s, i) => (
-        <li key={i} className="flex items-start justify-start flex-wrap gap-3 mb-2 bg-gray-200 text-gray-900 p-3 rounded-md shadow">
-            <div className='flex items-start justify-start gap-4 max-w-lg border border-gray-300 p-1 rounded'>
-            <AlignCenter className="h-7 w-7 text-white p-1 bg-green-500 rounded-full shrink-0" />
-<p className=' flex-1 font-medium'>
-
-            {s.details}
-</p>
+              <button onClick={() => setRightOpen(true)} className="px-3 py-1 bg-gray-200 rounded">
+                Info
+              </button>
             </div>
-            
-           <div className='flex items-center flex-col flex-1 p-1 border border-gray-300 rounded'>
-            <span className='px-3 py-1 bg-green-500 rounded text-white'>
-            {s.actionType}
-            </span>
-            <span className='max-w-full mt-3 flex items-center justify-start gap-1 overflow-hidden text-ellipsis whitespace-nowrap font-medium'>
-           <Calendar className='w-5 h-5 bg-gray-900 text-white rounded-full p-0.5'/>
-           { new Date(s.doneOn).toDateString()}
+          </div>
+
+          {/* TITLE + STATUS */}
+          <div className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
+            <h1 className="text-3xl font-semibold text-gray-800">{singleTicket?.title}</h1>
+
+            <div className="flex items-center gap-3">
+              <span
+                className={`px-3 py-1 rounded-full text-white text-sm shadow-sm ${
+                  singleTicket?.status === "Open"
+                    ? "bg-green-600"
+                    : singleTicket?.status === "Closed"
+                    ? "bg-red-600"
+                    : "bg-yellow-500"
+                }`}
+              >
+                {singleTicket?.status}
+              </span>
+
+              <PriorityBadge priority={singleTicket?.priority} />
+            </div>
+          </div>
+
+          {/* DESCRIPTION */}
+          <div className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <FileText /> Description
+            </h2>
+            <p className="text-gray-700 leading-relaxed">{singleTicket?.description}</p>
+          </div>
+
+          {/* STEPS */}
+          <div className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
+            <h2 className="text-xl font-semibold flex items-center gap-2 text-red-600">
+              <AlertTriangle /> Steps to Reproduce
+            </h2>
+
+            <ul className="space-y-2 text-gray-700">
+              {singleTicket?.stepsToReproduce?.map((s, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <AlignLeft className="text-gray-500" />
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* ACTIVITY LOG */}
+          <div className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
+            <h2 className="text-xl font-semibold flex items-center gap-2 text-green-600">
+              <CheckCircle /> Activity Log
+            </h2>
+
+            <div className="space-y-4">
+              {thisTicketActivities?.map((a, i) => (
+                <div key={i} className="flex items-start gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className="w-3 h-3 bg-blue-600 rounded-full shadow-sm"></div>
+                    {i !== thisTicketActivities.length - 1 && (
+                      <div className="w-px flex-1 bg-gray-300" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-semibold text-gray-800">{a.actionType}</div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <Calendar size={14} /> {new Date(a.doneOn).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    <p className="text-gray-700 text-sm mb-3">{a.details}</p>
+
+                    <div className="flex items-center gap-2 text-gray-500 text-xs">
+                      <User size={14} />
+                      {a.performedBy?.username}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* COMMENTS */}
+          <div className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
+            <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-700">
+              <MessageSquare /> Comments
+            </h2>
+
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+              {ticketComments?.comments?.length ? (
+                ticketComments.comments.map((c) => (
+                  <div
+                    key={c._id}
+                    className="p-4 rounded-lg bg-gray-50 border border-gray-200 shadow-sm hover:shadow transition"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-gray-800">{c.message}</p>
+                      <span className="text-xs text-gray-500">
+                        {new Date(c.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">— {c.userId?.username}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="flex items-center gap-2 bg-gray-100 p-3 rounded text-gray-500">
+                  <MessageSquareOff size={18} />
+                  <span>No comments yet.</span>
+                </div>
+              )}
+            </div>
+
+            {/* COMMENT FORM */}
+            <form onSubmit={submitComment} className="space-y-3">
+              <input
+                value={commentForm.message}
+                onChange={(e) =>
+                  setCommentForm((prev) => ({
+                    ...prev,
+                    message: e.target.value,
+                  }))
+                }
+                className="w-full p-3 rounded-lg border border-gray-200 bg-white"
+                placeholder="Type a comment..."
+              />
+
+              <div className="flex items-center gap-3">
+                <select
+                  className="border rounded px-3 py-1"
+                  value={commentForm.type}
+                  onChange={(e) =>
+                    setCommentForm((prev) => ({
+                      ...prev,
+                      type: e.target.value,
+                    }))
+                  }
+                >
+                  <option>Text</option>
+                  <option>Status Change</option>
+                  <option>System</option>
+                </select>
+
+                <button className="ml-auto flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded">
+                  <Send size={16} />
+                  Send
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Activity Form */}
+          
+        </div>
 
 
-            </span>
-            <span className='max-w-full mt-3 flex items-center justify-start gap-1 overflow-hidden text-ellipsis whitespace-nowrap font-medium'>
-            <User className='w-5 h-5 bg-gray-900 text-white rounded-full p-0.5'/>
-            {s.performedBy?.username}
+        
 
-            </span>
+        {/* RIGHT SIDEBAR (desktop) */}
+        <div className="w-[300px] bg-white border-l p-6 space-y-6 hidden lg:block">
+          <h3 className="text-lg font-semibold text-gray-800">Issue Info</h3>
 
-            </div> 
-          </li>
-        ))}
-    </ul>
-  </div>
+          <div className="space-y-2 text-sm">
+            <p className="flex items-center flex-wrap gap-2 text-gray-600">
+              <Hash size={14} /> Ticket:
+              <span className="font-medium ml-1">{singleTicket?._id}</span>
 
+              <button
+                onClick={() => copyToClipboard(singleTicket?._id)}
+                className="ml-2 px-2 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 rounded border"
+              >
+                Copy
+              </button>
+            </p>
 
+            <p className="flex items-center gap-2 text-gray-600">
+              <User size={14} /> Issued By: {singleTicket?.giver?.username}
+            </p>
 
+            <p className="flex items-center gap-2 text-gray-600">
+              <Calendar size={14} /> Assigned On:{" "}
+              {singleTicket ? new Date(singleTicket.assignedOn).toLocaleDateString() : ""}
+            </p>
 
+            <div className="mt-4">
+              {daysLeft === 0 && (
+                <div className="p-2 bg-red-100 text-red-700 rounded flex gap-2 text-sm">
+                  <AlertTriangle size={16} /> Expires Today
+                </div>
+              )}
+              {daysLeft === 1 && (
+                <div className="p-2 bg-yellow-100 text-yellow-700 rounded flex gap-2 text-sm">
+                  <Clock size={16} /> Expires Tomorrow
+                </div>
+              )}
+              {daysLeft > 1 && (
+                <div className="p-2 bg-green-100 text-green-700 rounded flex gap-2 text-sm">
+                  <CheckCircle size={16} /> Valid for {daysLeft} days
+                </div>
+              )}
+              {daysLeft < 0 && (
+                <div className="p-2 bg-gray-200 text-gray-600 rounded flex gap-2 text-sm">
+                  <AlertTriangle size={16} /> Ticket Expired
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
-   </div>
+      <div className="">
 
-
-
-<div className="p-5 min-h-[100vh] rounded-r-md w-xl flex flex-col items-center justify-between">
-    { singleTicket && ticketComments?.comments?.length > 0 ? (
-  <div className="text-gray-700 flex-1 max-h-[100vh] space-y-3 overflow-y-scroll noScroll w-full">
-    {ticketComments.comments.map((c) => (
-     <div
-  key={c._id}
-  className="flex flex-col p-3 border border-gray-200 rounded shadow w-full"
->
-  <div className="flex items-start justify-between gap-2">
-    <div className="flex items-start justify-start gap-2">
-      <MessageSquareText className="w-7 shrink-0 h-7 p-1 text-blue-500" />
-      <p className="text-lg font-bold text-gray-800">{c.message}</p>
-    </div>
-    <span className="text-xs shrink-0 text-gray-500 self-start">
-{new Date(c.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-    </span>
-  </div>
-
-  <span className="text-sm text-gray-500 mt-1">
-    - user {c?.userId?.username}
-  </span>
-</div>
-
-    ))}
-  </div>
-) : (
-  <div className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 w-full">
-    <MessageSquareOff className="w-5 h-5" />
-    <p className="text-sm italic">No comments have been added yet.</p>
-  </div>
-)}
-
-
-
-
-
-   <div className="p-3 border border-gray-300 rounded-lg w-full bg-white">
-  {/* Message Input */}
-  <input
-    type="text"
-    value={commentForm.message}
-    onChange={(e) =>
-      setCommentForm((prev) => ({
-        ...prev,
-        message: e.target.value,
-      }))
-    }
-    className="outline-none rounded focus:shadow-md p-2 w-full text-gray-900 bg-gray-50 border border-gray-200 mb-3"
-    placeholder="Type message here..."
-  />
-
-  {/* Select + Send Button */}
-  <div className="flex items-center gap-3">
-    <select
-      name="type"
-      className="border border-gray-300 rounded px-3 py-2 outline-none focus:bg-gray-700 focus:text-white text-gray-900"
-      value={commentForm.type}
-      onChange={(e) =>
-        setCommentForm((prev) => ({
-          ...prev,
-          type: e.target.value,
-        }))
-      }
-    >
-      {["Text", "Status Change", "System"].map((type) => (
-        <option key={type} value={type}>
-          {type}
-        </option>
-      ))}
-    </select>
-
-    <Send
-      onClick={
-        submitCommentHandler
-      }
-      className="text-white bg-teal-500 h-10 w-10 p-1.5 rounded-full cursor-pointer shadow hover:bg-teal-600 transition"
-    />
-  </div>
-</div>
-
-
-
-
-  </div>
-
-
-
-
-</div>
-         
-         } 
-
+            <CreateActivityForm
+              activityForm={activityForm}
+              setActivityForm={setActivityForm}
+              onSubmit={submitActivity}
+              performedBy={userId}
+              defaultTicketId={singleTicket?._id}
+              projectId={singleTicket?.project?._id}
            
+           />
+          </div>
 
-          
+      {/* MOBILE LEFT SIDEBAR */}
+      {leftOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setLeftOpen(false)}></div>
+          <div className="fixed inset-y-0 left-0 w-[80%] max-w-xs bg-white z-50 p-6 shadow-xl rounded-r-xl animate-slideIn">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-lg">Ticket</h2>
+              <button onClick={() => setLeftOpen(false)} className="px-3 py-1 rounded bg-gray-100">
+                Close
+              </button>
+            </div>
 
+            <p className="font-medium text-gray-700">{singleTicket?.title}</p>
+            <p className="text-xs text-gray-500 flex items-center gap-2">
+              Project ID: {singleTicket?.project?._id}
+              <button
+                onClick={() => copyToClipboard(singleTicket?.project?._id)}
+                className="px-2 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 rounded border"
+              >
+                Copy
+              </button>
+            </p>
+          </div>
+        </>
+      )}
 
-        </div>
+      {/* MOBILE RIGHT SIDEBAR */}
+      {rightOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setRightOpen(false)}></div>
 
+          <div className="fixed inset-y-0 right-0 w-[80%] max-w-xs bg-white z-50 p-6 shadow-xl rounded-l-xl animate-slideInRight">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-lg">Issue Info</h2>
+              <button onClick={() => setRightOpen(false)} className="px-3 py-1 rounded bg-gray-100">
+                Close
+              </button>
+            </div>
 
+            <div className="space-y-2">
+              <p className="flex items-center gap-2 text-gray-600">
+                <Hash size={14} /> Ticket: {singleTicket?._id}
+                <button
+                  onClick={() => copyToClipboard(singleTicket?._id)}
+                  className="px-2 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 rounded border"
+                >
+                  Copy
+                </button>
+              </p>
 
+              <p className="flex items-center gap-2 text-gray-600">
+                <User size={14} /> {singleTicket?.giver?.username}
+              </p>
 
-
-
-
-        <div className='p-5 mt-10 border border-gray-300'>
-          <h1 className='text-2xl text-gray-500 font-medium mb-5'>
-            Create an Activity
-          </h1>
-
-         <form onSubmit={submitHandler} className="p-5 bg-white rounded shadow-md text-gray-900">
-  {/* Ticket ID */}
-  <div className='flex items-start gap-4 mb-4 max-w-full'>
-    <label htmlFor="ticketId" className='flex items-start justify-start gap-2 text-gray-700 w-3xs'>
-      <Hash className='bg-gray-900 text-white h-8 w-8 p-1 rounded'/>
-      Ticket ID
-    </label>
-    <input
-      value={activityForm.ticketId}
-      name='ticketId'
-      type="text"
-      onChange={(e) => setActivityForm(prev => ({
-        ...prev,
-        ticketId: e.target.value
-      }))}
-      className='outline-none rounded focus:shadow-lg p-2 w-xl bg-gray-100 border border-gray-200 '
-      placeholder='Copy ticket Id above'
-    />
-  </div>
-
-  {/* Action Type (editable) */}
-  <div className='flex items-start gap-4 mb-4 max-w-full'>
-    <label htmlFor="actionType" className='flex items-start justify-start gap-2 text-gray-700 w-3xs'>
-      <ActivityIcon className='bg-gray-900 text-white h-8 w-8 p-1 rounded'/>
-      Action Type
-    </label>
-    <input
-      value={activityForm.actionType}
-      name='actionType'
-      onChange={(e) => setActivityForm(prev => ({
-        ...prev,
-        actionType: e.target.value
-      }))}
-      type="text"
-      className='outline-none rounded focus:shadow-lg p-2 w-xl bg-gray-50 border border-gray-200'
-      placeholder='E.g. Status Update, Comment Added'
-    />
-  </div>
-
-  {/* Performed By */}
-  <div className='flex items-start gap-4 mb-4 max-w-full'>
-    <label htmlFor="performedBy" className='flex items-start justify-start gap-2 text-gray-700 w-3xs'>
-      <User className='bg-gray-900 text-white h-8 w-8 p-1 rounded'/>
-      Performed By
-    </label>
-    <input
-      value={activityForm.performedBy}
-      name='performedBy'
-      type="text"
-      readOnly
-      className='outline-none rounded focus:shadow-lg p-2 w-xl bg-gray-100 border border-gray-200 cursor-not-allowed'
-    />
-  </div>
-
-  {/* Performed On */}
-  <div className='flex items-start gap-4 mb-4 max-w-full'>
-    <label htmlFor="performedOn" className='flex items-start justify-start gap-2 text-gray-700 w-3xs'>
-      <Folder className='bg-gray-900 text-white h-8 w-8 p-1 rounded'/>
-      Performed On
-    </label>
-    <input
-      value={activityForm.performedOn}
-      name='performedOn'
-      type="text"
-      onChange={(e) => setActivityForm(prev => ({
-        ...prev,
-        performedOn: e.target.value
-      }))}
-      className='outline-none rounded focus:shadow-lg p-2 w-xl bg-gray-100 border border-gray-200 '
-      placeholder='Copy project Id above'
-    />
-  </div>
-
-  {/* Details (editable) */}
-  <div className='flex items-start gap-4 mb-4 max-w-full'>
-    <label htmlFor="details" className='flex items-start justify-start gap-2 text-gray-700 w-3xs'>
-      <FileText className='bg-gray-900 text-white h-8 w-8 p-1 rounded'/>
-      Details
-    </label>
-    <textarea
-      value={activityForm.details}
-      name='details'
-      onChange={(e) => setActivityForm(prev => ({
-        ...prev,
-        details: e.target.value
-      }))}
-      className='outline-none rounded focus:shadow-lg p-2 w-xl bg-gray-50 border border-gray-200 resize-none h-48 overflow-y-scroll noScroll'
-      placeholder='Describe the activity...'
-    />
-  </div>
-
-  {/* Done On */}
-  <div className='flex items-start gap-4 mb-4 max-w-full'>
-    <label htmlFor="doneOn" className='flex items-start justify-start gap-2 text-gray-700 w-3xs'>
-      <Calendar className='bg-gray-900 text-white h-8 w-8 p-1 rounded'/>
-      Done On
-    </label>
-    <input
-      value={activityForm.doneOn}
-      name='doneOn'
-      type="date"
-      onChange={(e) => setActivityForm(prev => ({
-        ...prev,
-        doneOn: e.target.value
-      }))}
-      className='outline-none rounded focus:shadow-lg p-2 w-xl bg-gray-100 border border-gray-200 '
-    />
-  </div>
-
-
-   <div className='w-fit mx-auto my-10'>
-          <button type='submit' className='px-6 py-1.5 rounded shadow border border-gray-300 cursor-pointer hover:bg-green-500 hover:text-white transition-all'>
-          
-          Create Activity
-        </button>
-        </div>
-
-
-</form>
-
-
-
-         
-
-        </div>
-      
+              <p className="flex items-center gap-2 text-gray-600">
+                <Calendar size={14} />{" "}
+                {singleTicket ? new Date(singleTicket.assignedOn).toLocaleDateString() : ""}
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </div>
+  );
+};
 
-
-)
-
-}
-
-export default ViewDetailedBug
+export default ViewDetailedBug;

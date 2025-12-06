@@ -11,9 +11,9 @@ import Project from "../Models/Project.Models.js";
 import Ticket from "../Models/Ticket.Models.js";
 import Team from "../Models/Team.Models.js";
  
+ 
 
-
-
+ 
 const registerUser = async (req, res) => {
   try {
     
@@ -46,7 +46,8 @@ const registerUser = async (req, res) => {
       firstName,
       lastName,
       role,
-      picture: secure_url  
+      picture: secure_url ,
+      githubAccessToken 
     });
 
     const token = generateToken(newUser._id);
@@ -352,7 +353,7 @@ const getUsersTeam = async (req, res) => {
     console.error("User info fetching Error:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
-}
+} 
 const getUsersByRole = async(req,res)=>{
       const { role } = req.params;
   const page = parseInt(req.query.page) || 1;
@@ -667,9 +668,120 @@ const pushTeam = async(req,res)=>{
 
 
 
+const unlinkGithub = async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ success: false, message: "User ID is required" });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    user.githubAccessToken = null;
+    user.githubUsername = null;
+    await user.save();
+
+    return res.json({ success: true, message: "GitHub account unlinked successfully" });
+  } catch (err) {
+    console.error("Unlink GitHub Error:", err.message);
+    return res.status(500).json({ success: false, message: "Failed to unlink GitHub", error: err.message });
+  }
+};
+
+const getProjectJoinRequest = async (req, res) => {
+  try {
+    const { error } = validationUtils.userIdValidationSchema.validate(req.params);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const { userId } = req.params;
+
+    const user = await User.findById(userId).populate({
+      path: "projectJoinRequests.project", // This must match your Schema field name
+      select: "_id name startedOn", // Select only necessary fields
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const projects = user.projectJoinRequests
+      .filter((req) => req.project) 
+      .map((req) => ({
+        project: req.project,
+        requestedOn: req.createdAt, // Accessing the timestamp of the request
+      }));
+
+    if (projects.length === 0) {
+      return res.status(200).json({ // Changed to 200 as empty list is not technically an error
+        success: false,
+        message: "No project join requests found",
+        projects: []
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Project join requests found successfully",
+      projects,
+    });
+
+  } catch (error) {
+    console.error("User ProjectJoin fetching Error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+const getTeamJoinRequest = async (req, res) => {
+  try {
+    const { error } = validationUtils.userIdValidationSchema.validate(req.params);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const { userId } = req.params;
+
+    // OPTIMIZATION: Use populate()
+    const user = await User.findById(userId).populate({
+      path: "teamJoinRequests.team", // Check your schema: is the ref field named 'team'?
+      select: "_id name createdAt",
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const teams = user.teamJoinRequests
+      .filter((req) => req.team)
+      .map((req) => ({
+        team: req.team,
+        requestedOn: req.createdAt,
+      }));
+
+    if (teams.length === 0) {
+      return res.status(200).json({
+        success: false,
+        message: "No team join requests found",
+        teams: []
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Team join requests found successfully", // Fixed typo
+      teams,
+    });
+
+  } catch (error) {
+    console.error("User TeamJoin fetching Error:", error); // Fixed typo
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
 
 
 
 
-export {registerUser,loginUser,getUserDataById,DeleteUserProfile,PatchUserProfile,ListAllUserProfiles,getUsersTeam,getPatchedUsers,getUsersByRole,getLastActiveTime,updateUserProfile,getUserActivities,SearchUserProfile,changeUserRole,getUserIDByUsername,getUserByUsernameAndEmail,pushTeam}
+
+export {unlinkGithub,getProjectJoinRequest,registerUser,loginUser,getUserDataById,DeleteUserProfile,PatchUserProfile,ListAllUserProfiles,getUsersTeam,getPatchedUsers,getUsersByRole,getLastActiveTime,updateUserProfile,getUserActivities,SearchUserProfile,changeUserRole,getUserIDByUsername,getUserByUsernameAndEmail,pushTeam,getTeamJoinRequest}

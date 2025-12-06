@@ -30,10 +30,8 @@ import SearchUser from "../Components/SearchUser";
 import SearchTeam from "../Components/SearchTeams";
 import { toast } from "react-toastify";
 import RestrictedProjectCard from "../Components/RestrictedProjectCard";
-// import { getFileIcon } from "../Components/Icons";
 
 const ProjectDetail = () => {
-
   const navigate = useNavigate();
   const {
     project,
@@ -44,13 +42,13 @@ const ProjectDetail = () => {
     getProjectComments,
     createTicket,
     deleteProject,
-    getThisProjectTickets,thisProjectTickets,
-    uploadProjectFILES,uploadedFolders,
-    fetchProjectFiles,thisProjectFiles,
-    patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,reqStatus,getPendingProjectRequests,pendingProjectReqLists
+    getThisProjectTickets, thisProjectTickets,
+    uploadProjectFILES, uploadedFolders,
+    fetchProjectFiles, thisProjectFiles,
+    patchProjectJoinRequest, sendProjectJoinRequest, checkAuthorityToViewProject, hasAuthToSeeProject, reqStatus, getPendingProjectRequests, pendingProjectReqLists
   } = useContext(TrackForgeContextAPI);
 
-  const { projectId, username,hash } = useParams();
+  const { projectId, username, hash } = useParams();
 
   const [ticketForm, setTicketForm] = useState({
     title: "",
@@ -64,16 +62,16 @@ const ProjectDetail = () => {
   });
 
   const [page, setPage] = useState(1);
-
   useEffect(() => {
     if (projectId) {
       projectById(projectId);
       getProjectStats(projectId);
       getProjectComments(projectId, page);
-       fetchProjectFiles(projectId)
-      checkAuthorityToViewProject(projectId)
+      fetchProjectFiles(projectId);
+      checkAuthorityToViewProject(projectId);
       getPendingProjectRequests(projectId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
   useEffect(() => {
@@ -91,7 +89,6 @@ const ProjectDetail = () => {
   const owner = data.owner || {};
   const members = data.members || [];
   const activities = data.activity || [];
- 
 
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [selectedTeamIds, setSelectedTeamIds] = useState([]);
@@ -108,7 +105,7 @@ const ProjectDetail = () => {
       );
       setSelectedUserIds([]);
     }
-  }; 
+  };
 
   const addGroup = async (e) => {
     e.preventDefault();
@@ -125,17 +122,16 @@ const ProjectDetail = () => {
   };
 
   const isFormValid = () => {
-    // required fields
-    const { title, description, assignedTo, projectId, createdBy, priority } =
+    const { title, description, assignedTo, projectId: pid, createdBy, priority } =
       ticketForm;
 
     if (
-      !title.trim() ||
-      !description.trim() ||
-      !assignedTo.trim() ||
-      !projectId.trim() ||
-      !createdBy.trim() ||
-      !priority.trim()
+      !title?.trim() ||
+      !description?.trim() ||
+      !assignedTo?.trim() ||
+      !pid?.trim() ||
+      !createdBy?.trim() ||
+      !priority?.trim()
     ) {
       return false;
     }
@@ -145,8 +141,6 @@ const ProjectDetail = () => {
 
   const handleTicketCreation = async (e) => {
     e.preventDefault();
-
-    console.log(ticketForm);
 
     if (!isFormValid()) {
       toast.warn("All required fields must be filled!");
@@ -163,1109 +157,568 @@ const ProjectDetail = () => {
         stepsToReproduce: [],
         attachments: [],
       });
-      
     }
   };
 
+  const [ticketPage, setTicketPage] = useState(1);
 
-  const [ticketPage,setTicketPage] = useState(1);
+  // fixed: react when ticketPage changes
+  useEffect(() => {
+    if (projectId) getThisProjectTickets(projectId, ticketPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, ticketPage]);
 
-  useEffect(()=>{
-    getThisProjectTickets(projectId,ticketPage);
-  },[projectId,page])
+  const handleDeleteTicket = async (id) => {
+    // placeholder: your function exists above; call it if available
+    if (!id) return;
+    // You can implement a delete API call here if available.
+    toast.info("Delete ticket handler called");
+  };
 
+  const handleViewDetails = async (id) => {
+    navigate(`/auth/${hash}/${username}/workspace/ticket-detail/${id}`);
+  };
 
-  
- 
-
-
-
-  
-const handleDeleteTicket = async()=>{
-
-}
-const handleViewDetails = async(id)=>{
-  navigate(`/auth/${hash}/${username}/workspace/ticket-detail/${id}`)
-
-} 
-
-
-
-const [file,setFile] = useState({
-        filename:"",
-        size: 0,  
-        path:"",                     
-        fileType: "",                  
-        uploadedAt: Date.now(),
-        uploadedBy: localStorage.getItem("userId")
-      
-});
-
-const [folderForm,setFolderForm] = useState({
-  name:"",
-  files:[
-    file
-  ]
-})
-
-
-const uploadProjectFolder = async (e) => {
-  e.preventDefault();
-
-  const formData = new FormData();
-
-  // ✅ Folder only has name + files (no path)
-  formData.append(
-    "folder",
-    JSON.stringify({
-      name: folderForm.name,
-      files: folderForm.files.map((f) => ({
-        filename: f.filename,
-        size: f.size,
-        fileType: f.fileType,
-        path: f.path, // ✅ path stays at file level only
-        uploadedAt: f.uploadedAt,
-        uploadedBy: f.uploadedBy,
-      })),
-    })
-  );
-
-  // Attach actual file objects
-  folderForm.files.forEach((f) => {
-    if (f.fileObj) {
-      formData.append("files", f.fileObj);
-    }
-  });
-
-  // API call
-  await uploadProjectFILES(projectId, formData);
-
-  // Reset state
-  setFile({
+  const [file, setFile] = useState({
     filename: "",
     size: 0,
-    path: "", // ✅ keep path for files
+    path: "",
     fileType: "",
     uploadedAt: Date.now(),
-    uploadedBy: localStorage.getItem("userId"),
+    uploadedBy: localStorage.getItem("userId")
   });
 
-  setFolderForm({
+  const [folderForm, setFolderForm] = useState({
     name: "",
-    files: [],
+    files: [
+      file
+    ]
   });
-};
 
+  const uploadProjectFolder = async (e) => {
+    e.preventDefault();
 
+    const formData = new FormData();
 
-const handleJoinRequest = ()=>{
-     
-      sendProjectJoinRequest(projectId);
+    formData.append(
+      "folder",
+      JSON.stringify({
+        name: folderForm.name,
+        files: folderForm.files.map((f) => ({
+          filename: f.filename,
+          size: f.size,
+          fileType: f.fileType,
+          path: f.path,
+          uploadedAt: f.uploadedAt,
+          uploadedBy: f.uploadedBy,
+        })),
+      })
+    );
 
-}
+    folderForm.files.forEach((f) => {
+      if (f.fileObj) {
+        formData.append("files", f.fileObj);
+      }
+    });
 
+    await uploadProjectFILES(projectId, formData);
 
+    setFile({
+      filename: "",
+      size: 0,
+      path: "",
+      fileType: "",
+      uploadedAt: Date.now(),
+      uploadedBy: localStorage.getItem("userId"),
+    });
 
+    setFolderForm({
+      name: "",
+      files: [],
+    });
+  };
 
-useEffect(()=>{
-  console.log("thisProjectFiles",thisProjectFiles);
-},[thisProjectFiles])
+  const handleJoinRequest = () => {
+    sendProjectJoinRequest(projectId);
+  };
 
+  useEffect(() => {
+    // debug
+    // console.log("thisProjectFiles", thisProjectFiles);
+  }, [thisProjectFiles]);
 
+  const [openedFolder, setOpenedFolder] = useState({
+    key: 0,
+    open: false
+  });
 
-const [openedFolder,setOpenedFolder] = useState({
-  key:0,
-  open:false
-})
+  /* -----------------------
+     Styles / helpers
+  ------------------------*/
+  const chips = "px-3 py-1 rounded-full text-sm font-medium";
+  const metaItem = (label, value) => (
+    <div className="flex flex-col">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-sm font-medium text-gray-800">{value || "-"}</span>
+    </div>
+  );
 
-
-  return (
-    <div className="min-h-screen p-6 bg-white text-gray-900 space-y-8">
-     
-
-      {
-        (hasAuthToSeeProject !==null && hasAuthToSeeProject)
-        ?
-        
-      (<div>
+ 
 
     
 
+  return (
+    <div className="min-h-screen p-6 bg-gray-50 text-gray-900">
 
-      <div>
-        <div className="flex items-start justify-between">
-          <h1 className="text-4xl font-bold mb-2">{projectInfo?.name}</h1>
+      {/* HERO / HEADER */}
+      {hasAuthToSeeProject !== null && hasAuthToSeeProject ? (
+        <div className="space-y-6">
 
-          <div onClick={()=>deleteProject(projectId)} className="flex items-center justify-start gap-3">
-            <span className="flex items-center justify-start gap-3 text-white bg-red-500 px-2 py-1 rounded shadow cursor-pointer">
-              <Trash/>
-              Delete
-            </span>
+          <div className="bg-white rounded-lg shadow-sm p-6 flex flex-col lg:flex-row lg:items-center gap-6">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-800">{projectInfo?.name}</h1>
+              <p className="text-sm text-gray-500 mt-1">{projectInfo?.description}</p>
 
+              <div className="mt-4 flex flex-wrap gap-4 items-center">
+                <div className="inline-flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full text-sm">
+                  <Pin className="w-4 h-4 text-gray-500" /> ID: <span className="font-medium ml-1">{projectInfo?._id}</span>
+                </div>
 
-          <Link to={'edit'}>
-          <Edit className="bg-gray-900 focus:bg-gray-900 text-white h-8 w-8 p-1 rounded cursor-pointer" />
-          </Link>
-          </div>
+                <div className="inline-flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full text-sm">
+                  <CalendarIconFallback />
+                  Started: <span className="font-medium ml-1">{projectInfo?.startedOn ? new Date(projectInfo.startedOn).toLocaleDateString() : "N/A"}</span>
+                </div>
 
-        </div>
-        <p className="text-gray-600">{projectInfo?.description}</p>
-        <div className="mt-2 flex flex-wrap gap-4 text-sm">
-          <span>
-            📅 Started On:{" "}
-            {new Date(projectInfo?.startedOn).toLocaleDateString()}
-          </span>
-          <span>
-            ⏳ Deadline: {new Date(projectInfo?.deadline).toLocaleDateString()}
-          </span>
-          <span>🗂️ Archived: {projectInfo?.archived ? "Yes" : "No"}</span>
-          <span>🆔 Project ID: {projectInfo?._id}</span>
-        </div>
-      </div>
+                <div className="inline-flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full text-sm">
+                  <Clock className="w-4 h-4 text-gray-500" /> Deadline: <span className="font-medium ml-1">{projectInfo?.deadline ? new Date(projectInfo.deadline).toLocaleDateString() : "N/A"}</span>
+                </div>
 
-      {/* Owner Details */}
-      <div className="border border-gray-200 rounded-lg p-4 my-3">
-        <h2 className="text-2xl font-semibold mb-2">👑 Owner</h2>
-        <div className="text-sm space-y-1">
-          <p>
-            <strong>Name:</strong> {owner?.firstName} {owner?.lastName}
-          </p>
-          <p>
-            <strong>Username:</strong> {owner?.username}
-          </p>
-          <p>
-            <strong>Email:</strong> {owner?.email}
-          </p>
-          <p>
-            <strong>Role:</strong> {owner?.role}
-          </p>
-        </div>
-      </div>
-
-      {/* Members */}
-      <div className="border border-gray-200 rounded-lg p-4 my-3 ">
-        <h2 className="text-2xl font-semibold mb-4">
-          👥 Members ({members.length})
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {members.map((member) => (
-            <div
-              key={member._id}
-              className="border border-gray-200 rounded-md p-3 bg-gray-50"
-            >
-              <p>
-                <strong>
-                  {member.firstName} {member.lastName}
-                </strong>{" "}
-                ({member.username})
-              </p>
-              <p>Email: {member.email}</p>
-              <p>Role: {member.role}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-
-      {/* Tickets */}
-      <div className="border border-gray-200 rounded-lg p-4 my-3  ">
-        <div className="flex items-start justify-start gap-5">
-        <h1 className="text-2xl font-semibold mb-4">
-          🎫 Tickets ({thisProjectTickets?.totalTickets || 0})
-          
-        </h1>
-
-        </div>
-     
-        <div className="flex items-center justify-between flex-wrap gap-5 mb-10">
-          {
-            thisProjectTickets && thisProjectTickets.tickets && thisProjectTickets.tickets.length>0
-            ?
-            (
-              thisProjectTickets.tickets.map((t)=>{
-                return(
-
-<div
-  key={t?._id} 
-  className="border  border-gray-200 rounded-2xl bg-gray-100 shadow-sm hover:shadow-lg transition p-4 w-full flex-1 min-w-xl"
->
-  {/* Title & Priority */}
-  <div className="flex items-center justify-between mb-3">
-    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-      <Flag className="w-5 h-5 text-blue-500" />
-      {t?.title}
-    </h2>
-    <div className="flex gap-2">
-      {/* Priority */}
-      <span
-        className={`px-2 py-1 text-xs rounded-full font-medium flex items-center gap-1 ${
-          t.priority === "High"
-            ? "bg-red-100 text-red-600"
-            : t.priority === "Medium"
-            ? "bg-yellow-100 text-yellow-600"
-            : t.priority === "Critical"
-            ? "bg-red-200 text-red-800"
-            : "bg-green-100 text-green-600"
-        }`}
-      >
-        <Flag className="w-3 h-3" />
-        {t.priority}
-      </span>
-
-      {/* Status */}
-      <span
-        className={`px-2 py-1 text-xs rounded-full font-medium flex items-center gap-1 ${
-          t.status === "Open"
-            ? "bg-blue-100 text-blue-600"
-            : t.status === "In Progress"
-            ? "bg-yellow-100 text-yellow-600"
-            : t.status === "Closed"
-            ? "bg-green-100 text-green-600"
-            : "bg-gray-100 text-gray-600"
-        }`}
-      >
-        {t.status === "Closed" ? (
-          <CheckCircle className="w-3 h-3" />
-        ) : (
-          <Clock className="w-3 h-3" />
-        )}
-        {t.status}
-      </span>
-    </div>
-  </div>
-
-  {/* Assigned Info */}
-  <p className="text-sm text-gray-600 mb-3 flex items-center gap-2">
-    <User className="w-4 h-4 text-gray-500" />
-    <span className="font-medium text-gray-800">{t?.giver?.username}</span> →{" "}
-    <span className="font-medium text-gray-800">{t?.doer?.username}</span>
-    <span className="flex items-center gap-1 text-gray-500 text-xs">
-      <Clock className="w-3 h-3" />
-      {new Date(t?.assignedOn).toLocaleDateString()}
-    </span>
-  </p>
-
-  {/* Steps to Reproduce */}
-  {t?.stepsToReproduce?.length > 0 && (
-    <div className="mb-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-        <CheckCircle className="w-4 h-4 text-green-500" />
-        Steps to Reproduce:
-      </h3>
-      <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
-        {t.stepsToReproduce.map((s, i) => (
-          <li className="w-full overflow-hidden text-ellipsis whitespace-nowrap" key={i}>{s}</li>
-        ))}
-      </ul>
-    </div>
-  )}
-
-  {/* Action Buttons */}
-  <div className="flex justify-end gap-3">
-    <button
-      onClick={() => handleViewDetails(t._id)}
-      className="px-3 py-1.5 text-sm rounded-lg flex items-center gap-1 bg-blue-500 text-white hover:bg-blue-600 transition"
-    >
-      <Eye className="w-4 h-4" />
-      View
-    </button>
-    <button
-      onClick={() => handleDeleteTicket(t._id)}
-      className="px-3 py-1.5 text-sm rounded-lg flex items-center gap-1 bg-red-500 text-white hover:bg-red-600 transition"
-    >
-      <Trash2 className="w-4 h-4" />
-      Delete
-    </button>
-  </div>
-</div>
-
-)
-              })
-
-            )
-            :
-            (
-              <p>No tickets have been created for this project yet</p>
-            )
-          }
-
-        </div>
-
-       {
-  thisProjectTickets &&
-  thisProjectTickets.tickets &&
-  ticketPage < thisProjectTickets.totalPages &&
-  thisProjectTickets.tickets.length > 0 && (
-    <div className="w-full p-5 my-10 bg-gray-200">
-      <div className="flex items-center justify-center gap-3 w-fit mx-auto">
-        {/* Left Navigation */}
-        <MoveLeft
-          className="h-9 w-9 p-1 rounded shadow bg-gray-900 text-white cursor-pointer disabled:opacity-40"
-          onClick={() => {
-            if (ticketPage > 1) {
-              setTicketPage(ticketPage - 1);
-            } else {
-              toast.warn("Already on first page");
-            }
-          }}
-        />
-
-        {/* Page Info */}
-        <div className="flex items-center justify-start gap-1 font-medium text-lg">
-          <span>{thisProjectTickets?.currentPage}</span>
-          of
-          <span>{thisProjectTickets?.totalPages}</span>
-        </div>
-
-        {/* Right Navigation */}
-        <MoveRight
-          className="h-9 w-9 p-1 rounded shadow bg-gray-900 text-white cursor-pointer disabled:opacity-40"
-          onClick={() => {
-            if (ticketPage < thisProjectTickets?.totalPages) {
-              setTicketPage(ticketPage + 1);
-            } else {
-              toast.warn("Already on last page");
-            }
-          }}
-        />
-      </div>
-    </div>
-  )
-}
-
-
-      </div>
-
-      {/* Activity */}
-      <div className="border border-gray-200 rounded-lg p-4 my-3 ">
-        <h2 className="text-2xl font-semibold mb-4">
-          📌 Activity Log ({activities.length})
-        </h2>
-        <div className="space-y-4">
-          {activities.map((a, index) => (
-            <div key={index} className="border-b border-gray-200 pb-3">
-              <p className="text-sm text-gray-700">
-                <strong>{a?.performedBy?.username}</strong> performed an action
-                on ticket <strong>{a?.job?.title}</strong>
-              </p>
-              <p className="text-xs text-gray-500">Details: {a?.detail}</p>
-              <p className="text-xs text-gray-500">
-                Project: {a?.project?.name}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Teams (if any) */}
-      {data.teams && data.teams.length > 0 && (
-        <div className="border border-gray-200 rounded-lg p-4 my-3">
-          <h2 className="text-2xl font-semibold mb-4">🛡️ Teams</h2>
-          <div className="space-y-2">
-            {data.teams.map((team) => (
-              <div
-                key={team._id}
-                className="p-2 border border-gray-300 rounded-md"
-              >
-                <p>
-                  <strong>{team.name}</strong>
-                </p>
-                <p className="text-sm text-gray-500">ID: {team._id}</p>
+                <div className="inline-flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full text-sm">
+                  <span className={`${projectInfo?.archived ? "bg-red-100 text-red-700 px-2 py-0.5 rounded" : "bg-green-100 text-green-700 px-2 py-0.5 rounded"}`}>{projectInfo?.archived ? "Archived" : "Active"}</span>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
 
+            <div className="flex-shrink-0 flex items-center gap-3">
+              <button
+                onClick={() => {
+                  deleteProject(projectId);
+                }}
+                className="flex items-center gap-2 bg-red-600 text-white px-3 py-2 rounded hover:bg-red-700 transition"
+              >
+                <Trash className="w-4 h-4" /> Delete
+              </button>
 
-
-     <div className="border my-5 border-gray-200 rounded-lg p-4">
-      <h1 className="text-2xl font-medium text-gray-800 flex items-center justify-start gap-10">📂 Uploaded files
-
-        <Link to={`code-editor/view-project`} className="text-sm bg-gray-800 text-white px-4 py-1 rounded cursor-pointer">Open in Code Editor</Link>
-      </h1>
-  {thisProjectFiles && thisProjectFiles.length ? (
-    <ul className="mt-5 py-5">
-      {thisProjectFiles.map((f, i) => (
-        <li key={i} className="mb-3">
-          {/* Folder header */}
-          <div
-            onClick={() =>
-              setOpenedFolder({
-                key: i,
-                open: openedFolder.key === i ? !openedFolder.open : true,
-              })
-            }
-            className="px-4 cursor-pointer py-2 rounded text-lg font-medium max-w-60 bg-gray-800 text-white flex items-center justify-between"
-          >
-            📂 {f.name}
-            {openedFolder.key === i && openedFolder.open ? (
-              <ChevronDown />
-            ) : (
-              <ChevronRight />
-            )}
+              <Link to={"edit"} className="inline-flex items-center gap-2 px-3 py-2 bg-gray-900 text-white rounded hover:bg-gray-800">
+                <Edit className="w-4 h-4" /> Edit
+              </Link>
+            </div>
           </div>
 
-          {/* Folder contents */}
-          {openedFolder.key === i && openedFolder.open && (
-            <ul className="ml-8 mt-2 space-y-1">
-              {f.files && f.files.length > 0 ? (
-                f.files.map((file, idx) => (
-                  <li
-                    key={idx}
-                    className="flex items-center space-x-2 text-sm text-gray-700 cursor-pointer font-medium mb-2 gap-1 p-1 rounded hover:bg-gray-700 hover:text-white transition-all  border border-gray-300 max-w-50 overflow-hidden text-ellipsis whitespace-nowrap"
-                  >
-                    📄{" "}
-                    <a
+          {/* OWNER + STATS */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-white rounded-lg shadow p-5">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Owner</h3>
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 font-semibold">
+                  {owner?.firstName?.[0] || "U"}
+                </div>
+                <div>
+                  <div className="text-md font-semibold">{owner?.firstName} {owner?.lastName}</div>
+                  <div className="text-sm text-gray-500">@{owner?.username}</div>
+                  <div className="text-sm text-gray-500 mt-1">{owner?.email}</div>
+                </div>
+              </div>
+            </div>
 
-                      href={file.path}
-                      target="_blank"
-                      rel="noreferrer"
-                      
-                    >
-                      {file.filename}
-                    </a>
-                    <span className="text-xs text-gray-500">
-                      ({Math.round(file.size / 1024)} KB)
-                    </span>
-                  </li>
+            <div className="bg-white rounded-lg shadow p-5">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Project Stats</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-sm text-gray-500">Tickets</div>
+                  <div className="text-xl font-semibold">{thisProjectTickets?.totalTickets || 0}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-500">Members</div>
+                  <div className="text-xl font-semibold">{members?.length || 0}</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm text-gray-500">Files</div>
+                  <div className="text-xl font-semibold">{thisProjectFiles?.length || 0}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-5">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Quick Actions</h3>
+              <div className="flex flex-col gap-3">
+                <button className="text-left px-3 py-2 bg-green-600 text-white rounded flex items-center gap-2 hover:bg-green-700 transition" onClick={() => window.scrollTo({ top: 9999, behavior: "smooth" })}>
+                  <Ticket /> Create Ticket
+                </button>
+                <button className="text-left px-3 py-2 bg-gray-100 rounded flex items-center gap-2 hover:bg-gray-200 transition" onClick={() => document.getElementById("upload-folder-input")?.scrollIntoView({ behavior: "smooth" })}>
+                  <Folder /> Upload Files
+                </button>
+                <button className="text-left px-3 py-2 bg-gray-100 rounded flex items-center gap-2 hover:bg-gray-200 transition" onClick={() => document.getElementById("add-members-section")?.scrollIntoView({ behavior: "smooth" })}>
+                  <User /> Add Members
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* MEMBERS */}
+          <section className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-2xl font-semibold">Members ({members.length})</h2>
+              <div>
+                <button className="inline-flex items-center gap-2 px-3 py-1 bg-gray-100 rounded hover:bg-gray-200" onClick={() => document.getElementById("add-members-section")?.scrollIntoView({ behavior: "smooth" })}>
+                  <PersonStanding /> Manage
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {members.map((member) => (
+                <div key={member._id} className="p-4 rounded border border-gray-100 bg-gray-50 flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 font-semibold">
+                    {member.firstName?.[0] || member.username?.[0] || "U"}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-gray-800">{member.firstName} {member.lastName}</div>
+                        <div className="text-sm text-gray-500">@{member.username}</div>
+                      </div>
+                      <div className="text-sm">{member.role}</div>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">{member.email}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* TICKETS (Grid of issue-cards) */}
+          <section className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold">Tickets ({thisProjectTickets?.totalTickets || 0})</h2>
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-500">Page {thisProjectTickets?.currentPage || ticketPage} / {thisProjectTickets?.totalPages || 1}</div>
+                <button className="p-2 rounded bg-gray-100 hover:bg-gray-200" onClick={() => {
+                  if (ticketPage > 1) setTicketPage(ticketPage - 1);
+                  else toast.warn("Already on first page");
+                }}>
+                  <ChevronLeft />
+                </button>
+                <button className="p-2 rounded bg-gray-100 hover:bg-gray-200" onClick={() => {
+                  if (ticketPage < (thisProjectTickets?.totalPages || 1)) setTicketPage(ticketPage + 1);
+                  else toast.warn("Already on last page");
+                }}>
+                  <ChevronRight />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {thisProjectTickets?.tickets && thisProjectTickets.tickets.length > 0 ? (
+                thisProjectTickets.tickets.map((t) => (
+                  <article key={t?._id} className="border rounded-lg p-4 bg-gray-50 shadow-sm hover:shadow-md transition flex flex-col">
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h3 className="text-lg font-semibold flex items-center gap-2">
+                          <Flag className="w-4 h-4 text-blue-500" /> {t?.title}
+                        </h3>
+                        <div className="text-xs text-gray-500 mt-1">#{t?._id?.slice(0, 8)} • {new Date(t?.assignedOn).toLocaleDateString()}</div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2">
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${t.priority === "High" ? "bg-red-100 text-red-700" : t.priority === "Medium" ? "bg-yellow-100 text-yellow-700" : t.priority === "Critical" ? "bg-red-200 text-red-800" : "bg-green-100 text-green-700"}`}>
+                          {t.priority}
+                        </div>
+                        <div className={`px-2 py-1 rounded-full text-xs ${t.status === "Open" ? "bg-blue-100 text-blue-700" : t.status === "In Progress" ? "bg-yellow-100 text-yellow-700" : t.status === "Closed" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
+                          {t.status}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-sm text-gray-700 mb-3 truncate">{t?.description}</p>
+
+                    <div className="mt-auto flex items-center justify-end gap-3">
+                      <button onClick={() => handleViewDetails(t._id)} className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition flex items-center gap-2">
+                        <Eye className="w-4 h-4" /> View
+                      </button>
+                      <button onClick={() => handleDeleteTicket(t._id)} className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition flex items-center gap-2">
+                        <Trash2 className="w-4 h-4" /> Delete
+                      </button>
+                    </div>
+                  </article>
                 ))
               ) : (
-                <li className="text-sm text-gray-500">No files in this folder</li>
+                <p className="text-gray-500">No tickets have been created for this project yet.</p>
               )}
-            </ul>
-          )}
-        </li>
-      ))}
-    </ul>
-  ) : (
-    <p>No Files for this project</p>
-  )}
+            </div>
+          </section>
 
+          {/* ACTIVITY LOG */}
+          <section className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-2xl font-semibold mb-4">Activity Log ({activities.length})</h2>
+            <div className="space-y-4">
+              {activities.map((a, index) => (
+                <div key={index} className="flex items-start gap-4">
+                  <div className="w-2.5 h-2.5 bg-blue-600 rounded-full mt-2" />
+                  <div>
+                    <div className="text-sm text-gray-800"><strong>{a?.performedBy?.username}</strong> — {a.actionType || "action"}</div>
+                    <div className="text-xs text-gray-500 mt-1">On ticket: <strong>{a?.job?.title}</strong> • {a?.detail}</div>
+                    <div className="text-xs text-gray-400 mt-1">Project: {a?.project?.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
-  
-</div>
-
-
-
-
-
-        <div className="p-5 mt-5">
-          {
-      pendingProjectReqLists && pendingProjectReqLists.length
-      ?
-      pendingProjectReqLists.map((r)=>{
-        (
-        <ul>
-          <li key={r._id}>
-            <span>{r.username}</span>
-          </li>
-        </ul>
-
-      )
-      })
-      :(
-        <p className="font-medium text-gray-800">No pending requests</p>
-      )
-      
-        }
-      </div>
-
-
-
-        <div className="border text-white border-gray-200 rounded-lg p-4 bg-gray-800 ">
-          <h1 className="text-2xl font-medium text-gray-200 mb-5">Upload Project files</h1>
-
-          <div className="py-5 mt-5 flex items-center justify-start gap-5">
-            <div className="w-xl flex items-center justify-start gap-5">
-              <label htmlFor="folder" className="w-20">
-                <Folder/>
-              </label>
-              <input value={folderForm.name} onChange={(e)=>{
-                setFolderForm((prev)=>({
-                  ...prev,
-                  name:e.target.value
-                }))
-              }} type="text" name="folder" id="folder" placeholder="Create a new folder" className="h-12 block flex-1 outline-none border border-gray-400 rounded shadow px-6 py-1" />
-
-
+          {/* FILES (explorer) */}
+          <section className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold">Uploaded files</h2>
+              <Link to={`code-editor/view-project`} className="text-sm bg-gray-900 text-white px-4 py-1 rounded">Open in Code Editor</Link>
             </div>
 
-            <span>OR</span>
+            {thisProjectFiles && thisProjectFiles.length ? (
+              <ul className="space-y-4">
+                {thisProjectFiles.map((f, i) => (
+                  <li key={i} className="border rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between bg-gray-900 text-white px-4 py-2 cursor-pointer" onClick={() => setOpenedFolder({ key: i, open: openedFolder.key === i ? !openedFolder.open : true })}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">📂</span>
+                        <span className="font-medium">{f.name}</span>
+                      </div>
+                      <div>{openedFolder.key === i && openedFolder.open ? <ChevronDown /> : <ChevronRight />}</div>
+                    </div>
 
-            <div className=" w-sm">
-              <select value={folderForm.name} onChange={(e)=>{
-                setFolderForm((prev)=>({
-                  ...prev,
-                  name:e.target.value
-                }))
-              }} className="w-full px-6 py-1 block h-12 bg-gray-800 border border-gray-400 rounded outline-none" name="folder" id="folder">
-                <option value="">
-                  Select existing folders
-                </option>
-
-                {
-                  thisProjectFiles && thisProjectFiles.length
-                  ?
-                  thisProjectFiles.map((f,i)=>{
-                    return(
-                      <option value={f?.name} key={i}>
-                  {f?.name}
-                </option>
-                    )
-                  })
-                  :
-                  ( <option value="">
-                  No existing folders found
-                </option>)
-                }
-               
-              </select>
-
-            </div>
-
-           <div>
-
-           </div>
-            
-
-          </div>
-
-          <div className="py-5 flex items-start justify-start gap-5 mb-5 min-h-[60vh]">
-        <div className="py-5 flex items-center justify-start gap-5 mb-5 w-xl">
-  <label htmlFor="files" className="font-medium w-20">
-    <File />
-  </label>
-
-  <input
-    type="file"
-    id="files"
-    name="files"
-    multiple
-    onChange={(e) => {
-  const selectedFiles = Array.from(e.target.files);
-
-  const mappedFiles = selectedFiles.map((f) => ({
-    filename: f.name,
-    size: f.size,
-    fileType: f.type,
-    uploadedAt: new Date().toISOString(),
-    uploadedBy: localStorage.getItem("userId"),
-    fileObj: f, // ✅ store raw file for preview
-  }));
-
-  setFolderForm((prev) => ({
-    ...prev,
-    files: [...(prev.files || []), ...mappedFiles],
-  }));
-
-  e.target.value = null;
-}}
-
-    className="flex-1 border border-gray-400 rounded shadow px-3 py-2 cursor-pointer"
-  />
-</div>
-       {/* Preview Section */}
-      <div className="pt-5 flex-1">
-    <h2 className="font-semibold text-lg mb-3">
-      Folder: {folderForm.name || "No folder chosen yet"}
-    </h2>
-  
-
-  {folderForm.files.length > 0 ? (
-    <ul className="space-y-3 flex items-start justify-start gap-4 flex-wrap h-80 overflow-y-scroll noScroll">
-      {folderForm.files.map((file, i) => {
-        const isImage =
-  file.fileType.startsWith("image/") ||
-  file.filename.match(/\.(png|jpe?g|gif|webp)$/i);
-
-        const previewUrl = isImage && file.fileObj ? URL.createObjectURL(file.fileObj) : null;
-
-        const isTextOrCode = file.fileType.startsWith("text/") || file.filename.match(/\.(html|js|css|json|txt)$/);
-
-        // Temporary preview for images (needs actual File object for full preview)
-        // const previewUrl = isImage && file.fileObj ? URL.createObjectURL(file.fileObj) : null;
-
-        return (
-          <li
-            key={i}
-            className="flex items-center gap-4 border p-2 rounded-md bg-gray-50 w-xs shadow-sm relative"
-          >
-            {/* Preview Section */}
-            {isImage && previewUrl ? (
-              <img
-                src={previewUrl}
-                alt={file.filename}
-                className="w-12 h-12 object-cover rounded"
-              />
-            ) : isTextOrCode ? (
-              <div className="w-12 h-12 flex items-center justify-center bg-blue-100 rounded">
-                <FileCode className="text-blue-600" size={24} />
-              </div>
+                    {openedFolder.key === i && openedFolder.open && (
+                      <div className="p-4 bg-white">
+                        {f.files && f.files.length > 0 ? (
+                          <ul className="space-y-2">
+                            {f.files.map((file, idx) => (
+                              <li key={idx} className="flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-lg">📄</span>
+                                  <a href={file.path} target="_blank" rel="noreferrer" className="text-gray-800 hover:underline">{file.filename}</a>
+                                  <span className="text-xs text-gray-500">({Math.round(file.size / 1024)} KB)</span>
+                                </div>
+                                <div className="text-xs text-gray-500">{new Date(file.uploadedAt || Date.now()).toLocaleDateString()}</div>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="text-gray-500">No files in this folder</div>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
             ) : (
-              <div className="w-12 h-12 flex items-center justify-center bg-gray-200 rounded">
-                <FileIcon className="text-gray-600" size={24} />
-              </div>
+              <div className="text-gray-500">No Files for this project</div>
             )}
 
-            {/* File Info */}
-            <div className="flex-1">
-              <p className="font-medium text-sm">{file.filename}</p>
-              <p className="text-xs text-gray-500">
-                {(file.size / 1024).toFixed(2)} KB
-              </p>
-            </div>
-
-            {/* Remove Button */}
-            <button
-              onClick={() =>
-                setFolderForm((prev) => ({
-                  ...prev,
-                  files: prev.files.filter((_, index) => index !== i),
-                }))
-              }
-              className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
-            >
-              <X className="p-1 cursor-pointer h-5 w-5 rounded-full bg-gray-800 text-white" />
-            </button>
-          </li>
-        );
-      })}
-    </ul>
-  ) : (
-    <p className="text-gray-500">No files selected yet.</p>
-  )}
-</div>
-
-          </div>
-
-
-
-
-          <div className="w-fit mx-auto my-10">
-            <button onClick={uploadProjectFolder}  className="px-20 py-2.5 rounded border border-gray-50 text-white font-medium hover:bg-white hover:text-gray-800 cursor-pointer transition-all">
-              Upload Folder
-            </button>
-          </div>
-
-
-     
-
-
-
-        </div>
-
-      <div className="mt-10 px-3 py-5 border-t border-gray-200  rounded bg-white text-gray-900">
-        <h1 className="text-2xl font-semibold mb-5">Create a ticket</h1>
-
-        <form className="p-5 border border-gray-300 rounded ">
-          <div className="flex items-start justify-between gap-8 w-full">
-            <div>
-              <div className="flex items-start gap-4 mb-4 max-w-xl ">
-                <label
-                  htmlFor="title"
-                  className="flex items-start justify-start gap-2 text-gray-700 w-40"
-                >
-                  <Text className="bg-gray-900 focus:bg-gray-900 text-white h-8 w-8 p-1 rounded" />
-                  Title
-                </label>
-
-                <input
-                  value={ticketForm.title}
-                  name="title"
-                  onChange={(e) =>
-                    setTicketForm((prev) => ({
-                      ...prev,
-                      title: e.target.value,
-                    }))
-                  }
-                  type="text"
-                  className="outline-none rounded focus:shadow-lg p-2 w-lg bg-gray-50 border border-gray-200 "
-                  placeholder="Login validation error..."
-                />
-              </div>
-              <div className="flex items-start gap-4 mb-4 max-w-xl">
-                <label
-                  htmlFor="description"
-                  className="flex items-start justify-start gap-2 text-gray-700 w-40"
-                >
-                  <Book className="bg-gray-900 focus:bg-gray-900 text-white h-8 w-8 p-1 rounded" />
-                  Title
-                </label>
-
-                <textarea
-                  value={ticketForm.description}
-                  name="description"
-                  onChange={(e) =>
-                    setTicketForm((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  type="text"
-                  className="outline-none rounded focus:shadow-lg p-2 w-lg bg-gray-50 border border-gray-200 h-80 overflow-y-scroll noScroll"
-                  placeholder="Discuss the issue in detail..."
-                />
-              </div>
-
-              <div className="flex items-start gap-4 mb-4 max-w-xl">
-                <label
-                  htmlFor="assignedTo"
-                  className="flex items-start justify-start gap-2 text-gray-700 w-40"
-                >
-                  <User className="bg-gray-900 focus:bg-gray-900 text-white h-8 w-8 p-1 rounded" />
-                  Assign to
-                </label>
-
-                <select
-                  name="assignedTo"
-                  id="assignedTo"
-                  value={ticketForm.assignedTo} // controlled value
-                  onChange={(e) =>
-                    setTicketForm((prev) => ({
-                      ...prev,
-                      assignedTo: e.target.value,
-                    }))
-                  }
-                  className="outline-none rounded focus:shadow-lg p-2 w-lg bg-gray-50 border border-gray-200"
-                >
-                  <option value=""> -- Select Member -- </option>
-                  {members &&
-                    members.map((m, i) => (
-                      <option key={i} value={m._id}>
-                        {m.username} - {m.role}
-                      </option>
-                    ))}
+            {/* upload folder area */}
+            <div id="upload-folder-input" className="mt-6 border rounded-lg p-4 bg-gray-50">
+              <h3 className="font-semibold mb-3">Upload Project files</h3>
+              <div className="flex items-center gap-4">
+                <input id="new-folder-name" value={folderForm.name} onChange={(e) => setFolderForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Folder name or choose existing" className="flex-1 p-2 border rounded" />
+                <select value={folderForm.name} onChange={(e) => setFolderForm((prev) => ({ ...prev, name: e.target.value }))} className="p-2 border rounded">
+                  <option value="">Select existing folder</option>
+                  {thisProjectFiles && thisProjectFiles.length ? thisProjectFiles.map((f, idx) => <option key={idx} value={f.name}>{f.name}</option>) : <option>No folders</option>}
                 </select>
               </div>
 
-              <div className="flex items-start gap-4 mb-4 max-w-xl">
-                <label
-                  htmlFor="createdBy"
-                  className="flex items-start justify-start gap-2 text-gray-700 w-40"
-                >
-                  <PersonStanding className="bg-gray-900 focus:bg-gray-900 text-white h-8 w-8 p-1 rounded" />
-                  Title
-                </label>
+              <div className="mt-4">
+                <input type="file" multiple onChange={(e) => {
+                  const selectedFiles = Array.from(e.target.files);
+                  const mappedFiles = selectedFiles.map((f) => ({
+                    filename: f.name, size: f.size, fileType: f.type, uploadedAt: new Date().toISOString(), uploadedBy: localStorage.getItem("userId"), fileObj: f
+                  }));
+                  setFolderForm((prev) => ({ ...prev, files: [...(prev.files || []), ...mappedFiles] }));
+                  e.target.value = null;
+                }} className="w-full" />
+              </div>
 
-                <input
-                  value={ticketForm.createdBy}
-                  name="createdBy"
-                  type="text"
-                  className="outline-none rounded focus:shadow-lg p-2 w-lg bg-gray-50 border border-gray-200 "
-                  placeholder="Login validation error..."
-                />
+              {folderForm.files.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {folderForm.files.map((fileItem, idx) => {
+                    const isImage = fileItem.fileType?.startsWith("image/") || fileItem.filename?.match(/\.(png|jpe?g|gif|webp)$/i);
+                    const previewUrl = isImage && fileItem.fileObj ? URL.createObjectURL(fileItem.fileObj) : null;
+
+                    return (
+                      <div key={idx} className="p-3 border rounded flex items-center gap-3">
+                        <div className="w-14 h-14 rounded bg-gray-100 flex items-center justify-center">
+                          {isImage && previewUrl ? <img src={previewUrl} alt={fileItem.filename} className="w-full h-full object-cover rounded" /> : <FileCode className="text-gray-600" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{fileItem.filename}</div>
+                          <div className="text-xs text-gray-500">{(fileItem.size / 1024).toFixed(2)} KB</div>
+                        </div>
+                        <button onClick={() => setFolderForm((prev) => ({ ...prev, files: prev.files.filter((_, i) => i !== idx) }))} className="text-red-500">Remove</button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="mt-4">
+                <button onClick={uploadProjectFolder} className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">Upload Folder</button>
               </div>
             </div>
+          </section>
 
-            <div>
-              <div className="flex items-start gap-4 mb-4 flex-1 ">
-                <label
-                  htmlFor="priority"
-                  className="flex items-start justify-start gap-2 text-gray-700 w-40"
-                >
-                  <Scale className="bg-gray-900 focus:bg-gray-900 text-white h-8 w-8 p-1 rounded" />
-                  Priority
-                </label>
+          {/* CREATE TICKET FORM */}
+          <section className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-2xl font-semibold mb-4">Create a Ticket</h2>
 
-                <select
-                  name="priority"
-                  id="priority"
-                  value={ticketForm.priority} // controlled value
-                  onChange={(e) =>
-                    setTicketForm((prev) => ({
-                      ...prev,
-                      priority: e.target.value,
-                    }))
-                  }
-                  className="outline-none rounded focus:shadow-lg p-2 w-lg bg-gray-50 border border-gray-200"
-                >
-                  <option value=""> -- Select Priority -- </option>
-                  {["Low", "Medium", "High", "Critical"].map((m, i) => (
-                    <option key={i} value={m}>
-                      {m}
-                    </option>
-                  ))}
+            <form className="grid grid-cols-1 lg:grid-cols-2 gap-6" onSubmit={handleTicketCreation}>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Title</label>
+                <input value={ticketForm.title} onChange={(e) => setTicketForm((prev) => ({ ...prev, title: e.target.value }))} className="w-full p-2 border rounded" placeholder="Short summary of the issue" />
+
+                <label className="block text-sm text-gray-600 mt-4 mb-1">Description</label>
+                <textarea value={ticketForm.description} onChange={(e) => setTicketForm((prev) => ({ ...prev, description: e.target.value }))} className="w-full p-2 border rounded h-40" placeholder="Detailed description" />
+
+                <label className="block text-sm text-gray-600 mt-4 mb-1">Assign to</label>
+                <select value={ticketForm.assignedTo} onChange={(e) => setTicketForm((prev) => ({ ...prev, assignedTo: e.target.value }))} className="w-full p-2 border rounded">
+                  <option value="">-- Select Member --</option>
+                  {members && members.map((m, i) => <option key={i} value={m._id}>{m.username} - {m.role}</option>)}
                 </select>
+
+                <label className="block text-sm text-gray-600 mt-4 mb-1">Created By</label>
+                <input value={ticketForm.createdBy} readOnly className="w-full p-2 border rounded bg-gray-100" />
               </div>
 
               <div>
-                {/* Input for Steps */}
-                <div className="flex items-start gap-4 mb-4 flex-1">
-                  <label
-                    htmlFor="stepsToReproduce"
-                    className="flex items-start justify-start gap-2 text-gray-700 w-40"
-                  >
-                    <WavesLadder className="bg-gray-900 text-white h-8 w-8 p-1 rounded" />
-                    Steps
-                  </label>
+                <label className="block text-sm text-gray-600 mb-1">Priority</label>
+                <select value={ticketForm.priority} onChange={(e) => setTicketForm((prev) => ({ ...prev, priority: e.target.value }))} className="w-full p-2 border rounded">
+                  <option value="">-- Select Priority --</option>
+                  {["Low", "Medium", "High", "Critical"].map((m, i) => <option key={i} value={m}>{m}</option>)}
+                </select>
 
-                  <textarea
-                    value={ticketForm.stepsToReproduceInput || ""}
-                    name="stepsToReproduceInput"
-                    onChange={(e) =>
+                <label className="block text-sm text-gray-600 mt-4 mb-1">Steps to Reproduce</label>
+                <textarea value={ticketForm.stepsToReproduceInput || ""} onChange={(e) => setTicketForm((prev) => ({ ...prev, stepsToReproduceInput: e.target.value }))} onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (ticketForm.stepsToReproduceInput?.trim()) {
                       setTicketForm((prev) => ({
                         ...prev,
-                        stepsToReproduceInput: e.target.value,
-                      }))
+                        stepsToReproduce: [...(prev.stepsToReproduce || []), prev.stepsToReproduceInput.trim()],
+                        stepsToReproduceInput: ""
+                      }));
                     }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        if (ticketForm.stepsToReproduceInput?.trim()) {
-                          setTicketForm((prev) => ({
-                            ...prev,
-                            stepsToReproduce: [
-                              ...(prev.stepsToReproduce || []),
-                              prev.stepsToReproduceInput.trim(),
-                            ],
-                            stepsToReproduceInput: "",
-                          }));
-                        }
-                      }
-                    }}
-                    className="outline-none rounded focus:shadow-lg p-2 w-lg bg-gray-50 border border-gray-200 h-50 overflow-y-scroll noScroll"
-                    placeholder="Press Enter to add each step..."
-                  />
+                  }
+                }} className="w-full p-2 border rounded h-28" placeholder="Press Enter to add each step" />
+
+                <div className="mt-3 space-y-2">
+                  {ticketForm.stepsToReproduce?.map((step, i) => (
+                    <div key={i} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                      <div className="text-sm">{step}</div>
+                      <button type="button" onClick={() => setTicketForm((prev) => ({ ...prev, stepsToReproduce: prev.stepsToReproduce.filter((_, idx) => idx !== i) }))} className="text-red-500">
+                        <X />
+                      </button>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Display Steps */}
-                <div className="flex flex-col gap-2">
-                  {ticketForm.stepsToReproduce?.map((step, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start justify-between bg-gray-100 px-3 py-2 rounded shadow-sm"
-                    >
-                      <p className="text-gray-700">{step}</p>
-                      <X
-                        onClick={() =>
-                          setTicketForm((prev) => ({
-                            ...prev,
-                            stepsToReproduce: prev.stepsToReproduce.filter(
-                              (_, idx) => idx !== i
-                            ),
-                          }))
-                        }
-                        className="text-red-500 hover:text-red-700 cursor-pointer"
-                        size={18}
-                      />
+                <label className="block text-sm text-gray-600 mt-4 mb-1">Attachments</label>
+                <input type="file" multiple onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length > 0) setTicketForm((prev) => ({ ...prev, attachments: [...(prev.attachments || []), ...files] }));
+                }} className="w-full" />
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {ticketForm.attachments?.map((file, i) => (
+                    <div key={i} className="p-2 border rounded bg-gray-50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium">{file.name}</span>
+                        <button onClick={() => setTicketForm((prev) => ({ ...prev, attachments: prev.attachments.filter((_, idx) => idx !== i) }))} className="text-red-500 ml-2">
+                          <X />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
+              <div className="col-span-full flex justify-end mt-4">
+                <button type="submit" onClick={handleTicketCreation} className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700">Create Ticket</button>
+              </div>
+            </form>
+          </section>
+
+          {/* ADD MEMBERS / TEAMS */}
+          <section id="add-members-section" className="bg-white rounded-lg shadow p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
-                {/* Upload Attachments */}
-                <div className="flex items-start gap-4 my-4 flex-1">
-                  <label
-                    htmlFor="attachments"
-                    className="flex items-start justify-start gap-2 text-gray-700 w-40"
-                  >
-                    <Sticker className="bg-gray-900 focus:bg-gray-900 text-white h-8 w-8 p-1 rounded" />
-                    Attachments
-                  </label>
-
-                  <input
-                    type="file"
-                    id="attachments"
-                    multiple
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      if (files.length > 0) {
-                        setTicketForm((prev) => ({
-                          ...prev,
-                          attachments: [...(prev.attachments || []), ...files],
-                        }));
-                      }
-                    }}
-                    className="outline-none rounded p-2 w-lg bg-gray-50 border border-gray-200"
-                  />
+                <h3 className="text-xl font-semibold mb-3">Add Members</h3>
+                <SearchUser selectedUserIds={selectedUserIds} setSelectedUserIds={setSelectedUserIds} />
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {selectedUserIds.length > 0 ? selectedUserIds.map((u, i) => (
+                    <div key={i} className="px-3 py-1 rounded bg-gray-100 flex items-center gap-2">
+                      <span>{u}</span>
+                      <button onClick={() => setSelectedUserIds((prev) => prev.filter((id) => id !== u))} className="text-red-500"><X /></button>
+                    </div>
+                  )) : <div className="text-gray-500">No users selected</div>}
                 </div>
+                <div className="mt-4">
+                  <button onClick={addUser} className="px-6 py-2 bg-green-600 text-white rounded">Add User(s)</button>
+                </div>
+              </div>
 
-                {/* Preview Attachments */}
-                <div className="flex flex-wrap gap-4">
-                  {ticketForm.attachments?.map((file, i) => {
-                    const isImage = file.type?.startsWith("image/");
-                    const fileURL = URL.createObjectURL(file);
-
-                    return (
-                      <div
-                        key={i}
-                        className="relative bg-gray-100 rounded shadow-sm p-2 flex flex-col items-center"
-                      >
-                        {/* Remove Button */}
-                        <X
-                          onClick={() =>
-                            setTicketForm((prev) => ({
-                              ...prev,
-                              attachments: prev.attachments.filter(
-                                (_, idx) => idx !== i
-                              ),
-                            }))
-                          }
-                          className="absolute top-1 right-1 text-red-500 hover:text-red-700 cursor-pointer"
-                          size={18}
-                        />
-
-                        {/* File Preview */}
-                        {isImage ? (
-                          <img
-                            src={fileURL}
-                            alt={file.name}
-                            className="w-24 h-24 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center w-24 h-24 bg-gray-200 rounded">
-                            📄
-                            <span className="text-xs text-center truncate w-20">
-                              {file.name}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Add Teams</h3>
+                <SearchTeam selectedTeamIds={selectedTeamIds} setSelectedTeamIds={setSelectedTeamIds} />
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {selectedTeamIds.length > 0 ? selectedTeamIds.map((t, i) => (
+                    <div key={i} className="px-3 py-1 rounded bg-gray-100 flex items-center gap-2">
+                      <span>{t}</span>
+                      <button onClick={() => setSelectedTeamIds((prev) => prev.filter((id) => id !== t))} className="text-red-500"><X /></button>
+                    </div>
+                  )) : <div className="text-gray-500">No teams selected</div>}
+                </div>
+                <div className="mt-4">
+                  <button onClick={addGroup} className="px-6 py-2 bg-green-600 text-white rounded">Add Team(s)</button>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="w-fit mx-auto mt-15 mb-10">
-            <button
-              onClick={handleTicketCreation}
-              type="submit"
-              className="flex items-center justify-between gap-3 py-2.5 px-10 font-semibold bg-gray-300 text-shadow-gray-900 border border-gray-200 hover:text-white hover:bg-green-500 rounded cursor-pointer transition-all"
-            >
-              <Ticket />
-              Create Ticket
-            </button>
-          </div>
-        </form>
-      </div>
+          {/* PENDING REQUESTS */}
+          <section className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold mb-3">Pending Join Requests</h3>
+            {pendingProjectReqLists && pendingProjectReqLists.length ? (
+              <ul className="space-y-2">
+                {pendingProjectReqLists.map((r) => (
+                  <li key={r._id} className="flex items-center justify-between p-3 border rounded">
+                    <div>
+                      <div className="font-medium">{r.username}</div>
+                      <div className="text-xs text-gray-500">{r.email}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className="px-3 py-1 rounded bg-green-600 text-white">Approve</button>
+                      <button className="px-3 py-1 rounded bg-red-100 text-red-600">Reject</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-gray-500">No pending requests</div>
+            )}
+          </section>
 
-      <div className="mt-10 px-3 py-5 border-t border-gray-200  rounded bg-white text-gray-900">
-        <h1 className="text-2xl font-medium text-gray-800 mb-5">
-          Add Members{" "}
-        </h1>
-        <div className="flex items-start justify-start w-full">
-          <div className="flex-1 ">
-            <SearchUser
-              selectedUserIds={selectedUserIds}
-              setSelectedUserIds={setSelectedUserIds}
-            />
-          </div>
-
-          <div className="w-2xl h-auto p-5 border border-gray-300 rounded">
-            <h1 className=" text-lg font-medium text-gray-600">
-              Selected users to add
-            </h1>
-            <div className="flex items-center justify-start gap-3 flex-wrap mt-5">
-              {selectedUserIds && selectedUserIds.length > 0 ? (
-                selectedUserIds.map((u, i) => {
-                  return (
-                    <span
-                      key={i}
-                      className="px-4 py-1 rounded bg-gray-300 text-gray-800 flex gap-2 items-center justify-start"
-                    >
-                      {u}
-                      <Trash
-                        className="p-1 rounded-full bg-gray-600 text-gray-100 hover:bg-gray-900 transition-all cursor-pointer"
-                        onClick={() =>
-                          setSelectedUserIds((prev) =>
-                            prev.filter((id) => id !== u)
-                          )
-                        }
-                      />
-                    </span>
-                  );
-                })
-              ) : (
-                <p>No Users selected</p>
-              )}
-            </div>
-          </div>
         </div>
-
-        <div className="w-fit mx-auto mt-15">
-          <button
-            onClick={addUser}
-            className=" px-12 cursor-pointer hover:bg-green-700 transition-all py-2 text-white rounded shadow bg-green-500"
-          >
-            Add User(s)
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-10 px-3 py-5 border-t border-gray-200  rounded bg-white text-gray-900">
-        <h1 className="text-2xl font-medium text-gray-800 mb-5">Add Teams </h1>
-        <div className="flex items-start justify-start w-full">
-          <div className="flex-1 ">
-            <SearchTeam
-              selectedTeamIds={selectedTeamIds}
-              setSelectedTeamIds={setSelectedTeamIds}
-            />
-          </div>
-
-          <div className="w-2xl h-auto p-5 border border-gray-300 rounded">
-            <h1 className=" text-lg font-medium text-gray-600">
-              Selected teams to add
-            </h1>
-            <div className="flex items-center justify-start gap-3 flex-wrap mt-5">
-              {selectedTeamIds && selectedTeamIds.length > 0 ? (
-                selectedTeamIds.map((u, i) => {
-                  return (
-                    <span
-                      key={i}
-                      className="px-4 py-1 rounded bg-gray-300 text-gray-800 flex gap-2 items-center justify-start"
-                    >
-                      {u}
-                      <Trash
-                        className="p-1 rounded-full bg-gray-600 text-gray-100 hover:bg-gray-900 transition-all cursor-pointer"
-                        onClick={() =>
-                          setSelectedTeamIds((prev) =>
-                            prev.filter((id) => id !== u)
-                          )
-                        }
-                      />
-                    </span>
-                  );
-                })
-              ) : (
-                <p>No Users selected</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="w-fit mx-auto mt-15">
-          <button
-            onClick={addGroup}
-            className=" px-12 cursor-pointer hover:bg-green-700 transition-all py-2 text-white rounded shadow bg-green-500"
-          >
-            Add Team(s)
-          </button>
-        </div>
-      </div>
-
-      
-    
-
-        </div>)
-       
-        :
-        (
-          <RestrictedProjectCard project={projectInfo} onRequestJoin={handleJoinRequest} status={reqStatus} projectId={projectId} />
-
-        )
-
-
-      }
-
-
-
-
+      ) : (
+        <RestrictedProjectCard project={projectInfo} onRequestJoin={handleJoinRequest} status={reqStatus} projectId={projectId} />
+      )}
     </div>
   );
 };
 
+/* small fallback icon for calendar to avoid adding new import mismatch */
+function CalendarIconFallback() {
+  return <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none"><path d="M7 11h2v2H7zM11 11h2v2h-2zM15 11h2v2h-2zM7 15h2v2H7zM11 15h2v2h-2zM15 15h2v2h-2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>;}
 export default ProjectDetail;

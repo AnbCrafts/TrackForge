@@ -12,10 +12,17 @@ import {
   User,
   X,
 } from "lucide-react";
+
+import {FcGoogle} from 'react-icons/fc'
 import ValidationMessagesDisplay from "../Components/ValidationMessages";
 import SocialIcons from "../Components/SocialMediaIcons";
 import { toast } from 'react-toastify';
 import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
+import GoogleLoginButton from "../Components/GoogleLoginButton";
+
+// NEW: framer-motion + Circle parallax background
+import { motion } from "framer-motion";
+import Circle from "../Components/Circle";
 
 const Login = () => {
   const location = useLocation();
@@ -28,11 +35,8 @@ const Login = () => {
   useEffect(()=>{
     if(location && location.pathname){
       const path = location.pathname.replace("/", "");
-setPath(path);
-
+      setPath(path);
     }
-
-    
   },[location])
 
   const [formData, setFormData] = useState({
@@ -52,15 +56,6 @@ setPath(path);
       setImg(URL.createObjectURL(file));
     }
   };
-
-
-
-
- 
-
-
- 
-
 
 const submitHandler = async (e) => {
   e.preventDefault();
@@ -87,325 +82,353 @@ const submitHandler = async (e) => {
   }
 };
 
-
-
-//   useEffect(()=>{
-//     if(userData !==null){
-//       setFormData({
-// username: "",
-//     email: "",
-//     password: "",
-//     picture: "",
-//     firstName: "",
-//     lastName: "",
-//     role: "",
-//       })
-
-//       setFile(null);
-//     }
-//   },[userData])
-
   return (
-    <div className="bg-gray-100 min-h-[100vh] w-full">
+    <div className="min-h-screen w-full bg-[#0A0A0C] text-gray-100 relative overflow-hidden">
+      {/* Parallax neon moon / Circle (keeps working if Circle uses parallax props) */}
+      <Circle className="pointer-events-none absolute -top-20 right-1/4 opacity-60" />
+
+      {/* subtle grid + radial glow layers */}
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-10 bg-gradient-to-b from-[#071028]/50 via-[#07132a]/30 to-[#06060a] opacity-60"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-20 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-[#7C3AED]/10 via-[#A855F7]/3 to-transparent pointer-events-none"
+      />
+
       <PageHeader />
 
-      <div className="flex items-start justify-between gap-10 p-10">
-        <div>
-          {location.pathname === "/login" ? (
-            <div className="mb-8 text-center w-xl bg-gray-900 p-10 rounded-2xl shadow-2xl">
-              <h1 className="text-4xl font-bold text-green-500">
-                Welcome Back to TrackForge
-              </h1>
-              <p className="text-gray-200 mt-2 text-lg">
-                Sign in to access your projects, collaborate with your team, and
-                stay on top of your workflow.
-              </p>
-            </div>
-          ) : (
-            <div className="mb-8 text-center w-xl bg-gray-900 p-10 rounded-2xl shadow-2xl">
-              <h1 className="text-4xl font-bold text-green-500">
-                Create Your TrackForge Account
-              </h1>
-              <p className="text-gray-200 mt-2 text-lg">
-                Join TrackForge to streamline your project management, build
-                teams, and solve bugs efficiently.
-              </p>
-            </div>
-          )}
-
-          <ValidationMessagesDisplay />
-        </div>
-
-        <div className=" flex-1 p-10 rounded-2xl shadow-2xl border border-gray-300">
-          <h1 className="mb-5 text-3xl text-gray-600 font-semibold text-center pb-5 border-b border-gray-300">
-            {location.pathname === "/login"
-              ? "Login to your account"
-              : "Create a new account"}
-          </h1>
-                
-          <form onSubmit={submitHandler}>
-            {location.pathname === "/register" ? (
-              <>
-                <div className="flex items-center justify-between gap-10 mb-4">
-                  <label
-                    htmlFor="firstName"
-                    className="flex items-center justify-start gap-2"
-                  >
-                    <PersonStanding className="h-10 w-10 p-2 rounded-xl bg-gray-400 text-gray-700" />
-                    <span className="font-semibold text-gray-600">
-                      First Name
-                    </span>
-                  </label>
-                  <input
-                    value={formData.firstName}
-                    onChange={(e) => {
-  setFormData({
-    ...formData,
-    firstName: e.target.value
-  });
-}}
-
-                    type="text"
-                    name="firstName"
-                    id="firstName"
-                    className="flex-1 outline-none focus:border-gray-600 border border-gray-300 px-2 py-1.5 rounded-lg bg-gray-300 text-gray-700 max-w-xl"
-                    placeholder="Enter your first name"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-10 mb-4">
-                  <label
-                    htmlFor="lastName"
-                    className="flex items-center justify-start gap-2"
-                  >
-                    <PersonStanding className="h-10 w-10 p-2 rounded-xl bg-gray-400 text-gray-700" />
-                    <span className="font-semibold text-gray-600">
-                      Last Name
-                    </span>
-                  </label>
-                  <input
-                    value={formData.lastName}
-                    onChange={(e) => {
-  setFormData({
-    ...formData,
-    lastName: e.target.value
-  });
-}}
-
-                    type="text"
-                    name="lastName"
-                    id="lastName"
-                    className="flex-1 outline-none focus:border-gray-600 border border-gray-300 px-2 py-1.5 rounded-lg bg-gray-300 text-gray-700 max-w-xl"
-                    placeholder="Enter your last name"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-10 mb-4">
-                  <label
-                    htmlFor="email"
-                    className="flex items-center justify-start gap-2"
-                  >
-                    <Mail className="h-10 w-10 p-2 rounded-xl bg-gray-400 text-gray-700" />
-                    <span className="font-semibold text-gray-600">E-mail</span>
-                  </label>
-                  <input
-                    value={formData.email}
-                    onChange={(e) => {
-  setFormData({
-    ...formData,
-    email: e.target.value
-  });
-}}
-
-                    type="text"
-                    name="email"
-                    id="email"
-                    className="flex-1 outline-none focus:border-gray-600 border border-gray-300 px-2 py-1.5 rounded-lg bg-gray-300 text-gray-700 max-w-xl"
-                    placeholder="Enter your email"
-                  />
-                </div>
-              </>
-            ) : (
-              ""
-            )}
-
-            <div className="flex items-center justify-between gap-10 mb-4">
-              <label
-                htmlFor="username"
-                className="flex items-center justify-start gap-2"
+      {/* Center container */}
+      <div className="min-h-[75vh] flex items-center justify-center px-6 py-16 w-8xl mx-auto">
+        {/* outer neon gradient border */}
+        <div className="relative w-full">
+          <div
+            className="absolute -inset-0.5 rounded-3xl blur-xl opacity-40"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(168,85,247,0.35) 0%, rgba(236,72,153,0.25) 50%, rgba(124,58,237,0.3) 100%)",
+              filter: "blur(36px)",
+            }}
+          />
+          {/* glass card with inner gradient border */}
+          <div className="relative rounded-3xl overflow-hidden">
+            <div className="p-[2px] rounded-3xl bg-gradient-to-r from-[#7C3AED]/40 via-[#A855F7]/30 to-[#EC4899]/20">
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="backdrop-blur-md bg-[rgba(10,10,12,0.6)] rounded-3xl shadow-2xl border border-[rgba(255,255,255,0.04)]"
               >
-                <User className="h-10 w-10 p-2 rounded-xl bg-gray-400 text-gray-700" />
-                <span className="font-semibold text-gray-600">Username</span>
-              </label>
-              <input
-                value={formData.username}
-                onChange={(e) => {
-  setFormData({
-    ...formData,
-    username: e.target.value
-  });
-}}
+                <div className="grid grid-cols-1 lg:grid-cols-2">
+                  {/* Left side - welcome / pitch */}
+                  <div className="p-8 lg:p-8 flex flex-col gap-6 border-b lg:border-b-0 lg:border-r border-[rgba(255,255,255,0.03)]">
+                    <motion.div
+                      initial={{ x: -10, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ duration: 0.6, delay: 0.15 }}
+                    >
+                      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight leading-tight text-transparent bg-clip-text bg-gradient-to-r from-[#A855F7] to-[#EC4899]">
+                        {location.pathname === "/login"
+                          ? "Welcome back to TrackForge"
+                          : "Create your TrackForge account"}
+                      </h2>
 
-                type="text"
-                name="username"
-                id="username"
-                className="flex-1 outline-none focus:border-gray-600 border border-gray-300 px-2 py-1.5 rounded-lg bg-gray-300 text-gray-700 max-w-xl"
-                placeholder="Enter your username"
-              />
-            </div>
+                      <p className="mt-2 text-sm md:text-base text-[#cbd5e1] max-w-prose">
+                        {location.pathname === "/login"
+                          ? "Sign in to access your projects, collaborate with your team, and stay on top of your workflow."
+                          : "Join TrackForge to streamline your project management, build teams, and solve bugs efficiently."}
+                      </p>
+                    </motion.div>
 
-            <div className="flex items-center justify-between gap-10 mb-4">
-              <label
-                htmlFor="password"
-                className="flex items-center justify-start gap-2"
-              >
-                <Lock className="h-10 w-10 p-2 rounded-xl bg-gray-400 text-gray-700" />
-                <span className="font-semibold text-gray-600">Password</span>
-              </label>
-              <input
-                value={formData.password}
-                onChange={(e) => {
-  setFormData({
-    ...formData,
-    password: e.target.value
-  });
-}}
+                    <ValidationMessagesDisplay />
 
-                type="text"
-                name="password"
-                id="password"
-                className="flex-1 outline-none focus:border-gray-600 border border-gray-300 px-2 py-1.5 rounded-lg bg-gray-300 text-gray-700 max-w-xl"
-                placeholder="Enter your Password"
-              />
-            </div>
+                    {/* Feature quick list (neon chips) */}
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-[rgba(124,58,237,0.12)] border border-[rgba(124,58,237,0.12)] text-[#DAD8FF]">
+                        Real-time sync
+                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-[rgba(236,72,153,0.08)] border border-[rgba(236,72,153,0.08)] text-[#FFD7EE]">
+                        Role management
+                      </span>
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-[rgba(168,85,247,0.08)] border border-[rgba(168,85,247,0.08)] text-[#EBD9FF]">
+                        Analytics
+                      </span>
+                    </div>
 
-            {location.pathname === "/register" ? (
-              <>
-               <div className="flex items-center justify-start gap-5 mb-5 my-2 w-full ">
-                <label
-                  htmlFor="picture"
-                  className={` ${
-                    img
-                      ? "h-[100px] w-[150px] rounded-xl border-transparent shadow-2xl shadow-gray-600"
-                      : " h-12 px-5"
-                  } text-gray-500 text-lg py-2 border border-gray-300 rounded outline-none flex items-center justify-between gap-5 cursor-pointer`}
-                >
-                  {img ? (
-                    <img
-                      src={img}
-                      alt="file"
-                      className="w-[150px] h-[100px] rounded-xl object-cover"
-                    />
-                  ) : (
-                    <>
-                      <Upload /> <span>Upload profile picture</span>
-                    </>
-                  )}
-                </label>
+                    {/* small decorative neon line */}
+                    <div className="mt-auto">
+                      <div className="h-0.5 w-24 rounded bg-gradient-to-r from-[#A855F7] to-[#EC4899] opacity-80" />
+                      <p className="mt-3 text-xs text-[#94a3b8]">
+                        Secure • Fast • Designed for teams
+                      </p>
+                    </div>
+                  </div>
 
-                <input
-                  type="file"
-                  id="picture"
-                  name="picture"
-                  className="hidden"
-                  onChange={(e) => handleImageChange(e)}
-                />
-              </div>
+                  {/* Right side - form */}
+                  <div className="p-8 lg:p-12 h-fit  lg:mt-39 mr-4 card-neon-animated sm:mt-0">
+                    <h1 className="mb-5 text-2xl text-[#e6e9ff] font-semibold text-center pb-4 border-b border-[rgba(255,255,255,0.03)]">
+                      {location.pathname === "/login"
+                        ? "Login to your account"
+                        : "Create a new account"}
+                    </h1>
 
+                    <form onSubmit={submitHandler} className="space-y-4 ">
+                      {location.pathname === "/register" ? (
+                        <>
+                          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                            <label
+                              htmlFor="firstName"
+                              className="flex items-center gap-3 w-full sm:w-1/3 text-sm text-[#cbd5e1]"
+                            >
+                              <PersonStanding className="h-9 w-9 p-2 rounded-lg bg-[rgba(255,255,255,0.03)] text-[#b9b6ff]" />
+                              <span className="font-medium text-sm">First Name</span>
+                            </label>
+                            <input
+                              value={formData.firstName}
+                              onChange={(e) => {
+                                setFormData({
+                                  ...formData,
+                                  firstName: e.target.value
+                                });
+                              }}
+                              type="text"
+                              name="firstName"
+                              id="firstName"
+                              className="flex-1 outline-none focus:ring-2 focus:ring-[#7C3AED]/40 transition rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)] text-[#e6eef8] max-w-xl"
+                              placeholder="Enter your first name"
+                            />
+                          </div>
 
+                          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                            <label
+                              htmlFor="lastName"
+                              className="flex items-center gap-3 w-full sm:w-1/3 text-sm text-[#cbd5e1]"
+                            >
+                              <PersonStanding className="h-9 w-9 p-2 rounded-lg bg-[rgba(255,255,255,0.03)] text-[#b9b6ff]" />
+                              <span className="font-medium text-sm">Last Name</span>
+                            </label>
+                            <input
+                              value={formData.lastName}
+                              onChange={(e) => {
+                                setFormData({
+                                  ...formData,
+                                  lastName: e.target.value
+                                });
+                              }}
+                              type="text"
+                              name="lastName"
+                              id="lastName"
+                              className="flex-1 outline-none focus:ring-2 focus:ring-[#7C3AED]/40 transition rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)] text-[#e6eef8] max-w-xl"
+                              placeholder="Enter your last name"
+                            />
+                          </div>
 
-                <div className="w-full p-6 bg-white rounded-xl shadow-md mt-5">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                    Select Your Role
-                  </h2>
-                  <div className="flex flex-wrap gap-4">
-                    {["Owner", "Admin", "Tester", "Developer", "Debugger"].map(
-                      (role, index) => (
+                          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                            <label
+                              htmlFor="email"
+                              className="flex items-center gap-3 w-full sm:w-1/3 text-sm text-[#cbd5e1]"
+                            >
+                              <Mail className="h-9 w-9 p-2 rounded-lg bg-[rgba(255,255,255,0.03)] text-[#b9b6ff]" />
+                              <span className="font-medium text-sm">E-mail</span>
+                            </label>
+                            <input
+                              value={formData.email}
+                              onChange={(e) => {
+                                setFormData({
+                                  ...formData,
+                                  email: e.target.value
+                                });
+                              }}
+                              type="text"
+                              name="email"
+                              id="email"
+                              className="flex-1 outline-none focus:ring-2 focus:ring-[#7C3AED]/40 transition rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)] text-[#e6eef8] max-w-xl"
+                              placeholder="Enter your email"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        ""
+                      )}
+
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                         <label
-                          key={index}
-                          className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border border-gray-300 bg-gray-100 hover:bg-gray-200"
+                          htmlFor="username"
+                          className="flex items-center gap-3 w-full sm:w-1/3 text-sm text-[#cbd5e1]"
                         >
-                          <input
-                            onChange={(e) => {
-                              setFormData({
-                                ...formData,
-                                role: e.target.value,
-                              });
-                            }}
-                            type="radio"
-                            name="role"
-                            value={role}
-                            className="accent-indigo-600"
-                          />
-                          {role}
+                          <User className="h-9 w-9 p-2 rounded-lg bg-[rgba(255,255,255,0.03)] text-[#b9b6ff]" />
+                          <span className="font-medium text-sm">Username</span>
                         </label>
-                      )
-                    )}
+                        <input
+                          value={formData.username}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              username: e.target.value
+                            });
+                          }}
+                          type="text"
+                          name="username"
+                          id="username"
+                          className="flex-1 outline-none focus:ring-2 focus:ring-[#7C3AED]/40 transition rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)] text-[#e6eef8] max-w-xl"
+                          placeholder="Enter your username"
+                        />
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                        <label
+                          htmlFor="password"
+                          className="flex items-center gap-3 w-full sm:w-1/3 text-sm text-[#cbd5e1]"
+                        >
+                          <Lock className="h-9 w-9 p-2 rounded-lg bg-[rgba(255,255,255,0.03)] text-[#b9b6ff]" />
+                          <span className="font-medium text-sm">Password</span>
+                        </label>
+                        <input
+                          value={formData.password}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              password: e.target.value
+                            });
+                          }}
+                          type="text"
+                          name="password"
+                          id="password"
+                          className="flex-1 outline-none focus:ring-2 focus:ring-[#7C3AED]/40 transition rounded-lg px-3 py-2 bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.04)] text-[#e6eef8] max-w-xl"
+                          placeholder="Enter your Password"
+                        />
+                      </div>
+
+                      {location.pathname === "/register" ? (
+                        <>
+                          <div className="flex items-center gap-5 mt-2">
+                            <label
+                              htmlFor="picture"
+                              className={`flex items-center gap-4 cursor-pointer transition-all ${
+                                img ? "h-[110px] w-[160px]" : "h-12 px-4 py-2"
+                              } text-sm text-[#cbd5e1] rounded-lg border border-[rgba(255,255,255,0.03)]`}
+                            >
+                              {img ? (
+                                <img
+                                  src={img}
+                                  alt="file"
+                                  className="w-[150px] h-[100px] rounded-lg object-cover"
+                                />
+                              ) : (
+                                <>
+                                  <Upload className="text-[#e6eef8]" />{" "}
+                                  <span>Upload profile picture</span>
+                                </>
+                              )}
+                            </label>
+
+                            <input
+                              type="file"
+                              id="picture"
+                              name="picture"
+                              className="hidden"
+                              onChange={(e) => handleImageChange(e)}
+                            />
+                          </div>
+
+                          <div className="w-full p-4 mt-4 rounded-lg bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.03)]">
+                            <h2 className="text-sm font-semibold text-[#e6eef8] mb-2">
+                              Select Your Role
+                            </h2>
+                            <div className="flex flex-wrap gap-3">
+                              {["Owner", "Admin", "Tester", "Developer", "Debugger"].map(
+                                (role, index) => (
+                                  <label
+                                    key={index}
+                                    className="flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.03)] hover:bg-[rgba(124,58,237,0.06)]"
+                                  >
+                                    <input
+                                      onChange={(e) => {
+                                        setFormData({
+                                          ...formData,
+                                          role: e.target.value,
+                                        });
+                                      }}
+                                      type="radio"
+                                      name="role"
+                                      value={role}
+                                      className="accent-[#A855F7]"
+                                    />
+                                    {role}
+                                  </label>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        ""
+                      )}
+
+                      <div className="mt-6 flex justify-center">
+                        <motion.button
+                          whileHover={{ scale: 1.02, boxShadow: "0 6px 24px rgba(168,85,247,0.18)" }}
+                          whileTap={{ scale: 0.99 }}
+                          type="submit"
+                          className="py-2 px-8 rounded-lg text-lg font-semibold bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-black shadow-lg"
+                        >
+                          {location.pathname === "/login" ? "Login" : "Create account"}
+                        </motion.button>
+                      </div>
+
+                      {location.pathname === "/login" ? (
+                        <div className="py-2 text-sm font-medium mt-4 text-center">
+                          <Link to={'/reset-password'} className="cursor-pointer text-[#9fb2d8] hover:text-[#e6eef8] transition-all">
+                            Forgot Password??
+                          </Link>
+                        </div>
+                      ) : (
+                        ""
+                      )}
+
+                      <div className="mt-6 text-center">
+                        <p className="text-xs text-[#9fb2d8]">Use your other accounts to continue</p>
+                        <div className="flex items-center justify-center gap-4 mt-3">
+                          <GoogleLoginButton />
+                          <span className="text-xs text-[#9fb2d8]">OR</span>
+                          <SocialIcons />
+                        </div>
+                      </div>
+
+                      {
+                        location.pathname ==='/login'
+                        ?
+                        (
+                          <Link to={'/register'} className="block mt-6 mx-auto w-full text-center py-2 border-t border-[rgba(255,255,255,0.02)] font-medium text-[#9fb2d8] hover:text-[#e6eef8] transition-all cursor-pointer">Create a new account</Link>
+                        )
+                        :
+                        (
+                          <Link to={'/login'} className="block mt-6 mx-auto w-full text-center py-2 border-t border-[rgba(255,255,255,0.02)] font-medium text-[#9fb2d8] hover:text-[#e6eef8] transition-all cursor-pointer">Login to your account</Link>
+                        )
+                      }
+                    </form>
+
                   </div>
                 </div>
-              </>
-            ) : (
-              ""
-            )}
-
-            <div className=" mt-10 w-fit mx-auto">
-              <button
-                type="submit"
-                className="py-2 cursor-pointer px-8 bg-green-500 text-lg font-semibold text-center text-white rounded-lg shadow-2xl"
-              >
-                {location.pathname === "/login" ? "Login" : "Create account"}
-              </button>
+              </motion.div>
             </div>
-
-            {location.pathname === "/login" ? (
-              <div className="py-2 text-lg font-semibold mt-10">
-                <Link to={'/reset-password'} className="cursor-pointer text-gray-500 hover:text-gray-800 transition-all">
-                  Forgot Password??
-                </Link>
-              </div>
-            ) : (
-              <div className="mt-10">
-                <p className="cursor-pointer text-gray-500 hover:text-gray-800 transition-all text-center">
-                  Use your other accounts to continue
-                </p>
-                <SocialIcons />
-              </div>
-            )}
-
-
-            {
-              location.pathname ==='/login'
-              ?
-              (
-                <Link to={'/register'} className="block mt-10 mx-auto w-full text-center py-1.5 border-t border-gray-200  font-medium text-gray-600 hover:text-gray-800 transition-all cursor-pointer">Create a new account</Link>
-              )
-              :
-              (
-                <Link to={'/login'} className="block mt-10 mx-auto w-full text-center py-1.5 border-t border-gray-200  font-medium text-gray-600 hover:text-gray-800 transition-all cursor-pointer">Login to your account</Link>
-
-              )
-            }
-
-            
-          
-          
-          
-          </form>
+          </div>
         </div>
       </div>
 
-      
-
-      <div className="w-full py-16 px-6 bg-gray-100">
+      {/* "Why Choose" section — neon cards kept but restyled */}
+      <div className="w-full py-16 px-6">
         <div className="max-w-7xl mx-auto text-center mb-10">
-          <h2 className="text-4xl font-bold text-gray-800">
+          <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#A855F7] to-[#EC4899]">
             Why Choose TrackForge?
           </h2>
-          <p className="text-gray-600 mt-3 text-lg">
-            Empowering both individuals and teams with powerful tools to
-            collaborate, manage, and deliver efficiently.
+          <p className="text-[#9fb2d8] mt-3 text-lg max-w-2xl mx-auto">
+            Empowering both individuals and teams with powerful tools to collaborate, manage, and deliver efficiently.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {[
             {
               title: "Simplified Project Management",
@@ -432,29 +455,23 @@ const submitHandler = async (e) => {
               desc: "Create and manage teams effortlessly with dynamic team formation and ownership features.",
             },
           ].map((item, index) => (
-            <div
+            <motion.div
               key={index}
-              className={`p-6 rounded-xl shadow-md hover:shadow-xl transition text-center ${
-                index % 2 === 0
-                  ? "bg-gray-900 text-white"
-                  : "bg-white text-gray-800"
+              initial={{ y: 8, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: index * 0.06 }}
+              className={`p-6 rounded-xl border border-[rgba(255,255,255,0.03)] text-center ${
+                index % 2 === 0 ? "bg-[rgba(17,19,24,0.6)] text-[#e6eef8]" : "bg-[rgba(255,255,255,0.02)] text-[#d1d5db]"
               }`}
             >
-              <h3
-                className={`text-xl font-semibold mb-2 ${
-                  index % 2 === 0 ? "text-green-500" : "text-gray-800"
-                }`}
-              >
+              <h3 className={`text-xl font-semibold mb-2 ${index % 2 === 0 ? "text-[#A855F7]" : "text-[#c7c7d3]"}`}>
                 {item.title}
               </h3>
-              <p
-                className={`text-sm ${
-                  index % 2 === 0 ? "text-gray-200" : "text-gray-600"
-                }`}
-              >
+              <p className={`text-sm ${index % 2 === 0 ? "text-[#bfc8e6]" : "text-[#9fb2d8]"}`}>
                 {item.desc}
               </p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>

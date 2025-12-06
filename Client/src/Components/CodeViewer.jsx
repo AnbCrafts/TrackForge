@@ -2,12 +2,12 @@ import Editor from "@monaco-editor/react";
 
 export default function CodeViewer({ file }) {
   return (
-    <div className="w-full h-[97vh]">
+    <div className="w-full h-screen max-h-[97vh] overflow-hidden rounded-lg">
       <Editor
         width="100%"
         height="100%"
-        language={getLanguageFromExtension(file?.filename)} // ✅ use language
-        value={file?.content || ""}                          // ✅ use value
+        language={getLanguageFromExtension(file?.filename)}
+        value={file?.content || ""}
         theme="vs-dark"
         options={{
           readOnly: true,
@@ -22,7 +22,8 @@ export default function CodeViewer({ file }) {
 
 function getLanguageFromExtension(filename) {
   if (!filename) return "plaintext";
-  const ext = filename.split(".").pop();
+
+  const ext = filename.split(".").pop().toLowerCase();
   const map = {
     js: "javascript",
     jsx: "javascript",
@@ -36,5 +37,6 @@ function getLanguageFromExtension(filename) {
     java: "java",
     md: "markdown",
   };
+
   return map[ext] || "plaintext";
 }

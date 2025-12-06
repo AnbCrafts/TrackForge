@@ -2,23 +2,22 @@ import { useEffect } from "react";
 
 const AddResponsiveClass = () => {
   useEffect(() => {
-    // Select all divs on the page
-    const allDivs = document.querySelectorAll("div");
+    const divs = document.querySelectorAll("div");
 
-    // Loop through each div and add the class
-    allDivs.forEach((div) => {
-      div.classList.add("responsive-flex");
+    divs.forEach((div) => {
+      if (!div.classList.contains("responsive-flex")) {
+        div.classList.add("responsive-flex");
+      }
     });
 
-    // Optional cleanup: remove class when component unmounts
     return () => {
-      allDivs.forEach((div) => {
+      divs.forEach((div) => {
         div.classList.remove("responsive-flex");
       });
     };
-  }, []); // empty dependency array → runs once on mount
+  }, []);
 
-  return null; // this component does not render anything
+  return null;
 };
 
 export default AddResponsiveClass;

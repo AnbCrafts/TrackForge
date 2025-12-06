@@ -2,80 +2,77 @@ import { MoveLeft, Search } from "lucide-react";
 import React, { useContext, useEffect, useState } from "react";
 import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 import { useParams } from "react-router-dom";
- 
-const SearchProjects = ({ selectedProjectIds, setSelectedProjectIds,toggle }) => {
-  const { username, hash } = useParams();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
+
+const SearchProjects = ({ selectedProjectIds, setSelectedProjectIds, toggle }) => {
   const { searchedProjects, searchProjects, formatDateTime } =
     useContext(TrackForgeContextAPI);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page] = useState(1); // page exists but no paging UI yet
+
   useEffect(() => {
-    if (searchTerm !== "") {
+    if (searchTerm.trim() !== "") {
       searchProjects(searchTerm, page);
     }
   }, [searchTerm]);
 
   const toggleProjectSelection = (projectId) => {
     if (selectedProjectIds.includes(projectId)) {
-      // remove
-      setSelectedProjectIds(
-        selectedProjectIds.filter((id) => id !== projectId)
-      );
+      setSelectedProjectIds(selectedProjectIds.filter((id) => id !== projectId));
     } else {
-      // add
       setSelectedProjectIds([...selectedProjectIds, projectId]);
     }
   };
 
   return (
-    <div className="flex-1 px-3 ">
-      <div className="flex items-center justify-start gap-5">
-        
-       {toggle && 
-        <MoveLeft onClick={()=>toggle(false)} className="bg-gray-900 text-white rounded p-1 h-8 w-8 cursor-pointer"/>
-       
-       }
-
-
-      <h1 className="text-center text-2xl">Search Projects</h1>
-      </div>
+    <div className="flex-1 px-3">
       
-      <div className="mt-3 p-3 w-full flex items-center gap-3">
-        <label htmlFor="search">
-          <Search />
-        </label>
+      {/* Header Row */}
+      <div className="flex items-center gap-4 mb-4">
+        {toggle && (
+          <MoveLeft
+            onClick={() => toggle(false)}
+            className="bg-gray-900 text-white rounded p-1 h-8 w-8 cursor-pointer hover:bg-gray-700 transition"
+          />
+        )}
+        <h1 className="text-2xl font-semibold text-gray-800">Search Projects</h1>
+      </div>
+
+      {/* Search Bar */}
+      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <Search className="text-gray-600" />
+
         <input
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           type="search"
-          name="search"
-          placeholder="User Dashboard..."
-          className="outline-none px-4 py-2 bg-gray-100 rounded flex-1 text-gray-900"
+          placeholder="Search projects..."
+          className="flex-1 outline-none px-3 py-2 bg-gray-100 rounded text-gray-900"
         />
       </div>
 
+      {/* Results */}
       <div className="p-3 border mt-5 border-gray-200 rounded w-full h-100 overflow-y-scroll noScroll">
-        {searchTerm === "" ? (
-          <p className="text-md text-gray-400">
-            Search Results appear here
-          </p>
+        {searchTerm.trim() === "" ? (
+          <p className="text-md text-gray-400">Search Results appear here</p>
         ) : searchedProjects?.projects?.length > 0 ? (
           searchedProjects.projects.map((p, i) => {
             const isSelected = selectedProjectIds.includes(p._id);
+
             return (
               <div
                 key={i}
                 onClick={() => toggleProjectSelection(p._id)}
-                className={`text-md flex rounded shadow cursor-pointer flex-wrap items-center justify-between gap-3 px-4 py-1.5 border mb-3 font-medium transition-all
+                className={`text-md flex items-center justify-between rounded shadow cursor-pointer px-4 py-2 mb-3 border font-medium transition-all 
                   ${
                     isSelected
                       ? "bg-green-200 border-green-500"
-                      : "hover:shadow-2xl hover:bg-gray-200 text-gray-900 border-gray-300"
+                      : "hover:shadow-md hover:bg-gray-200 text-gray-900 border-gray-300"
                   }`}
               >
-                <span>{p.name}</span>
-                <span className="text-sm text-gray-400 shrink-0">
+                <span className="font-semibold">{p.name}</span>
+
+                <span className="text-sm text-gray-500 shrink-0">
                   {formatDateTime(p.startedOn)}
                 </span>
               </div>
@@ -83,7 +80,7 @@ const SearchProjects = ({ selectedProjectIds, setSelectedProjectIds,toggle }) =>
           })
         ) : (
           <p className="text-md text-gray-400">
-            No Projects found for this search!!!
+            No projects found for this search!
           </p>
         )}
       </div>

@@ -1,4 +1,4 @@
-import logo from './logo.webp';
+import logo from './logo.jfif';
 import cover_img from './cover.webp';
 import confused from './confused.png';
 import confused2 from './confused2.png';
@@ -10,7 +10,7 @@ import project from './project.png';
 import project2 from './project2.png';
 import project3 from './project3.png';
 import project4 from './project4.png';
-
+import blob from './blob.svg'
 import intro from './intro.png';
 import preview from './preview.png';
 import bug from './bug.png';
@@ -38,5 +38,5 @@ export const assets = {
     logo, cover_img,
     confused, confused2, team, dashboard, dash_bg, manage,
     preview, bug, teams, profile, profile2, foot2, foot, intro,
-    dash, help, slide, slide2, tools, projects, faq,feedback,opinion,
+    dash, help, slide, slide2, tools, projects, faq,feedback,opinion,blob
 };

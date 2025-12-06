@@ -3,18 +3,25 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 export default function CodeBlock({ file }) {
   return (
-    <SyntaxHighlighter
-      language={getLanguageFromExtension(file?.filename)}
-      style={vscDarkPlus}
-      showLineNumbers
-    >
-      {file?.content}
-    </SyntaxHighlighter>
+    <div className="w-full overflow-x-auto rounded-lg">
+      <SyntaxHighlighter
+        language={getLanguageFromExtension(file?.filename)}
+        style={vscDarkPlus}
+        showLineNumbers
+        customStyle={{
+          margin: 0,
+          background: "transparent",
+        }}
+      >
+        {file?.content || ""}
+      </SyntaxHighlighter>
+    </div>
   );
 }
 
 function getLanguageFromExtension(filename) {
   if (!filename) return "plaintext";
+
   const ext = filename.split(".").pop().toLowerCase();
   const map = {
     js: "javascript",
@@ -32,7 +39,8 @@ function getLanguageFromExtension(filename) {
     sql: "sql",
     sh: "bash",
     xml: "xml",
-    txt: "plaintext"
+    txt: "plaintext",
   };
+
   return map[ext] || "plaintext";
 }

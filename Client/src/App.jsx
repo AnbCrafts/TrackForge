@@ -22,11 +22,20 @@ import Admin from './Pages/Admin'
 import Settings from './Pages/Settings'
 import EditProfile from './Pages/EditProfile'
 import CodeEditor from './Pages/CodeEditor'
+import GoogleOAuthCallback from './Pages/GoogleAuthCallback'
+import SmokeCursor from './Components/Cursor'
 
 const App = () => {
   const {hash,username} = useParams();
 
 
+useEffect(() => {
+  const spotlight = document.getElementById("spotlight");
+  window.addEventListener("mousemove", (e) => {
+    spotlight.style.left = `${e.clientX - 150}px`;
+    spotlight.style.top = `${e.clientY - 150}px`;
+  });
+}, []);
 
   
   // useEffect(() => {
@@ -54,7 +63,15 @@ const App = () => {
 
   
   return (
-    <div>
+    <div className='bg-primary'>
+
+
+     <SmokeCursor/>
+
+
+      
+    
+
 
     
 
@@ -63,6 +80,7 @@ const App = () => {
       
       <Routes>
         <Route path='/' element={<Gateway/>} />
+        <Route path="/auth/google/callback" element={<GoogleOAuthCallback />} />
         <Route path='/reset-password' element={<ResetPass/>} />
         <Route path='/login' element={<Login/>} />
         <Route path='/register' element={<Login/>} />
@@ -75,7 +93,7 @@ const App = () => {
         <Route path='dashboard/ticket-detail/:ticketId/activity/:activityId/edit' element={<EditActivity />} />
         <Route path='projects' element={<Projects />} />
         <Route path='projects/:projectId/code-editor/view-project' element={<CodeEditor />} />
-        
+         
         <Route path='bugs' element={<Bugs />} />
         <Route path='ticket-detail/:ticketId' element={<ViewDetailedBug />} />
         <Route path='ticket-detail/:ticketId/activity/:activityId/edit' element={<EditActivity />} />

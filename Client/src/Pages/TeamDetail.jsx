@@ -1,26 +1,43 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI';
-import { Badge, Users, LinkIcon, Pen, Plus, Cross, Ban, Option, MoreHorizontal } from 'lucide-react';
-import RestrictedTeamView from './RestrictedTeamView';
+import React, { useContext, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
+import {
+  Badge,
+  Users,
+  LinkIcon,
+  Pen,
+  Plus,
+  MoreHorizontal,
+  Ban,
+} from "lucide-react";
+import RestrictedTeamView from "./RestrictedTeamView";
 
 const TeamDetail = () => {
   const navigate = useNavigate();
   const { teamId } = useParams();
-  const { teamData, getTeamByID, formatDateTime ,getCurrentUserData,currUserData,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,getTeamJoinRequests,teamJoinReqList} = useContext(TrackForgeContextAPI);
 
-  useEffect(()=>{
+  const {
+    teamData,
+    getTeamByID,
+    formatDateTime,
+    getCurrentUserData,
+    currUserData,
+    checkAuthorityToViewTeam,
+    hasAuthToSeeTeam,
+    getTeamJoinRequests,
+  } = useContext(TrackForgeContextAPI);
+
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [hasAuthority, setHasAuthority] = useState(false);
+
+  const toggleDropdown = (memberId) => {
+    setActiveDropdown(activeDropdown === memberId ? null : memberId);
+  };
+
+  useEffect(() => {
     const id = localStorage.getItem("userId");
     getCurrentUserData(id);
-  })
-  const [activeDropdown, setActiveDropdown] = useState(null);  // holds current open memberId
-  const toggleDropdown = (memberId) => {
-    if (activeDropdown === memberId) {
-      setActiveDropdown(null); // close if clicking again
-    } else {
-      setActiveDropdown(memberId); // open new dropdown
-    }
-  };
+  }, []);
 
   useEffect(() => {
     getTeamByID(teamId);
@@ -28,173 +45,189 @@ const TeamDetail = () => {
     getTeamJoinRequests(teamId);
   }, [teamId]);
 
-  const [ hasAuthority,setHasAuthority] = useState(false);
-  useEffect(()=>{
-    if(currUserData && (currUserData.role ==="Admin" ||currUserData.role ==="Owner")){
-        setHasAuthority(true);
+  useEffect(() => {
+    if (currUserData && (currUserData.role === "Admin" || currUserData.role === "Owner")) {
+      setHasAuthority(true);
+    } else setHasAuthority(false);
+  }, [currUserData]);
 
-    }else{
-        setHasAuthority(false);
-    }
-  },[currUserData])
+  if (!teamData || !teamData.raw)
+    return <p className="text-center text-gray-500">Loading Team Details...</p>;
 
-  
- 
-  
-  
-  if (!teamData || !teamData.raw) return <p className="text-center text-gray-500">Loading Team Details...</p>;
   const { creator, members, projects, raw } = teamData;
 
   return (
+    <div className="max-w-full mx-auto h-fit max-h-[100vh] overflow-y-scroll noScroll p-3">
 
-    <div className='max-w-full mx-auto h-fit max-h-[100vh] overflow-y-scroll noScroll '>
+      {/* PERMISSION CHECK */}
+      {hasAuthToSeeTeam !== null && !hasAuthToSeeTeam ? (
+        <RestrictedTeamView creator={creator} projects={projects} raw={raw} members={members} />
+      ) : (
+        <div className="space-y-6">
 
-      {
-        (hasAuthToSeeTeam !==null && hasAuthToSeeTeam)
-        ?
-        ( <div>
-      <div className='p-6 bg-gray-900 rounded-t-xl text-white flex items-center justify-between '>
-        <div>
-            <h1 className='text-3xl font-bold'>{raw.name}</h1>
-        <p className='text-sm text-gray-300'>Created on {formatDateTime(raw.createdAt)}</p>
-        </div>
-
-        {hasAuthority && <Link to={'edit'} className='flex items-center justify-start gap-3 border px-2 py-0.5 rounded border-gray-600 hover:bg-white hover:text-gray-900 transition-all cursor-pointer'>
-            <span className='text-lg'>Edit</span>
-            <Pen className='cursor-pointer'/>
-
-        </Link>}
-      </div>
-
-      <div className='w-full flex items-center flex-wrap'>
-        {/* Creator Info */}
-      <div className='w-full'>
-        
-        <div className='p-5 bg-white  shadow  flex items-center gap-4'>
-        <img src={creator.picture} alt='creator' className='w-14 h-14 rounded-full object-cover border border-gray-300' />
-        <div>
-          <p className='text-lg font-semibold'>{creator.firstName} {creator.lastName}
-            <span className='px-3 py-0.5 bg-green-500 text-white rounded ml-6 text-sm'>{creator.role}</span>
-
-          </p>
-          <p className='text-sm text-gray-500'>@{creator.username} | {creator.email} 
-          </p>
-        </div>
-
-        {/* {hasAuthority &&<p className='flex ml-10 items-center justify-start gap-2 px-2 py-1 border-gray-300 bg-gray-300 border rounded shadow cursor-pointer'>
-            <span className='text-sm font-medium '>Add Admin</span>
-            <Plus className=' bg-gray-900 h-7 w-7 p-1 rounded-full text-white'/>
-        </p>} */}
-        <Badge variant="secondary" className='ml-auto'>{creator.status}</Badge>
-      </div>
-
-      {/* Project Info */}
-      {
-        projects && projects.length>0?(
-            projects.map(project=>{
-              return(
-                 <div key={project._id} className='p-5 bg-white  shadow '>
-        <h2 className='text-xl font-semibold text-gray-800 mb-2'>Project: {project.name}</h2>
-        <p className='text-gray-600'>{project.description}</p>
-        <div className='flex mt-5 items-center justify-start gap-3'>
-        <Link to={project._id} className='px-3 py-0.5 bg-green-500 text-white rounded text-sm  cursor-pointer'>View Project</Link>
-     
-
-        </div>
-      </div>
-              )
-            })
-        ):(
-          <p>No Projects have been added</p>
-        )
-        
-      }
-     
-
-
-      </div>
-
-     <div className='w-full'>
-         {/* Members List */}
-      <div className='p-5 bg-white  shadow '>
-        
-        <div className='flex items-center justify-between w-full gap-5 mb-5'>
-            <h2 className='text-xl font-semibold text-gray-800'>Team Members</h2>
-        { hasAuthority && <p className='flex ml-10 items-center justify-start gap-2 px-2 py-1 border-gray-300 bg-gray-300 border rounded shadow cursor-pointer'>
-            <span className='text-sm font-medium '>Add Members</span>
-            <Plus className=' bg-gray-900 h-7 w-7 p-1 rounded-full text-white'/>
-        </p>}
-        </div>
-
-         <div className='flex flex-wrap gap-4'>
-      {members.map((member) => (
-        <div key={member._id} className='flex relative items-center gap-2 bg-gray-100 px-4 py-2 rounded-full'>
-          <Users className='w-5 h-5 text-blue-500' />
-          <p className='text-gray-700 font-medium'>{member.firstName} {member.lastName}</p>
-          <Badge variant="outline" className='ml-2'>{member.role}</Badge>
-
-          { hasAuthority &&<MoreHorizontal
-            className='cursor-pointer'
-            onClick={() => toggleDropdown(member._id)}
-          />}
-
-          
-          { hasAuthority && activeDropdown === member._id && (
-            <div className='absolute right-0 top-10 rounded shadow-2xl p-2 flex flex-col items-center justify-start gap-2 bg-gray-800 text-white z-50'>
-              <span className='text-sm py-0.5 border-b border-gray-700 px-1 hover:bg-gray-700 cursor-pointer block w-full text-center'>Remove</span>
-              <span className='text-sm py-0.5 border-b border-gray-700 px-1 hover:bg-gray-700 cursor-pointer block w-full text-center'>Block</span>
-              <span className='text-sm py-0.5 border-b border-gray-700 px-1 hover:bg-gray-700 cursor-pointer block w-full text-center'>Promote</span>
-              <span className='text-sm py-0.5 border-b border-gray-700 px-1 hover:bg-gray-700 cursor-pointer block w-full text-center'>Add to project</span>
+          {/* TEAM HEADER — Minimal */}
+          <div className="bg-white border border-gray-200 rounded-xl px-6 py-5 flex items-start justify-between shadow-sm">
+            <div>
+              <h1 className="text-3xl font-semibold text-gray-900">{raw.name}</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Created on {formatDateTime(raw.createdAt)}
+              </p>
             </div>
-          )}
-        </div>
-      ))}
 
+            {hasAuthority && (
+              <Link
+                to={"edit"}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition"
+              >
+                <Pen className="h-4 w-4" />
+                Edit
+              </Link>
+            )}
+          </div>
 
-    </div>
+          {/* CREATOR CARD */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 flex items-center gap-5">
+            <img
+              src={creator.picture}
+              alt="creator"
+              className="w-16 h-16 rounded-full object-cover border border-gray-300"
+            />
 
-      </div>
+            <div className="flex-1">
+              <p className="text-lg font-medium text-gray-900 flex items-center gap-3">
+                {creator.firstName} {creator.lastName}
+                <span className="px-3 py-0.5 bg-purple-100 text-purple-700 rounded text-xs border border-purple-200">
+                  {creator.role}
+                </span>
+              </p>
 
-      {/* Invite Link */}
-      <div className='p-5 bg-white rounded-b-xl '>
-        <h2 className='text-xl font-semibold text-gray-800 mb-2'>Invite Link</h2>
-        <div className='flex items-center justify-between   gap-2'>
-         <div className='flex items-center justify-start gap-3'>
-           <LinkIcon className='w-5 h-5 text-green-600' />
-          <a href={raw.link.url} target='_blank' rel='noopener noreferrer' className='text-blue-600 underline truncate max-w-xs'>
-            {raw.link.url}
-          </a>
-         </div>
+              <p className="text-sm text-gray-500 mt-1">
+                @{creator.username} • {creator.email}
+              </p>
+            </div>
 
-          {hasAuthority && <p className='flex ml-10 items-center justify-start gap-2 px-2 py-1 bg-red-500 rounded shadow cursor-pointer'>
-            <span className='text-sm font-medium text-white'>Discard Link</span>
-            <Ban className=' bg-white h-7 w-7 p-1 rounded-full text-red-500'/>
-        </p>}
+            <Badge className="ml-auto bg-gray-100 text-gray-700 border border-gray-300 px-3 py-1 rounded text-xs">
+              {creator.status}
+            </Badge>
+          </div>
 
+          {/* PROJECTS */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4">
+            <h2 className="text-xl font-semibold text-gray-900">Projects</h2>
 
-        </div>
-        <p className='text-sm text-gray-500 mt-1'>Valid Till: {formatDateTime(raw.link.validTill)} 
-            
-             
-            <span className='px-3 ml-6 py-0.5 bg-green-500 text-white rounded text-sm'>{raw.link.status}</span>
-            
+            {projects?.length > 0 ? (
+              projects.map((project) => (
+                <div
+                  key={project._id}
+                  className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition"
+                >
+                  <h3 className="text-lg font-medium text-gray-900">{project.name}</h3>
+                  <p className="text-gray-600">{project.description}</p>
+
+                  <Link
+                    to={`${project._id}`}
+                    className="inline-block mt-3 px-3 py-1.5 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition"
+                  >
+                    View Project
+                  </Link>
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-500">No Projects have been added</p>
+            )}
+          </div>
+
+          {/* MEMBERS */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-semibold text-gray-900">Team Members</h2>
+
+              {hasAuthority && (
+                <div className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded bg-gray-100 hover:bg-gray-200 cursor-pointer text-gray-700 text-sm">
+                  <Plus className="h-5 w-5 text-gray-600" />
+                  Add Members
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-4">
+              {members.map((member) => (
+                <div
+                  key={member._id}
+                  className="flex items-center gap-3 bg-gray-100 px-4 py-2 rounded-full relative shadow-sm border border-gray-200"
+                >
+                  <Users className="w-5 h-5 text-gray-700" />
+
+                  <p className="text-gray-800 font-medium">
+                    {member.firstName} {member.lastName}
+                  </p>
+
+                  <Badge className="ml-2 bg-white text-gray-700 border border-gray-300 px-2 py-0.5 rounded text-xs">
+                    {member.role}
+                  </Badge>
+
+                  {hasAuthority && (
+                    <MoreHorizontal
+                      onClick={() => toggleDropdown(member._id)}
+                      className="cursor-pointer ml-2 text-gray-500 hover:text-gray-700"
+                    />
+                  )}
+
+                  {hasAuthority && activeDropdown === member._id && (
+                    <div className="absolute right-0 top-10 bg-white border border-gray-200 text-gray-700 rounded shadow-xl p-2 flex flex-col w-32 z-50">
+                      <button className="text-sm hover:bg-gray-100 py-1 w-full text-left px-2 rounded">
+                        Remove
+                      </button>
+                      <button className="text-sm hover:bg-gray-100 py-1 w-full text-left px-2 rounded">
+                        Block
+                      </button>
+                      <button className="text-sm hover:bg-gray-100 py-1 w-full text-left px-2 rounded">
+                        Promote
+                      </button>
+                      <button className="text-sm hover:bg-gray-100 py-1 w-full text-left px-2 rounded">
+                        Add to project
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* INVITE LINK */}
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Invite Link</h2>
+
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <LinkIcon className="w-5 h-5 text-gray-600" />
+                <a
+                  href={raw.link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-700 underline truncate max-w-xs text-sm"
+                >
+                  {raw.link.url}
+                </a>
+              </div>
+
+              {hasAuthority && (
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500 rounded text-white text-sm cursor-pointer hover:bg-red-600">
+                  Discard Link
+                  <Ban className="h-5 w-5 bg-white text-red-600 p-1 rounded-full" />
+                </div>
+              )}
+            </div>
+
+            <p className="text-sm text-gray-600 mt-2">
+              Valid Till: {formatDateTime(raw.link.validTill)}
+              <span className="px-3 py-0.5 ml-4 bg-purple-600 text-white rounded text-xs shadow">
+                {raw.link.status}
+              </span>
             </p>
-      </div>
-     </div>
-      </div>
-
-     </div>)
-        :
-        (
-          teamData &&
-          <RestrictedTeamView creator={creator} projects={projects} raw={ raw} members={members}  />
-        )
-      }
-     
-
-    
-
-
+          </div>
+        </div>
+      )}
     </div>
   );
 };

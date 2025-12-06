@@ -5,13 +5,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect } from 'react';
 import ProjectPreview from '../Components/ProjectPreview';
 import { useState } from 'react';
-import { Clock, Search, Send, StickyNote, Trash, Type, User, Users } from 'lucide-react';
+import { ChevronLeft, Clock, Plus, Search, Send, StickyNote, Trash, Type, User, Users } from 'lucide-react';
 import { toast } from 'react-toastify';
 import SearchUser from '../Components/SearchUser';
 import SearchTeam from '../Components/SearchTeams';
 
 const Projects = () => {
-  const {createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,searchProjects,searchedProjects} = useContext(TrackForgeContextAPI);
+  const {createProject,getUserProjects,userProjects,searchProjects,searchedProjects,getThisUserGithubRepo,githubRepo} = useContext(TrackForgeContextAPI);
   const {hash,username} = useParams();
   const navigate = useNavigate();
   
@@ -125,13 +125,13 @@ const Projects = () => {
   
 
 
-      const [loading,setLoading] = useState(false);
+    const [loading,setLoading] = useState(false);
 
    const submitHandler = async(e) => {
     e.preventDefault();
     setLoading(true);
 
-    await createProject(projectForm);  // Wait for API to complete
+    await createProject(projectForm);  
   
 
     setProjectForm({
@@ -148,9 +148,6 @@ const Projects = () => {
     setSelectedTeamIds([]);
     setSelectedUserIds([]);
 
-  
-
-   
 
     setLoading(false);
 };
@@ -158,37 +155,48 @@ const Projects = () => {
 
 
 
-useEffect(()=>{
-  console.log(searchedProjects);
-},[searchedProjects])
+
   
         
-            
 
 
+    const [addEntity,setAddEntity] = useState("Individual");
+
     
-    
+    const [creation,setCreation] = useState(false);
+
+
+
+    useEffect(()=>{
+        console.log("Projects - ",userProjects)
+    },[userProjects])
 
   return (
-    <div className='w-full p-5 min-h-[100vh]'>
+    <div className='w-full p-5 min-h-[100vh] bg-white'>
      <div className='py-5 flex items-start justify-start gap-5'>
   <span
     onClick={() => setList("All")}
-    className={`px-4 ${list === "All" ? "bg-gray-900 text-white" : ""} py-1.5 border border-gray-300 rounded shadow min-w-30 text-center cursor-pointer transition-all text-gray-700 hover:bg-gray-900 hover:text-white`}
+    className={`px-4 ${list === "All" ? "bg-purple-600 text-white" : "border border-purple-600"} py-1.5  shadow-2xl rounded min-w-30 text-center cursor-pointer transition-all text-purple-600 hover:bg-purple-600 hover:text-white`}
   >
     All
   </span>
   <span
     onClick={() => setList("Archived")}
-    className={`px-4 ${list === "Archived" ? "bg-gray-900 text-white" : ""} py-1.5 border border-gray-300 rounded shadow min-w-30 text-center cursor-pointer transition-all text-gray-700 hover:bg-gray-900 hover:text-white`}
+    className={`px-4 ${list === "Archived" ? "bg-purple-600 text-white" : "border border-purple-600"} py-1.5  shadow-2xl rounded min-w-30 text-center cursor-pointer transition-all text-purple-600 hover:bg-purple-600 hover:text-white`}
   >
     Archived
   </span>
   <span
     onClick={() => setList("Un-archived")}
-    className={`px-4 ${list === "Un-archived" ? "bg-gray-900 text-white" : ""} py-1.5 border border-gray-300 rounded shadow min-w-30 text-center cursor-pointer transition-all text-gray-700 hover:bg-gray-900 hover:text-white`}
+    className={`px-4 ${list === "Un-archived" ? "bg-purple-600 text-white" : "border border-purple-600"} py-1.5  shadow-2xl rounded min-w-30 text-center cursor-pointer transition-all text-purple-600 hover:bg-purple-600 hover:text-white`}
   >
     Un-archived
+  </span>
+  <span
+    onClick={getThisUserGithubRepo}
+    className={`px-4 ${list === "Get-GitHub_Repo" ? "bg-purple-600 text-white" : "border border-purple-600"} py-1.5  shadow-2xl rounded min-w-30 text-center cursor-pointer transition-all text-purple-600 hover:bg-purple-600 hover:text-white`}
+  >
+    Get Github Repo
   </span>
 
   <div>
@@ -200,22 +208,22 @@ useEffect(()=>{
       value={searchText}
       onChange={(e) => setSearchText(e.target.value)}
       type="search"
-      className='outline-none border rounded-md shadow-sm focus:shadow-lg border-gray-300 p-2 flex-1 w-lg'
+      className='outline-none border rounded-md shadow-sm focus:shadow-lg border-purple-600 text-purple-600 p-2 flex-1 w-lg'
       placeholder='Search - Frontend Devs...'
     />
     <Search
-      className={`h-9 w-9 p-1 ${searchText.length > 0 ? "bg-gray-800 text-white" : "border border-gray-600 bg-gray-400 text-gray-700"} rounded cursor-pointer`}
+      className={`h-9 w-9 p-1 ${searchText.length > 0 ? "bg-purple-700 text-white" : " shadow-2xl bg-purple-400 text-white"} rounded cursor-pointer`}
     />
 
 
       {
          searchText!=="" && searchedProjects!==null && searchedProjects.projects?.length &&
-         <div className='p-3 absolute top-6 bg-white z-10 border mt-5 border-gray-200 rounded w-full max-h-100 overflow-y-scroll noScroll'>
+         <div className='p-3 absolute top-6 bg-white z-10 border mt-5 border-purple-400 rounded w-full max-h-100 overflow-y-scroll noScroll'>
   {searchText === "" ? (
-    <p className='text-md text-gray-400'>Search Results appear here</p>
+    <p className='text-md text-purple-700'>Search Results appear here</p>
   ) : searchedProjects?.projects?.length > 0 ? (
     searchedProjects.projects.map((p, i) => (
-      <p onClick={()=>navigate(`/auth/${hash}/${username}/workspace/projects/${p._id}`)} key={i} className='text-md flex rounded shadow hover:shadow-2xl hover:bg-gray-300 transition-all cursor-pointer flex-wrap items-center justify-between gap-3 text-gray-900 px-4 py-1.5 border border-gray-300 mb-3 font-medium'>
+      <p onClick={()=>navigate(`/auth/${hash}/${username}/workspace/projects/${p._id}`)} key={i} className='text-md flex rounded shadow hover:shadow-2xl hover:bg-purple-400 transition-all cursor-pointer flex-wrap items-center justify-between gap-3 text-purple-800 px-4 py-1.5 border border-purple-300 mb-3 font-medium'>
         <span>
 
         {p.name}
@@ -225,7 +233,7 @@ useEffect(()=>{
     ))
   ) : (
       
-    <p className='text-md text-gray-400'>No Projects found for this search!!!</p>
+    <p className='text-md text-purple-600'>No Projects found for this search!!!</p>
   
   )}
 </div>
@@ -237,18 +245,29 @@ useEffect(()=>{
 </div>
 
      {
-     (userProjects && userProjects.projects && userProjects.projects.length) ?  
+     (userProjects && userProjects.projects && userProjects.projects.length && !creation) ?  
       (<ProjectPreview projects={userProjects}/>)
       :(
-        <p className='text-lg font-medium text-gray-700'>You do not have any projects, create now</p>
+        ""
 
       )
      }
 
+<div onClick={()=>setCreation(!creation)} className={`p-5 w-fit ${creation?"bg-purple-700 text-white":"bg-white border-2 border-purple-400 rounded-2xl"}  rounded shadow-2xl  hover:text-white hover:bg-purple-700 cursor-pointer transition-all`}>
+  <h1 className='flex text-gradient text-lg items-center min-w-60  justify-center gap-2 font-medium '>
+   {creation?"Back to the list":" Create a new Project "}
+    {creation?
+    <ChevronLeft />:<Plus/>}
+  </h1>
+</div>
 
-    <div className='mt-15'>
-      <form onSubmit={submitHandler} className='max-w-full bg-white p-5 rounded shadow'>
-        <h1 className=' text-center text-4xl mb-10 text-green-500 w-full py-2 border-b border-gray-200'>
+
+    {
+      creation 
+      &&
+      (<div className='mt-5'>
+      <form onSubmit={submitHandler} className='max-w-full bg-white p-5 rounded shadow text-purple-700'>
+        <h1 className=' text-center text-4xl mb-10 text-gradient font-bold w-full py-2 border-b border-gray-200'>
           Create new Project
         </h1>
 
@@ -312,12 +331,21 @@ useEffect(()=>{
 
 </div>
 
+    </div>
 
 
-          <div className='w-full flex-1 mt-10 border-t border-gray-200 py-5'>
+    <div className='flex-1'>
+      <div className='flex items-center justify-between gap-1 border border-gray-50'>
+        <span className={`flex-1 px-5 py-3 rounded text-center ${addEntity==="Team"?"bg-purple-600 text-white":"bg-white text-purple-700 border border-purple-600"} transition-all cursor-pointer font-medium text-lg`} onClick={()=>setAddEntity("Team")}>Teams</span>
+        <span className={`flex-1 px-5 py-3 rounded text-center ${addEntity==="Individual"?"bg-purple-600 text-white":"bg-white text-purple-700 border border-purple-600"} transition-all cursor-pointer font-medium text-lg`} onClick={()=>setAddEntity("Individual")}>Individuals</span>
+
+      </div>
+
+      {
+        addEntity ==="Team"
+        &&(
+       <div className='w-full  py-5'>
   <SearchTeam selectedTeamIds={selectedTeamIds} setSelectedTeamIds={setSelectedTeamIds}/>
-
-
 
   {/* Teams Preview */}
   <div className='p-5 flex flex-wrap gap-2'>
@@ -342,19 +370,20 @@ useEffect(()=>{
 
     }
   </div>
-      </div>
+    </div>
 
+        )
+      }
 
-          </div>
-
-            <div className='flex-1'>
+        {
+          addEntity ==="Individual"
+          &&
+          (
+      <div className='py-5'>
  
 
 
-      <SearchUser setSelectedUserIds={setSelectedUserIds} selectedUserIds={selectedUserIds} />
-
-
-
+   <SearchUser setSelectedUserIds={setSelectedUserIds} selectedUserIds={selectedUserIds} />
 
   {/* Usernames Preview */}
   <div className='p-5 flex flex-wrap gap-2'>
@@ -385,11 +414,19 @@ useEffect(()=>{
 
           </div>
 
+          )
+        }
+
+
+
+    </div>
+
+
           
         </div>
 
         <div className='w-fit mx-auto my-10'>
-          <button type='submit' className='px-6 py-1.5 rounded shadow border border-gray-300 cursor-pointer hover:bg-green-500 hover:text-white transition-all'>
+          <button type='submit' className='px-6 py-1.5 rounded shadow border text-gradient cursor-pointer hover:bg-purple-500 font-medium text-lg hover:text-white transition-all'>
           
           Create Project
         </button>
@@ -398,7 +435,8 @@ useEffect(()=>{
       </form>
 
 
-    </div>
+    </div>)
+    }
       
 
 

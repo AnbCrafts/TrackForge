@@ -338,55 +338,51 @@ return res.status(201).json({
     });
     }
 }
-const patchTicketStatus = async(req,res)=>{
-       try {
+const patchTicketStatus = async (req, res) => {
+  try {
     const { error } = validationUtils.ticketStatusValidationSchema.validate(req.params);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const { ticketId,status } = req.params;
+    const { ticketId, status } = req.params;
     const isValidTicket = await Ticket.findById(ticketId);
+
     if (!isValidTicket) {
-      return res.json({ success: false, message: "Invalid id, no ticket found with this id" });
+      return res.json({
+        success: false,
+        message: "Invalid id, no ticket found with this id",
+      });
     }
- 
-   const done = isValidTicket.status = status.toString();
-   if (status.toString() === "Open") {
-  isValidTicket.validFor = new Date(
-    isValidTicket.validFor.getTime() + 7 * 24 * 60 * 60 * 1000 // 7 days in ms
-  );
-  await isValidTicket.save();
-}
-   
-   if(!done){
-    return res.status(401).json({
-      success: false,
-      message:"Failed to update status of the ticket"
-    });
-}
-await isValidTicket.save();
+
+    // update status
+    const done = isValidTicket.status = status.toString();
+
+    // ⭐ FIX: Always extend validity by +7 days whenever status is patched
+    isValidTicket.validFor = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000
+    );
+
+    if (!done) {
+      return res.status(401).json({
+        success: false,
+        message: "Failed to update status of the ticket",
+      });
+    }
+
+    await isValidTicket.save();
 
     return res.status(201).json({
       success: true,
-      message:`Status updated to - ${status} successfully`
-
+      message: `Status updated to - ${status} successfully`,
     });
-   
-}
 
-
-
-
-
-    
-
-        
-     catch (error) {
-        return res.status(500).json({
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message:" Internal Server Error"
+      message: "Internal Server Error",
     });
-    }
-}
+  }
+};
+
 const patchActivityLog = async(req,res)=>{
        try {
     const { error } = validationUtils.ticketActivityLogValidationSchema.validate(req.params);

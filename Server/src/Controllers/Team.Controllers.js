@@ -1122,7 +1122,7 @@ const requestToJoinTeam = async (req, res) => {
     }
 
     // Already requested?
-    if (team.joinRequests.some((id) => id.toString() === userId)) {
+    if (team.joinRequests.some((id) => id.toString() === userId) || user.teamJoinRequests.some((id) => id.toString() === userId)) {
       return res.status(200).json({
         success: true,
         message: "You have already requested to join",
@@ -1141,7 +1141,9 @@ const requestToJoinTeam = async (req, res) => {
 
     // Send join request
     team.joinRequests.push(userId);
-    await team.save();
+    user.teamJoinRequests.push(userId);
+    await team.save();  
+    await user.save();  
 
     return res.status(201).json({
       success: true,
@@ -1199,7 +1201,7 @@ const getJoinRequest = async (req, res) => {
 
     const userData = await Promise.all(
       team.joinRequests.map(async (u) =>
-        await User.findById(u).select("username _id")
+        await User.findById(u).select("username _id email picture firstName lastName")
       )
     );
 
@@ -1235,5 +1237,8 @@ const getJoinRequest = async (req, res) => {
 
 
 
+
+
 export {getJoinRequest, createTeam, getAllTeams, getTeamById, deleteTeam, addMember, getAllMembers, updateTeam, deleteMember, createTeamJoiningLink, joinUsingLink, getLinkStatus, getProject, removeProject, getAllTeamsByMember, searchTeam, getFilteredTeam, getTeamIdByName,requestToJoinTeam,patchTeamJoinRequests,checkForTeamAuthorization }
 
+ 

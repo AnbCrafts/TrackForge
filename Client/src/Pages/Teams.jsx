@@ -1,366 +1,345 @@
-import React, { useContext, useEffect, useState } from 'react'
-import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI'
-import { Link, matchPath, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import PreviewTeam from '../Components/PreviewTeam';
-import { BusFront, Expand, Group, GroupIcon, HdmiPortIcon, Link2, Projector, Search, Send, Shrink, Trash, User, X } from 'lucide-react';
-import SearchUser from '../Components/SearchUser';
-import SearchProjects from '../Components/SearchProjects';
+import React, { useContext, useEffect, useState } from "react";
+import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
+import {
+  Link,
+  matchPath,
+  Outlet,
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+import PreviewTeam from "../Components/PreviewTeam";
+import {
+  Expand,
+  GroupIcon,
+  Search,
+  Shrink,
+  X,
+} from "lucide-react";
+import SearchUser from "../Components/SearchUser";
+import SearchProjects from "../Components/SearchProjects";
 
 const Teams = () => {
   const location = useLocation();
 
-  
-  const {userTeams,getUsersTeam,getTeamByID,teamData,getUserIDs,userIds,formatDateTime,searchTeams,searchedTeams,createTeam} = useContext(TrackForgeContextAPI);
-  const {hash,teamId,username} = useParams();
-  const id = localStorage.getItem("userId");
-  useEffect(()=>{
-    if(id){
-      
-      getUsersTeam(id);
-    }
+  const {
+    userTeams,
+    getUsersTeam,
+    getTeamByID,
+    teamData,
+    searchTeams,
+    searchedTeams,
+    createTeam,
+  } = useContext(TrackForgeContextAPI);
 
-  },[id])
+  const { hash, teamId, username } = useParams();
+  const id = localStorage.getItem("userId");
+
+  useEffect(() => {
+    if (id) getUsersTeam(id);
+  }, [id]);
 
   const navigate = useNavigate();
-  const [searchTerm,setSearchTerm] = useState("");
-  useEffect(()=>{
-                if(searchTerm !==""){
-        
-                    searchTeams(searchTerm);
-                }
-        
-            },[searchTerm]); 
-        
-            
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const [selectedProjectIds,setSelectedProjectIds] = useState([]);
-  const [selectedUserIds,setSelectedUserIds] = useState([]);
+  useEffect(() => {
+    if (searchTerm !== "") searchTeams(searchTerm);
+  }, [searchTerm]);
 
+  const [selectedProjectIds, setSelectedProjectIds] = useState([]);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
 
-  const [teamForm,setTeamForm] = useState({
-    name:"",
-    projects:selectedProjectIds,
-    createdBy:id,
-    members:[{
-      participant:"",
-      joinedAt:""
-    }]
-  })
+  const [teamForm, setTeamForm] = useState({
+    name: "",
+    projects: selectedProjectIds,
+    createdBy: id,
+    members: [{ participant: "", joinedAt: "" }],
+  });
 
-
-useEffect(() => {
-  if (selectedUserIds && selectedUserIds.length > 0) {
-    const data = selectedUserIds.map((id) => ({
-      participant: id,
-      joinedAt: new Date().toISOString(),
-    }));
-
-    console.log("Mapped members data:", data);
-
-    setTeamForm((prev) => ({
-      ...prev,
-      members: data,
-    }));
-  }
-}, [selectedUserIds]);
-
-// Watch for updates
-
-
-
-
-useEffect(()=>{
-  if(selectedProjectIds && selectedProjectIds.length){
-    console.log("Updating teamForm.projects with", selectedProjectIds);
-    setTeamForm((prev) => ({
-        ...prev,
-        projects: [...selectedProjectIds], // force copy
+  useEffect(() => {
+    if (selectedUserIds?.length > 0) {
+      const data = selectedUserIds.map((uid) => ({
+        participant: uid,
+        joinedAt: new Date().toISOString(),
       }));
-  }
-},[selectedProjectIds]);
 
+      setTeamForm((prev) => ({ ...prev, members: data }));
+    }
+  }, [selectedUserIds]);
 
+  useEffect(() => {
+    if (selectedProjectIds?.length > 0) {
+      setTeamForm((prev) => ({ ...prev, projects: [...selectedProjectIds] }));
+    }
+  }, [selectedProjectIds]);
 
-
-
-  const [hidePreview,setHidePreview] = useState(false);
+  const [hidePreview, setHidePreview] = useState(false);
 
   const isEditPage = matchPath(
     "/auth/:hash/:username/workspace/team/:teamId/edit",
     location.pathname
   );
-  
-useEffect(() => {
-  
 
-  if (isEditPage) {
-    setHidePreview(true);
-  } else {
-    setHidePreview(false);
-  }
-}, [location]);
+  useEffect(() => {
+    setHidePreview(isEditPage ? true : false);
+  }, [location]);
 
+  useEffect(() => {
+    getTeamByID(teamId);
+  }, [teamId]);
 
-  useEffect(()=>{
-    getTeamByID(teamId)
-  },[teamId])
+  useEffect(() => {
+    setTimeout(() => setSearchTerm(""), 10000);
+  }, [searchTerm]);
 
-
-
-  useEffect(()=>{
-    setTimeout(() => {
-      setSearchTerm("");
-    }, 10000);
-  },[searchTerm])
-
-
-
-  
-
-
- 
-
-
-  const submitHandler = async(e)=>{
+  const submitHandler = async (e) => {
     e.preventDefault();
 
-    console.log(teamForm)
-   await createTeam(teamForm);
+    await createTeam(teamForm);
+
     setTeamForm({
-       name:"",
-    projects:[],
-    createdBy:id,
-    members:[{
-      participant:"",
-      joinedAt:""
-    }]
-    })
+      name: "",
+      projects: [],
+      createdBy: id,
+      members: [{ participant: "", joinedAt: "" }],
+    });
 
     setSelectedProjectIds([]);
     setSelectedUserIds([]);
-  }
+  };
 
 
-
-  
+  const [addEntity,setAddEntity] = useState("User");
 
   return (
-    <div className='bg-gray-200 p-5 rounded-2xl shadow-2xl '>
-     <div className='p-5 flex items-center justify-start gap-5
-      w-full'>
-      <button className='px-4 py-1.5 border border-gray-300 bg-gray-800 text-white rounded font-medium cursor-pointer hover:bg-gray-800 hover:text-white transition-all shadow-lg'>All Teams</button>
-      <button className='px-4 py-1.5 border border-gray-300 rounded font-medium cursor-pointer hover:bg-gray-800 hover:text-white transition-all shadow-lg'>Archived Teams</button>
-      <div className='flex relative items-center justify-start gap-2'>
-        <input value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} type="search" className='outline-none border rounded-md shadow-sm focus:shadow-lg border-gray-300 p-2 flex-1 w-lg' placeholder='Search - Frontend Devs...' />
-        <Search className={`h-9 w-9 p-1 ${searchTerm.length>0?"bg-gray-800 text-white":"border border-gray-600 bg-gray-400 text-gray-700"}  rounded cursor-pointer`} />
-        {
-          searchTerm.length &&
-         <div className='p-3 absolute top-6 bg-white z-10 border mt-5 border-gray-200 rounded w-full max-h-100 overflow-y-scroll noScroll'>
-  {searchTerm === "" ? (
-    <p className='text-md text-gray-400'>Search Results appear here</p>
-  ) : searchedTeams?.teams?.length > 0 ? (
-    searchedTeams.teams.map((t, i) => (
-      <p onClick={()=>navigate(`/auth/${hash}/${username}/workspace/team/${t._id}`)} key={i} className='text-md flex rounded shadow hover:shadow-2xl hover:bg-gray-300 transition-all cursor-pointer flex-wrap items-center justify-between gap-3 text-gray-900 px-4 py-1.5 border border-gray-300 mb-3 font-medium'>
-        <span>
+    <div className="bg-purple-50 p-5 shadow-inner min-h-screen">
+      {/* HEADER BUTTONS */}
+      <div className="p-5 flex items-center gap-5 w-full">
+        <button className="px-4 py-1.5 border border-purple-300 bg-purple-700 text-white rounded-lg font-medium cursor-pointer hover:bg-purple-800 transition shadow">
+          All Teams
+        </button>
 
-        {t.name}
-        </span>
-        
-        </p>
-    ))
-  ) : (
-    <p className='text-md text-gray-400'>No Teams found for this search!!!</p>
-  )}
-</div>
-        }
+        <button className="px-4 py-1.5 border border-purple-200 text-purple-700 bg-white rounded-lg font-medium cursor-pointer hover:bg-purple-100 transition shadow">
+          Archived Teams
+        </button>
 
-
-      </div>
-
-       <div className='flex items-center justify-start gap-5'>
-      {
-        hidePreview ? (
-          <Shrink
-            onClick={() => !isEditPage && setHidePreview(false)} // disable if edit page
-            className={`bg-red-500 h-8 w-8 p-1 rounded shadow-lg text-white ${
-              isEditPage ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-            }`}
+        {/* SEARCH BAR */}
+        <div className="flex relative items-center gap-2 w-full max-w-lg">
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            type="search"
+            className="outline-none border rounded-md shadow-sm focus:ring-2 focus:ring-purple-400 border-purple-300 p-2 w-full bg-white"
+            placeholder="Search - Frontend Devs..."
           />
-        ) : (
-          <Expand
-            onClick={() => !isEditPage && setHidePreview(true)} // disable if edit page
-            className={`bg-red-500 h-8 w-8 p-1 rounded shadow-lg text-white ${
-              isEditPage ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
-            }`}
+          <Search
+            className={`h-9 w-9 p-1 ${
+              searchTerm.length > 0
+                ? "bg-purple-700 text-white"
+                : "border border-purple-400 bg-purple-300 text-purple-900"
+            } rounded-lg cursor-pointer transition`}
           />
-        )
-      }
-    </div>
 
-       
-     
-     </div>
-
-     
-        {
-        ((userTeams && userTeams.length>0) || searchedTeams)
-        ?
-        (
-      <div className='flex  gap-3 items-start justify-between'>
-        {
-          (userTeams && userTeams.length>0)
-          ?
-          (<div>
-          
-          <PreviewTeam team={userTeams} hide={hidePreview} />
-        </div>)
-          :("")
-        }
-        
-      <div className='flex-1 bg-white max-h-[100vh] h-auto rounded-lg shadow-lg relative'>
-       
-       <Outlet/>
-       
-
-
-
-
-
-
-
-      </div>
-      </div>
-
-        )
-        :
-        
-        (
-          <div>
-          <p className='text-lg font-medium text-gray-700'>No Teams Found</p>
-        </div>
-        )
-      }
-
-
-
-
-      <div className='p-5 mt-5 bg-white w-full'>
-        <h1 className='text-3xl text-gray-900 mb-5'>Create Your own Team</h1>
-
-      <form onSubmit={submitHandler} className='border border-gray-300 w-full p-10 rounded-lg shadow'>
-        <div className='flex items-center justify-between gap-5 mb-5 max-w-3xl'>
-          <label htmlFor="name" className='flex items-center justify-start gap-2 text-gray-600 text-lg w-3xs'>
-            <GroupIcon/> Team Name
-          </label>
-          <input value={teamForm.name} onChange={(e)=>setTeamForm((prev) => ({
-      ...prev,
-      name: e.target.value,
-    }))} type="text" name="name" id="name" className='py-2 px-3 outline-none border border-gray-200 shadow max-w-lg w-lg rounded' placeholder='Tech-knight...' />
-
+          {searchTerm.length > 0 && (
+            <div className="p-3 absolute top-10 bg-white z-10 border border-purple-200 rounded w-full max-h-80 overflow-y-scroll shadow-lg">
+              {searchedTeams?.teams?.length > 0 ? (
+                searchedTeams.teams.map((t, i) => (
+                  <p
+                    key={i}
+                    onClick={() =>
+                      navigate(`/auth/${hash}/${username}/workspace/team/${t._id}`)
+                    }
+                    className="text-md flex rounded-lg shadow hover:bg-purple-100 transition cursor-pointer items-center justify-between gap-3 text-purple-900 px-4 py-2 border border-purple-200 mb-3"
+                  >
+                    {t.name}
+                  </p>
+                ))
+              ) : (
+                <p className="text-md text-purple-400">No Teams found</p>
+              )}
+            </div>
+          )}
         </div>
 
+        {/* PREVIEW TOGGLE */}
+        <div className="flex items-center gap-5">
+          {hidePreview ? (
+            <Shrink
+              onClick={() => !isEditPage && setHidePreview(false)}
+              className={`bg-purple-600 h-8 w-8 p-1 rounded-lg shadow text-white ${
+                isEditPage ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+              }`}
+            />
+          ) : (
+            <Expand
+              onClick={() => !isEditPage && setHidePreview(true)}
+              className={`bg-purple-600 h-8 w-8 p-1 rounded-lg shadow text-white ${
+                isEditPage ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+              }`}
+            />
+          )}
+        </div>
+      </div>
 
-        <div className='flex items-center justify-between gap-5 mt-10'>
+      {/* CONTENT SECTION */}
+      {(userTeams?.length > 0 || searchedTeams) ? (
+        <div className="flex gap-5 items-start justify-between">
+          {userTeams?.length > 0 && (
+            <div>
+              <PreviewTeam team={userTeams} hide={hidePreview} />
+            </div>
+          )}
 
-        <div className='w-full'>
-      <SearchUser selectedUserIds={selectedUserIds} setSelectedUserIds={setSelectedUserIds}/>
-{
-  selectedUserIds && selectedUserIds.length > 0 && (
-    <div className="p-5 mt-5 flex flex-wrap gap-2">
-      {selectedUserIds.map((u, i) => {
-        const maskedId = u.slice(0, 5) + "*".repeat(u.length - 5);
+          <div className="flex-1 bg-white rounded-xl shadow-lg border border-purple-200">
+            <Outlet />
+          </div>
+        </div>
+      ) : (
+        <p className="text-lg font-medium text-purple-700">No Teams Found</p>
+      )}
 
-        return (
-          <span
-            key={i}
-            className="flex items-center gap-2 px-3 py-1 bg-gray-200 rounded-lg text-sm font-mono"
-          >
-            {maskedId}
-            <button
-              type="button"
-              onClick={() =>
-                setSelectedUserIds((prev) => prev.filter((id) => id !== u))
-              }
-              className="text-red-500 hover:text-red-700"
+      {/* CREATE NEW TEAM */}
+      <div className="p-5 mt-8 bg-white rounded-xl shadow border border-purple-200">
+        <h1 className="text-3xl text-purple-800 mb-5 font-semibold">
+          Create Your Own Team
+        </h1>
+
+        <form
+          onSubmit={submitHandler}
+          className="border border-purple-200 w-full p-10 rounded-xl shadow-lg bg-purple-50"
+        >
+          {/* Team Name */}
+          <div className="flex items-center justify-between gap-5 mb-5 max-w-3xl">
+            <label
+              htmlFor="name"
+              className="flex items-center gap-2 text-purple-700 text-lg w-3xs"
             >
-              <X size={14} />
-            </button>
-          </span>
-        );
-      })}
-    </div>
-  )
-}
+              <GroupIcon /> Team Name
+            </label>
 
+            <input
+              value={teamForm.name}
+              onChange={(e) =>
+                setTeamForm((prev) => ({ ...prev, name: e.target.value }))
+              }
+              type="text"
+              id="name"
+              className="py-2 px-3 outline-none border border-purple-300 text-purple-700 shadow bg-white rounded-lg w-full max-w-lg"
+              placeholder="Tech-knight..."
+            />
+          </div>
 
-        </div>
+          {/* USERS + PROJECTS */}
+          <div className="flex items-start justify-between gap-5 mt-10">
+            {/* USERS */}
+            <div className='flex items-center justify-between gap-1 border border-gray-50'>
+        <span className={`flex-1 px-5 py-3 rounded text-center ${addEntity==="User"?"bg-purple-600 text-white":"bg-white text-purple-700 border border-purple-600"} transition-all cursor-pointer font-medium text-lg`} onClick={()=>setAddEntity("User")}>Users</span>
+        <span className={`flex-1 px-5 py-3 rounded text-center ${addEntity==="Project"?"bg-purple-600 text-white":"bg-white text-purple-700 border border-purple-600"} transition-all cursor-pointer font-medium text-lg`} onClick={()=>setAddEntity("Project")}>Projects</span>
 
-        <div className='w-full'>
-
-      <SearchProjects selectedProjectIds={selectedProjectIds} setSelectedProjectIds={setSelectedProjectIds}/>  
+      </div>
 
       {
-  selectedProjectIds && selectedProjectIds.length > 0 && (
-    <div className="p-5 mt-5 flex flex-wrap gap-2">
-      {selectedProjectIds.map((u, i) => {
-        const maskedId = u.slice(0, 5) + "*".repeat(u.length - 5);
+        addEntity ==="User"
+        &&
+        (
+            <div className="w-full">
+              <SearchUser
+                selectedUserIds={selectedUserIds}
+                setSelectedUserIds={setSelectedUserIds}
+              />
 
-        return (
-          <span
-            key={i}
-            className="flex items-center gap-2 px-3 py-1 bg-gray-200 rounded-lg text-sm font-mono"
-          >
-            {maskedId}
+              {selectedUserIds?.length > 0 && (
+                <div className="p-5 mt-5 flex flex-wrap gap-2">
+                  {selectedUserIds.map((u, i) => {
+                    const maskedId = u.slice(0, 5) + "*".repeat(u.length - 5);
+
+                    return (
+                      <span
+                        key={i}
+                        className="flex items-center gap-2 px-3 py-1 bg-purple-200 rounded-lg text-sm font-mono shadow"
+                      >
+                        {maskedId}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedUserIds((prev) =>
+                              prev.filter((id) => id !== u)
+                            )
+                          }
+                          className="text-purple-800 hover:text-red-600 transition"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+        )
+      }
+
+      {
+        addEntity ==="Project"
+        &&
+        (
+            <div className="w-full">
+              <SearchProjects
+                selectedProjectIds={selectedProjectIds}
+                setSelectedProjectIds={setSelectedProjectIds}
+              />
+
+              {selectedProjectIds?.length > 0 && (
+                <div className="p-5 mt-5 flex flex-wrap gap-2">
+                  {selectedProjectIds.map((u, i) => {
+                    const maskedId = u.slice(0, 5) + "*".repeat(u.length - 5);
+
+                    return (
+                      <span
+                        key={i}
+                        className="flex items-center gap-2 px-3 py-1 bg-purple-200 rounded-lg text-sm font-mono shadow"
+                      >
+                        {maskedId}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedProjectIds((prev) =>
+                              prev.filter((id) => id !== u)
+                            )
+                          }
+                          className="text-purple-800 hover:text-red-600 transition"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+        )
+      }
+
+
+            {/* PROJECTS */}
+
+          </div>
+
+          {/* SUBMIT BUTTON */}
+          <div className="w-fit mx-auto my-10">
             <button
-              type="button"
-              onClick={() =>
-                setSelectedProjectIds((prev) => prev.filter((id) => id !== u))
-              }
-              className="text-red-500 hover:text-red-700"
+              type="submit"
+              className='px-6 py-1.5 rounded shadow border text-gradient cursor-pointer hover:bg-purple-500 font-medium text-lg hover:text-white transition-all'
             >
-              <X size={14} />
+              Create Team
             </button>
-          </span>
-        );
-      })}
+          </div>
+        </form>
+      </div>
     </div>
-  )
-}
+  );
+};
 
-
-        </div>
-        </div>
-        
-       
-
-
-
-
-        
-
-       
-
-
-
-        <div className='w-fit mx-auto my-10'>
-          <button type='submit' className='px-6 py-1.5 border border-gray-300 bg-gray-500 text-white hover:bg-gray-800 rounded shadow cursor-pointer'>Create Team</button>
-
-        </div>
-        
-
-      </form>
-
-
-       </div>
-      
-        
-
-
-     
-
-      
-    </div>
-  )
-}
-
-export default Teams
+export default Teams;

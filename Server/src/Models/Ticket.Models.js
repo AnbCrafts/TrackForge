@@ -9,7 +9,7 @@ const TicketSchema = new mongoose.Schema(
     description: { 
       type: String,
       required: true,
-    },
+    }, 
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -1,0 +1,23 @@
+{/* {
+        showBox && 
+      <div className="min-w-lg p-5 flex items-start justify-start gap-5 flex-col min-h-80 fixed top-[50vh] right-0 z-50 border-gray-200 border rounded-2xl bg-white/20">
+        <X onClick={()=>setShowBox(false)} className="bg-gray-900 text-white p-1 h-8 w-8 rounded-full cursor-pointer shadow-2xl float-right  " />
+        <p className="px-10 py-4 text-center mx-auto bg-blue-500 text-white rounded-md shadow-2xl transition-all animate-bounce delay-1000 text-lg">Feeling Hectic to manage projects?</p>
+        <p className="px-10 py-4 text-center mx-auto bg-blue-500 text-white rounded-md shadow-2xl transition-all animate-bounce delay-700 text-lg">Team work doesn't work as planned?</p>
+        <p className="px-10 py-4 text-center mx-auto bg-blue-500 text-white rounded-md shadow-2xl transition-all animate-bounce delay-700 text-lg">Creating project alone?</p>
+        <p className="font-medium text-lg text-white py-1.5 px-4 rounded shadow-2xl  bg-green-500">
+          Come here , we got solutions to all your problems...
+        </p>
+
+      </div>
+      }
+
+      <PartyPopper/>
+
+      {
+        !showBox && 
+      <PartyPopper/>
+      }
+   
+
+       */}

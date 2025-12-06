@@ -3,6 +3,9 @@ node_modules/
 
 # Environment variables
 .env
+# Ignore server config folder (contains secrets)
+src/Config/
+src/Config/*
 
 # Logs
 logs/

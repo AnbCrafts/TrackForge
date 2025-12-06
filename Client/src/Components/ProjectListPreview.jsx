@@ -1,120 +1,134 @@
-import { Leaf, LogOut, PersonStanding, Search, Trash } from 'lucide-react';
-import React, { useContext, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI';
+import {
+  Leaf,
+  LogOut,
+  PersonStanding,
+  Search,
+  Trash,
+} from "lucide-react";
+import React, { useContext, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 
-const ProjectListPreview = ({projects}) => {
-    const {searchProjects,searchedProjects,formatDateTime} = useContext(TrackForgeContextAPI);
-    const{username,hash} = useParams();
-    const navigate = useNavigate();
+const ProjectListPreview = ({ projects }) => {
+  const { searchProjects, searchedProjects, formatDateTime } =
+    useContext(TrackForgeContextAPI);
 
-    const [page,setPage] = useState(1);
-    const [searchTerm,setSearchTerm] = useState("");
-    useEffect(()=>{
-        if(searchTerm !==""){
+  const { username, hash } = useParams();
+  const navigate = useNavigate();
 
-            searchProjects(searchTerm,page);
-        }
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
 
-    },[searchTerm]); 
-
-    
+  // 🔍 Search on typing
+  useEffect(() => {
+    if (searchTerm.trim() !== "") {
+      searchProjects(searchTerm, page);
+    }
+  }, [searchTerm]);
 
   return (
-    <div className='flex items-start justify-between gap-5'>
-    <div className=' flex items-center flex-col shrink-0 justify-start flex-wrap gap-5 w-3xl max-h-[80vh] overflow-y-scroll noScroll '>
-        {
-            projects 
-            ?(
-                projects?.projects?.map((p,i)=>{
-                    const {project,owner} = p;
-                    return(
-                        <div onClick={()=>navigate(`/auth/${hash}/${username}/workspace/projects/${project?._id}`)} key={i} className='p-3 relative text-gray-800 bg-gray-50 border border-gray-200 shadow rounded-lg min-w-2xl w-full flex items-start justify-between cursor-pointer hover:shadow-2xl transition-all'>
-                                <div>
-                                <span className=' inline-flex items-center justify-start gap-2 text-2xl font-medium text-gray-800 mb-3'>
-                                    <Leaf className='h-8 w-8 p-1 rounded border border-gray-300 text-gray-900 '/>
-                                    {project.name}
-                                </span>
-                                <p className='flex items-center justify-start gap-2 font-medium text-gray-400 py-2 border-t border-gray-100'>
-                                    <PersonStanding className='h-8 w-8 p-1 rounded border border-gray-300 text-gray-900 '/>
-                                    {owner.username} | {owner.email}
-                                </p>
+    <div className="flex flex-col md:flex-row items-start gap-6 w-full">
+      {/* ------------------------- LEFT — PROJECT LIST ------------------------- */}
+      <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col gap-5 max-h-[80vh] overflow-y-scroll noScroll p-2">
 
+        {projects?.projects?.length ? (
+          projects.projects.map((p, index) => {
+            const { project, owner } = p;
+            return (
+              <div
+                key={index}
+                onClick={() =>
+                  navigate(`/auth/${hash}/${username}/workspace/projects/${project._id}`)
+                }
+                className="p-4 bg-white border border-gray-200 hover:border-gray-300 shadow rounded-lg flex justify-between items-start transition cursor-pointer hover:shadow-lg"
+              >
+                <div>
+                  <h3 className="flex items-center gap-2 text-xl font-semibold text-gray-900 mb-2">
+                    <Leaf className="h-7 w-7 p-1 border border-gray-300 rounded text-gray-900" />
+                    {project.name}
+                  </h3>
 
-                                </div>
-                                <div className='mx-4 flex items-center justify-start gap-3' >
-                                    <Trash className='p-1 text-red-500 h-8 w-8 border border-gray-300 rounded-full cursor-pointer hover:bg-gray-300 transition-all'/>
-                                    <LogOut className='p-1 text-red-500 h-8 w-8 border border-gray-300 rounded-full cursor-pointer hover:bg-gray-300 transition-all'/>
-                                </div>
+                  <p className="flex items-center gap-2 text-sm text-gray-500 py-1 border-t border-gray-100 pt-3">
+                    <PersonStanding className="h-7 w-7 p-1 border border-gray-300 rounded text-gray-900" />
+                    {owner.username} • {owner.email}
+                  </p>
+                </div>
 
-                               
-                            
-                           
-                            
-                            
-                         
+                {/* Delete / Leave Project Buttons */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <Trash className="p-1 text-red-500 h-8 w-8 border border-gray-300 rounded-full hover:bg-gray-200 transition" />
+                  <LogOut className="p-1 text-red-500 h-8 w-8 border border-gray-300 rounded-full hover:bg-gray-200 transition" />
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <p className="text-gray-500">No Projects Found</p>
+        )}
 
-                        </div>
-                    )
+        {/* Create Project Button */}
+        <div className="mt-4">
+          <Link
+            to={`/auth/${hash}/${username}/workspace/projects`}
+            className="px-8 py-2 bg-gray-900 text-white rounded shadow hover:bg-gray-800 transition"
+          >
+            Create another project
+          </Link>
+        </div>
+      </div>
 
-                })
-            )
-            :(
-                <p>
-                    No Project Found
-                </p>
-            )
-      }
+      {/* ------------------------- RIGHT — SEARCH PROJECTS ------------------------- */}
+     
+      <div className="flex-1 p-5 bg-white shadow rounded-lg">
 
+        <h2 className="text-center text-2xl font-semibold text-gray-800">
+          Search Projects to Join
+        </h2>
 
-      <div className='w-fit mt-5 mx-auto p-5'>
-        <Link to={`/auth/${hash}/${username}/workspace/projects`} className=' px-10 py-1.5 bg-gray-900 text-white rounded cursor-pointer hover:bg-gray-800 hover:text-white transition-all'>
-        Create another project
-        </Link>
+        {/* Search Bar */}
+        <div className="mt-5 border border-gray-200 rounded-lg p-3 flex items-center gap-3 bg-gray-50">
+          <Search className="text-gray-600" />
 
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            type="search"
+            placeholder="Search projects..."
+            className="outline-none px-3 py-2 bg-gray-100 rounded flex-1 text-gray-900"
+          />
+
+          <button className="py-2 px-4 bg-gray-200 rounded hover:bg-gray-900 hover:text-white transition">
+            Go
+          </button>
+        </div>
+
+        {/* Search Results */}
+        <div className="mt-5 p-3 border border-gray-200 rounded h-[400px] overflow-y-scroll noScroll">
+
+          {searchTerm === "" ? (
+            <p className="text-gray-400">Search results will appear here...</p>
+          ) : searchedProjects?.projects?.length > 0 ? (
+            searchedProjects.projects.map((p, i) => (
+              <div
+                key={i}
+                onClick={() =>
+                  navigate(`/auth/${hash}/${username}/workspace/projects/${p._id}`)
+                }
+                className="flex justify-between items-center text-gray-900 bg-gray-100 px-4 py-2 border border-gray-300 rounded mb-3 hover:bg-gray-200 shadow transition cursor-pointer"
+              >
+                <span className="font-medium">{p.name}</span>
+                <span className="text-sm text-gray-500 shrink-0">
+                  {formatDateTime(p.startedOn)}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-400">No projects found matching your search.</p>
+          )}
+        </div>
       </div>
     </div>
+  );
+};
 
-     <div className='flex-1 p-5 h-full shadow rounded '>
-    <h1 className='text-center text-2xl'>Search Projects to join</h1>
-    <div className='mt-3 border border-gray-100 rounded p-3 w-full flex items-center justify-start gap-3'>
-        <label htmlFor="search">
-            <Search/>
-        </label>
-        <input value={searchTerm} onChange={(e)=>setSearchTerm(e.target.value)} type="search" name='search' placeholder='User Dashboard...' className='outline-none px-4 py-2 bg-gray-100 rounded flex-1 text-gray-900' />
-        <button className='py-1.5 px-3 cursor-pointer hover:bg-gray-900 hover:text-white transition-all rounded font-medium text-gray-900 bg-gray-100'>
-            Go
-        </button>
-
-    </div>
-
-  <div className='p-3 border mt-5 border-gray-200 rounded w-full h-100 overflow-y-scroll noScroll'>
-  {searchTerm === "" ? (
-    <p className='text-md text-gray-400'>Search Results appear here</p>
-  ) : searchedProjects?.projects?.length > 0 ? (
-    searchedProjects.projects.map((p, i) => (
-      <p onClick={()=>navigate(`/auth/${hash}/${username}/workspace/projects/${p._id}`)} key={i} className='text-md flex rounded shadow hover:shadow-2xl hover:bg-gray-300 transition-all cursor-pointer flex-wrap items-center justify-between gap-3 text-gray-900 px-4 py-1.5 border border-gray-300 mb-3 font-medium'>
-        <span>
-
-        {p.name}
-        </span>
-        <span className='text-sm text-gray-400  shrink-0'>
-        {formatDateTime(p.startedOn)}
-
-        </span>
-        </p>
-    ))
-  ) : (
-    <p className='text-md text-gray-400'>No Projects found for this search!!!</p>
-  )}
-</div>
-
-
-    </div>
-
-
-    </div>
-  )
-}
-
-export default ProjectListPreview
+export default ProjectListPreview;
