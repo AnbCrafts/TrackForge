@@ -49,7 +49,7 @@ app.use('/api/comment', CommentRoutes);
 app.use('/api/authorize', GoogleOAuthRouter);
 app.use('/api/authorize', GithubOAuthRouter);
 
-app.use('/api/ai-mail', AIMailRoute);
+// app.use('/api/ai-mail', AIMailRoute);
 
 app.get('/', (req, res) => {
   res.send("Server Started Successfully, you are in the homepage...");
