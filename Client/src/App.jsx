@@ -23,19 +23,19 @@ import Settings from './Pages/Settings'
 import EditProfile from './Pages/EditProfile'
 import CodeEditor from './Pages/CodeEditor'
 import GoogleOAuthCallback from './Pages/GoogleAuthCallback'
-import SmokeCursor from './Components/Cursor'
+// import SmokeCursor from './Components/Cursor'
 
 const App = () => {
   const {hash,username} = useParams();
 
 
-useEffect(() => {
-  const spotlight = document.getElementById("spotlight");
-  window.addEventListener("mousemove", (e) => {
-    spotlight.style.left = `${e.clientX - 150}px`;
-    spotlight.style.top = `${e.clientY - 150}px`;
-  });
-}, []);
+// useEffect(() => {
+//   const spotlight = document.getElementById("spotlight");
+//   window.addEventListener("mousemove", (e) => {
+//     spotlight.style.left = `${e.clientX - 150}px`;
+//     spotlight.style.top = `${e.clientY - 150}px`;
+//   });
+// }, []);
 
   
   // useEffect(() => {
@@ -66,7 +66,6 @@ useEffect(() => {
     <div className='bg-primary'>
 
 
-     <SmokeCursor/>
 
 
       

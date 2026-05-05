@@ -16,12 +16,13 @@ export const WorkContextProvider = ({ children }) => {
 };
 
 
-
+  
 
   const navigate = useNavigate();
   const {hash,username} = useParams();
 
-  const serverURL = "https://trackforge.onrender.com/api";
+  // const serverURL = "https://trackforge.onrender.com/api";
+  const serverURL = "http://localhost:9000/api";
 
 
   const verifyResponse = (response) => {
@@ -107,21 +108,18 @@ if (!success) {
 
 setUserData(user);
 
-const payload = user?._id?.toString() + loginTime + getHashSecret(loginTime.toString().slice(-4));
-const calculatedHash = SHA256(payload).toString();
 
 
+const actualId = user._id || user.id; // Check both common naming conventions
+    const username = user.username.toLowerCase();
+
+localStorage.setItem("userId", actualId);   // ✅ consistent naming
+localStorage.setItem("userToken", token);
+await PatchUserProfile(user._id, "online");
+toast.success(message);
+navigate(`/auth/${secureHash}/${username}/workspace`);
 
 
-if (secureHash === calculatedHash) {
-  localStorage.setItem("userId", user._id);   // ✅ consistent naming
-  localStorage.setItem("userToken", token);
-  await PatchUserProfile(user._id, "online");
-  toast.success(message);
-  navigate(`/auth/${secureHash}/${user.username.toLowerCase()}/workspace`);
-} else {
-  toast.error("Hash Verification Failed - False Login Attempt");
-}
 
 
   } catch (error) {

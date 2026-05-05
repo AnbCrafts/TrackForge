@@ -106,7 +106,18 @@ if(existingTicket){
       assignedTo,assignedOn,validFor,status,priority,projectId,stepsToReproduce,comments,activityLog 
     });
 
+    const user = await User.findById(assignedTo);
+    if(!user){
+      return res.status(400).json({
+      success: false,
+      message: "Assigned User was not found",
+      
+    });
+    }
+
+    user.ticketsAssigned.push(ticket._id);
     await ticket.save();
+    await user.save();
 
     return res.status(201).json({
       success: true,

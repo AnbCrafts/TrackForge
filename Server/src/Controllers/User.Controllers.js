@@ -30,7 +30,7 @@ const registerUser = async (req, res) => {
     if (req.file) {
       const filePath = req.file.path;
       const uploadedPicture = await uploadOnCloudinary(filePath);
-
+ 
       if (!uploadedPicture) {
         return res.status(500).json({ success: false, message: "File can't be uploaded to cloud" });
       }
@@ -47,7 +47,7 @@ const registerUser = async (req, res) => {
       lastName,
       role,
       picture: secure_url ,
-      githubAccessToken 
+      // githubAccessToken: githubAccessToken || ""
     });
 
     const token = generateToken(newUser._id);
@@ -665,7 +665,6 @@ const pushTeam = async(req,res)=>{
 
 
 }
-
 
 
 const unlinkGithub = async (req, res) => {

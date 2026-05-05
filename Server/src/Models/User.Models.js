@@ -110,6 +110,14 @@ teamJoinRequests:[
         default: [],
       },
 ],
+
+ticketsAssigned:[
+  {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Ticket",
+        
+  },
+]
     
   },
   { timestamps: true }

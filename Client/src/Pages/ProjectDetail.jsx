@@ -55,7 +55,7 @@ const ProjectDetail = () => {
     description: "",
     assignedTo: "",
     projectId: projectId || "",
-    createdBy: "",
+    createdBy: localStorage.getItem("userId"),
     priority: "",
     stepsToReproduce: [],
     attachments: [],
@@ -147,16 +147,21 @@ const ProjectDetail = () => {
       return;
     } else {
       await createTicket(ticketForm);
-      setTicketForm({
+      getThisProjectTickets(projectId,1);
+
+      setTimeout(() => {
+         setTicketForm({
         title: "",
         description: "",
         assignedTo: "",
         projectId: projectId || "",
-        createdBy: username || "",
+        createdBy: localStorage.getItem("userId") || "",
         priority: "",
         stepsToReproduce: [],
         attachments: [],
       });
+      }, 800);
+     
     }
   };
 
