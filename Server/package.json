@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon index.js",
-    "start": "node dist/index.ts"
+    "start": "node dist/index.js"
   },
   "author": "Anubhaw Kumar Gupta",
   "license": "ISC",
