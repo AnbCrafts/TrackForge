@@ -1,0 +1,10 @@
+# Exclude local environment files and dependencies
+**/node_modules
+**/dist
+**/.env
+**/.git
+**/.gitignore
+**/*.log
+**/node_modules/
+**/dist/
+**/.env*

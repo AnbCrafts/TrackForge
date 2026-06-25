@@ -56,42 +56,44 @@ This hybrid design makes TrackForge feel **fun on the outside, powerful on the i
 
 * Create, delete, and manage multiple projects
 * Each project holds members, tickets, roles, analytics
+* **Hierarchical File Tree Explorer**: IDE-like vertical workspace directory tree with folders and file-type icons in the code editor.
+* **Directory/Folder Uploads**: Multi-level directory uploads that preserve folder structures in MongoDB.
+* **CORS Proxy File Loader**: Server-to-server file proxy to fetch and view file contents from Cloudinary without browser CORS blocks.
 
 ### 👥 **Teams & Members**
 
-* Role-based permissions
-* Owners, Maintainers, Developers, Testers
-* Invite team members
-* Workspace-style routing
+* Role-based permissions (Owners, Admins, Developers, Testers, Debuggers)
+* Invite team members & accept join requests
+* Workspace-style routing with custom ciphers
+* **Direct Messaging / Inbox Chat**: Searchable, split-pane chat interface with real-time messaging, unread notifications, and auto-parsing for meeting invite links.
+* **Dynamic Welcome Dashboard**: Quick-action cards tailored specifically by role (Admins see creation and scheduling shortcuts, while Developers see bug trackers, team lists, and project explores).
 
 ### 🐞 **Bug Lifecycle Management**
 
-* Create & assign bugs
-* Priority levels (Low / Medium / High / Critical)
+* **Project-Based Bugs Flow**: Structured bugs dashboard with landing projects grid and nested split-pane ticket details.
+* Create & assign bugs with priorities (Low / Medium / High / Critical)
 * Status flow: `Open → In Progress → Under Review → Resolved → Closed`
-* Tagging system
-* Deadline tracking
+* Tagging system, deadline tracking, and activity logging via modals
+
+### 📅 **Scheduled Event Meeting Rooms**
+
+* **Scheduled Rooms**: Admin/Owner can schedule meeting rooms for specific dates/times associated with teams/projects.
+* **Time-Locked Chat**: Messaging is locked outside the scheduled calendar date with a visual warning banner.
+* **Access Authorization**: Restricted to the organizer, Admin/Owner, or invited team/project/individual users.
+* **Inbox Invites & Deduplication**: Dispatches invitation messages directly to invited members' inboxes from the creator, automatically filtering out duplicate listings.
+* **Chat Media sharing**: Support for uploading images/files to Cloudinary, rendering inline image previews or download cards.
 
 ### 💬 **Comment Threads**
 
-* Internal team discussions
-* Replies
-* Real-time updates
+* Internal team discussions, ticket activities, and real-time updates
 
 ### 📊 **Analytics Dashboard**
 
-* Ticket volume
-* Project load
-* Priority insights
-* Status breakdown
-* Developer productivity indicators
+* Ticket volume, project load, priority insights, status breakdown, and developer productivity indicators
 
 ### 🤖 **AI Chatbot for Assistance**
 
-* Helps with bug explanations
-* Logical suggestions
-* Steps to reproduce
-* Helps developers understand ticket summaries faster
+* Helps with bug explanations, logical suggestions, steps to reproduce, and helps developers understand ticket summaries faster
 
 ### 🟣 **Framer Motion Everywhere**
 
@@ -150,6 +152,7 @@ Prevents:
 * Framer Motion
 * Lucide Icons
 * Context API
+* Socket.io-client (Real-time Messaging)
 * Custom Cursor System
 * Parallax effects
 
@@ -158,6 +161,8 @@ Prevents:
 * Node.js + Express
 * MongoDB + Mongoose
 * JWT Authentication
+* Socket.io (Real-time Gateway)
+* Cloudinary API (Media Cloud Hosting)
 * Custom Cipher Generator
 * Optimized controllers
 * Role-based middleware

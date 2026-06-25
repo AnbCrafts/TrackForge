@@ -1,0 +1,74 @@
+steps:
+  # =========================================================================
+  # STEP 1: Build & Deploy Backend (Server)
+  # =========================================================================
+
+  # Build the Server Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', 'gcr.io/$PROJECT_ID/trackforge-server:latest',
+      './Server'
+    ]
+    id: 'build-server'
+
+  # Push the Server image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/trackforge-server:latest']
+    id: 'push-server'
+    waitFor: ['build-server']
+
+  # Deploy the Server to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'trackforge-server',
+      '--image', 'gcr.io/$PROJECT_ID/trackforge-server:latest',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--port', '9000'
+    ]
+    id: 'deploy-server'
+    waitFor: ['push-server']
+
+  # =========================================================================
+  # STEP 2: Build & Deploy Frontend (Client)
+  # =========================================================================
+
+  # Build the Client Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [
+      'build',
+      '-t', 'gcr.io/$PROJECT_ID/trackforge-client:latest',
+      './Client'
+    ]
+    id: 'build-client'
+    waitFor: ['deploy-server']
+
+  # Push the Client image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/trackforge-client:latest']
+    id: 'push-client'
+    waitFor: ['build-client']
+
+  # Deploy the Client to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'trackforge-client',
+      '--image', 'gcr.io/$PROJECT_ID/trackforge-client:latest',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--port', '80'
+    ]
+    id: 'deploy-client'
+    waitFor: ['push-client']
+
+images:
+  - 'gcr.io/$PROJECT_ID/trackforge-server:latest'
+  - 'gcr.io/$PROJECT_ID/trackforge-client:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
