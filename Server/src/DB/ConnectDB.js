@@ -6,7 +6,15 @@ const connectDB = async () => {
     const url = process.env.MONGO_DB_URI;
     const db_name = DB_NAME;
 
-    const connectionInstance = await mongoose.connect(`${url}/${db_name}`);
+    let connectionUrl = url;
+    if (url.includes("?")) {
+      const parts = url.split("?");
+      connectionUrl = `${parts[0]}${db_name}?${parts[1]}`;
+    } else {
+      connectionUrl = `${url}/${db_name}`;
+    }
+
+    const connectionInstance = await mongoose.connect(connectionUrl);
 
     console.log("✅ Connected to DB SUCCESSFULLY!!");
     console.log(`🔗 Host: ${connectionInstance.connection.host}\n`);

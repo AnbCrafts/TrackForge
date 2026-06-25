@@ -8,8 +8,13 @@ import TeamRoutes from './src/Routes/Team.Routes.js';
 import TicketRoutes from './src/Routes/Ticket.Routes.js';
 import ActivityRoutes from './src/Routes/Activity.Routes.js';
 import CommentRoutes from './src/Routes/Comment.Routes.js';
+import MessageRoutes from './src/Routes/Message.Routes.js';
+import MeetingRoomRoutes from './src/Routes/MeetingRoom.Routes.js';
 
 import AIMailRoute from './src/Routes/AIMailer.Routes.js';
+
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 
 import session from "express-session";
 import passport from "passport";
@@ -24,9 +29,38 @@ const app = express();
 
 connectDB();
 
+const server = createServer(app);
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
+io.on("connection", (socket) => {
+  console.log("⚡ Real-time chat: User connected", socket.id);
+
+  socket.on("join_room", (roomName) => {
+    socket.join(roomName);
+    console.log(`👤 User joined room: ${roomName}`);
+  });
+
+  socket.on("send_message", (data) => {
+    socket.to(data.room).emit("receive_message", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ Real-time chat: User disconnected", socket.id);
+  });
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 
 app.use(
   session({
@@ -49,13 +83,15 @@ app.use('/api/comment', CommentRoutes);
 app.use('/api/authorize', GoogleOAuthRouter);
 app.use('/api/authorize', GithubOAuthRouter);
 
-// app.use('/api/ai-mail', AIMailRoute);
+app.use('/api/ai-mail', AIMailRoute);
+app.use('/api/message', MessageRoutes);
+app.use('/api/meeting', MeetingRoomRoutes);
 
 app.get('/', (req, res) => {
   res.send("Server Started Successfully, you are in the homepage...");
 });
 
 const port = process.env.PORT || 9000;
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`🔥 Server running on http://localhost:${port}`);
 });

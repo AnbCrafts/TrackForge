@@ -21,7 +21,7 @@ const registerUser = async (req, res) => {
     const { error } = validationUtils.userValidationSchema.validate(req.body);
     if (error) return res.status(400).json({ error: error.details[0].message });
 
-    const { username, email, password, firstName, lastName, role } = req.body;
+    const { username, email, password, firstName, lastName, role, createdBy } = req.body;
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -29,13 +29,16 @@ const registerUser = async (req, res) => {
 
     if (req.file) {
       const filePath = req.file.path;
-      const uploadedPicture = await uploadOnCloudinary(filePath);
- 
-      if (!uploadedPicture) {
-        return res.status(500).json({ success: false, message: "File can't be uploaded to cloud" });
+      try {
+        const uploadedPicture = await uploadOnCloudinary(filePath);
+        if (uploadedPicture) {
+          secure_url = uploadedPicture.secure_url;
+        } else {
+          console.warn("⚠️ Warning: Profile picture upload to Cloudinary returned null (credentials or connection issue). Proceeding without picture.");
+        }
+      } catch (err) {
+        console.error("❌ Error: Failed to upload profile picture to Cloudinary:", err);
       }
-
-      secure_url = uploadedPicture.secure_url;
       // fs.unlinkSync(filePath);
     }
 
@@ -47,6 +50,7 @@ const registerUser = async (req, res) => {
       lastName,
       role,
       picture: secure_url ,
+      createdBy: createdBy || null,
       // githubAccessToken: githubAccessToken || ""
     });
 
@@ -128,7 +132,9 @@ const getUserDataById = async(req,res)=>{
     if (error) return res.status(400).json({ error: error.details[0].message });
 
     const { userId } = req.params;
-    const isValidUser = await User.findById(userId);
+    const isValidUser = await User.findById(userId)
+      .populate("teamJoinRequests", "name")
+      .populate("projectJoinRequests", "name");
     if (!isValidUser) {
       return res.json({ success: false, message: "Invalid id, no user found with this id" });
     }
@@ -525,18 +531,38 @@ const getUserActivities = async (req, res) => {
 const SearchUserProfile = async(req,res)=>{
      try {
     const searchTerm = req.query.q;
-    if (!searchTerm) {
-      return res.status(400).json({ success: false, message: "Search term missing" });
+    const createdBy = req.query.createdBy;
+
+    const filter = {};
+    const conditions = [];
+
+    if (searchTerm) {
+      conditions.push({
+        $or: [
+          { firstName: { $regex: searchTerm, $options: 'i' } },
+          { lastName: { $regex: searchTerm, $options: 'i' } },
+          { username: { $regex: searchTerm, $options: 'i' } },
+          { email: { $regex: searchTerm, $options: 'i' } }
+        ]
+      });
     }
 
-    const users = await User.find({
-      $or: [
-        { firstName: { $regex: searchTerm, $options: 'i' } },
-        { lastName: { $regex: searchTerm, $options: 'i' } },
-        { username: { $regex: searchTerm, $options: 'i' } },
-        { email: { $regex: searchTerm, $options: 'i' } }
-      ]
-    });
+    if (createdBy) {
+      conditions.push({
+        $or: [
+          { createdBy: createdBy },
+          { _id: createdBy }
+        ]
+      });
+    }
+
+    if (conditions.length > 0) {
+      filter.$and = conditions;
+    } else {
+      return res.status(400).json({ success: false, message: "Search term or createdBy filter missing" });
+    }
+
+    const users = await User.find(filter);
 
     res.status(200).json({
       success: true,
@@ -778,9 +804,44 @@ const getTeamJoinRequest = async (req, res) => {
   }
 };
 
+const getUserNotifications = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId).select("notifications");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    return res.status(200).json({
+      success: true,
+      notifications: user.notifications || [],
+    });
+  } catch (error) {
+    console.error("Fetch notifications error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
+const markNotificationsRead = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    if (user.notifications) {
+      user.notifications.forEach((n) => {
+        n.read = true;
+      });
+      await user.save();
+    }
+    return res.status(200).json({
+      success: true,
+      message: "Notifications marked as read",
+    });
+  } catch (error) {
+    console.error("Mark notifications read error:", error);
+    return res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
 
-
-
-
-export {unlinkGithub,getProjectJoinRequest,registerUser,loginUser,getUserDataById,DeleteUserProfile,PatchUserProfile,ListAllUserProfiles,getUsersTeam,getPatchedUsers,getUsersByRole,getLastActiveTime,updateUserProfile,getUserActivities,SearchUserProfile,changeUserRole,getUserIDByUsername,getUserByUsernameAndEmail,pushTeam,getTeamJoinRequest}
+export {unlinkGithub,getProjectJoinRequest,registerUser,loginUser,getUserDataById,DeleteUserProfile,PatchUserProfile,ListAllUserProfiles,getUsersTeam,getPatchedUsers,getUsersByRole,getLastActiveTime,updateUserProfile,getUserActivities,SearchUserProfile,changeUserRole,getUserIDByUsername,getUserByUsernameAndEmail,pushTeam,getTeamJoinRequest,getUserNotifications,markNotificationsRead}

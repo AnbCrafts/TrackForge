@@ -31,7 +31,7 @@ import mongoose from "mongoose";
  picture: Joi.any().optional() ,
 
   teams: Joi.array().items(Joi.string().hex().length(24)).optional(),
-  
+  createdBy: Joi.string().hex().length(24).optional(),
 });
  const loginValidationSchema = Joi.object({
   username: Joi.string()

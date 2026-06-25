@@ -105,7 +105,7 @@ export const startGithubLink = async (req, res) => {
     return res.status(400).json({ success: false, message: "User ID is required" });
   }
 
-  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_AUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent("http://localhost:9000/api/authorize/github/callback")}&scope=user:email,repo&state=${userId}`;
+  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_AUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent("http://localhost:9000/api/authorize/github/link/callback")}&scope=user:email,repo&state=${userId}`;
   
   return res.redirect(redirectUrl);
 };
@@ -123,7 +123,7 @@ export const githubLinkCallback = async (req, res) => {
         client_id: process.env.GITHUB_AUTH_CLIENT_ID,
         client_secret: process.env.GITHUB_AUTH_CLIENT_SECRET,
         code,
-        redirect_uri: "http://localhost:9000/api/authorize/github/callback",
+        redirect_uri: "http://localhost:9000/api/authorize/github/link/callback",
         state,
       },
       { headers: { Accept: "application/json" } }

@@ -2,6 +2,7 @@ import Activity from "../Models/Activity.Models.js";
 import Comment from "../Models/Comment.Models.js";
 import Team from "../Models/Team.Models.js";
 import Project from "../Models/Project.Models.js";
+import axios from "axios";
 import Ticket from "../Models/Ticket.Models.js";
 import User from "../Models/User.Models.js";
 import validationUtils from "../Utility/Validation.Utility.js";
@@ -74,6 +75,7 @@ const addNewProject = async (req, res) => {
       teams,
       members,
       projectFiles: [],
+      folders: [{ name: name, files: [] }]
     });
 
     newProject.members.push(owner);
@@ -93,14 +95,16 @@ const addNewProject = async (req, res) => {
     }
 
     if (newProject.members) {
-  newProject.members.forEach(m => {
-    if (!newProject.hasAuthToSee.includes(m)) {
-      newProject.hasAuthToSee.push(m);
-    }
-  });
+      newProject.members.forEach(m => {
+        const memberId = m._id || m;
+        const memberIdStr = memberId.toString();
+        if (!newProject.hasAuthToSee.some(authId => authId.toString() === memberIdStr)) {
+          newProject.hasAuthToSee.push(memberId);
+        }
+      });
 
-  await newProject.save();
-}
+      await newProject.save();
+    }
 
 
 
@@ -329,6 +333,31 @@ const updateProject = async (req, res) => {
               team.projects.push(projectId);
               await team.save();
             }
+
+            // Sync all team members to this project
+            if (team.members && team.members.length > 0) {
+              for (const { participant } of team.members) {
+                if (participant) {
+                  const partStr = participant.toString();
+                  if (!projectDetail.members.some(id => id.toString() === partStr)) {
+                    projectDetail.members.push(participant);
+                  }
+                  if (!projectDetail.hasAuthToSee.some(id => id.toString() === partStr)) {
+                    projectDetail.hasAuthToSee.push(participant);
+                  }
+                  
+                  // Add project to user's manages list
+                  const memberUser = await User.findById(participant);
+                  if (memberUser) {
+                    if (!memberUser.manages.some(id => id.toString() === projectId.toString())) {
+                      memberUser.manages.push(projectId);
+                      await memberUser.save();
+                    }
+                  }
+                }
+              }
+              await projectDetail.save();
+            }
           }
         })
       );
@@ -398,20 +427,35 @@ const addMember = async (req, res) => {
     }
 
     // Avoid duplicates
-    if (!isProject.members.includes(member)) {
-      isProject.members.push(member);
+    if (isProject.members.includes(member)) {
+      return res.status(409).json({
+        success: false,
+        message: "⚠️ User is already a member of this project",
+      });
     }
 
-    if (!isValidUser.manages.includes(project)) {
-      isValidUser.manages.push(project);
+    // Check if already requested or invited
+    if (isProject.joinRequests.some((id) => id.toString() === member)) {
+      return res.status(409).json({
+        success: false,
+        message: "⚠️ An invitation is already pending for this user",
+      });
     }
+
+    isProject.joinRequests.push(member);
+    isValidUser.projectJoinRequests.push(project);
+    isValidUser.notifications.push({
+      message: `You have been invited to join the project "${isProject.name}".`,
+      read: false,
+      createdAt: new Date(),
+    });
 
     await isProject.save();
     await isValidUser.save();
 
     return res.status(201).json({
       success: true,
-      message: "User added to project successfully",
+      message: "✅ Project proposal sent to user successfully",
     });
 
   } catch (error) {
@@ -582,11 +626,17 @@ const addTeam = async (req, res) => {
       isTeam.projects.push(projectId);
     }
 
-    // 4. Add team members to project members
+    // 4. Add team members to project members and hasAuthToSee
     if (isTeam.members.length > 0) {
       for (const { participant } of isTeam.members) {
-        if (participant && !isProject.members.includes(participant)) {
-          isProject.members.push(participant);
+        if (participant) {
+          const partStr = participant.toString();
+          if (!isProject.members.some(id => id.toString() === partStr)) {
+            isProject.members.push(participant);
+          }
+          if (!isProject.hasAuthToSee.some(id => id.toString() === partStr)) {
+            isProject.hasAuthToSee.push(participant);
+          }
         }
       }
 
@@ -595,9 +645,11 @@ const addTeam = async (req, res) => {
         isTeam.members.map(async ({ participant }) => {
           if (!participant) return;
           const user = await User.findById(participant);
-          if (user && !user.manages.includes(projectId)) {
-            user.manages.push(projectId);
-            await user.save();
+          if (user) {
+            if (!user.manages.some(id => id.toString() === projectId.toString())) {
+              user.manages.push(projectId);
+              await user.save();
+            }
           }
         })
       );
@@ -889,21 +941,26 @@ const getUnArchivedList = async (req, res) => {
 } 
 const SearchProject = async (req, res) => {
   try {
-    const searchTerm = req.query.q;
-    if (!searchTerm) {
-      return res.status(400).json({ success: false, message: "Search term missing" });
-    }
+    const searchTerm = req.query.q || "";
+    const createdBy = req.query.createdBy;
 
     const limit = parseInt(req.query.limit) || 10;
     const page = parseInt(req.query.page) || 1;
     const skip = (page - 1) * limit;
 
-    const filter = {
-      $or: [
-        { name: { $regex: searchTerm, $options: 'i' } },
-        { description: { $regex: searchTerm, $options: 'i' } }
-      ]
-    };
+    let filter = {};
+    if (searchTerm) {
+      filter = {
+        $or: [
+          { name: { $regex: searchTerm, $options: 'i' } },
+          { description: { $regex: searchTerm, $options: 'i' } }
+        ]
+      };
+    }
+
+    if (createdBy) {
+      filter.owner = createdBy;
+    }
 
     const [projects, total] = await Promise.all([
       Project.find(filter).select("name _id").skip(skip).limit(limit),
@@ -1110,13 +1167,6 @@ const addFilesToProject = async (req, res) => {
       }
     }
 
-    if (!folder || !folder.name || !folder.name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Folder object with valid name is required",
-      });
-    }
-
     // Find project
     const project = await Project.findById(projectId);
     if (!project) {
@@ -1126,15 +1176,18 @@ const addFilesToProject = async (req, res) => {
       });
     }
 
+    // Default folder name to project name if empty/unspecified
+    const folderName = (folder?.name || "").trim() || project.name || "root";
+
     // Find or create folder
     let existingFolder = project.folders.find(
-      (f) => f.name.toLowerCase() === folder.name.trim().toLowerCase()
+      (f) => f.name.toLowerCase() === folderName.toLowerCase()
     );
     if (!existingFolder) {
-      project.folders.push({ name: folder.name.trim(), files: [] });
+      project.folders.push({ name: folderName, files: [] });
       await project.save();
       existingFolder = project.folders.find(
-        (f) => f.name.toLowerCase() === folder.name.trim().toLowerCase()
+        (f) => f.name.toLowerCase() === folderName.toLowerCase()
       );
     }
 
@@ -1166,11 +1219,13 @@ const addFilesToProject = async (req, res) => {
       }
     }
 
+    // Force Mongoose to save the nested folder array updates
+    project.markModified("folders");
     await project.save();
 
     return res.status(200).json({
       success: true,
-      message: `Files uploaded to folder "${folder.name}" successfully`,
+      message: `Files uploaded to folder "${folderName}" successfully`,
       folders: project.folders,
     });
 
@@ -1204,10 +1259,9 @@ const getProjectFiles = async (req, res) => {
 
     
     if (!project.folders || project.folders.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No folders or files found for this project",
-      });
+      project.folders.push({ name: project.name, files: [] });
+      project.markModified("folders");
+      await project.save();
     }
 
     
@@ -1219,7 +1273,7 @@ const getProjectFiles = async (req, res) => {
         fileType: file.fileType,
         uploadedBy: file.uploadedBy,
         uploadedAt: file.uploadedAt,
-        url: file.url,
+        url: file.path,
       })),
     }));
 
@@ -1271,14 +1325,13 @@ const getUserProjectFolders = async (req, res) => {
       });
     }
 
-    const folders = project.folders || [];
+    let folders = project.folders || [];
 
     if (folders.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: "This project has no folders",
-        folders: [],
-      });
+      project.folders.push({ name: project.name, files: [] });
+      project.markModified("folders");
+      await project.save();
+      folders = project.folders;
     }
 
     return res.status(200).json({
@@ -1387,18 +1440,33 @@ const patchJoinRequests = async (req, res) => {
     }
 
     // Process request
+    const owner = await User.findById(project.owner);
+
     if (patch === "accept") {
       if (!project.hasAuthToSee.some((id) => id.toString() === userId)) {
         project.hasAuthToSee.push(userId);
-        user.manages.push(projectId);
-        await user.save();
       }
+      if (!user.manages.some((id) => id.toString() === projectId)) {
+        user.manages.push(projectId);
+      }
+      user.projectJoinRequests.pull(projectId);
+      await user.save();
+
       if (!project.members.some((id) => id.toString() === userId)) {
         project.members.push(userId);
       }
       project.joinRequests.pull(userId);
-
       await project.save();
+
+      if (owner) {
+        owner.notifications.push({
+          message: `User "${user.firstName} ${user.lastName}" has accepted your proposal to join the project "${project.name}".`,
+          read: false,
+          createdAt: new Date(),
+        });
+        await owner.save();
+      }
+
       return res.status(200).json({
         success: true,
         message: "User has been accepted into the project",
@@ -1410,8 +1478,20 @@ const patchJoinRequests = async (req, res) => {
         project.rejectedJoinRequests.push(userId);
       }
       project.joinRequests.pull(userId);
-
       await project.save();
+
+      user.projectJoinRequests.pull(projectId);
+      await user.save();
+
+      if (owner) {
+        owner.notifications.push({
+          message: `User "${user.firstName} ${user.lastName}" has rejected your proposal to join the project "${project.name}".`,
+          read: false,
+          createdAt: new Date(),
+        });
+        await owner.save();
+      }
+
       return res.status(200).json({
         success: true,
         message: "User's request has been rejected",
@@ -1658,4 +1738,18 @@ const getJoinRequest = async (req, res) => {
 
 
 
-export {getJoinRequest,checkUserRequestStatus,patchJoinRequests,requestToJoinProject,checkForProjectAuthorization,getUserProjectFolders,getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }
+const getFileContent = async (req, res) => {
+  try {
+    const { fileUrl } = req.query;
+    if (!fileUrl) {
+      return res.status(400).json({ success: false, message: "fileUrl query parameter is required" });
+    }
+    const response = await axios.get(fileUrl, { responseType: 'text' });
+    return res.send(response.data);
+  } catch (error) {
+    console.error("Error fetching file content:", error);
+    return res.status(500).json({ success: false, message: "Failed to fetch file content", error: error.message });
+  }
+};
+
+export {getFileContent, getJoinRequest,checkUserRequestStatus,patchJoinRequests,requestToJoinProject,checkForProjectAuthorization,getUserProjectFolders,getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }

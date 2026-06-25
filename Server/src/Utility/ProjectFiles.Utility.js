@@ -20,9 +20,10 @@ const uploadOnCloudinary = async (localFilePath, projectName, originalPath) => {
   try {
     if (!localFilePath) return null;
 
-    // Extract folder structure from original path (if any)
-    const relativeDir = path.dirname(originalPath); // e.g. "html"
-    const filename = path.basename(originalPath); // e.g. "index.html"
+    // Extract folder structure from original path (if any) - ensure posix paths on all platforms
+    const normalizedPath = originalPath.replace(/\\/g, "/");
+    const relativeDir = path.posix.dirname(normalizedPath); // e.g. "html"
+    const filename = path.posix.basename(normalizedPath); // e.g. "index.html"
 
     // Final Cloudinary folder path: projectName/html
     const cloudinaryFolder =

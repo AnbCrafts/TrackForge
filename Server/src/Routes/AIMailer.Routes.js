@@ -9,10 +9,10 @@ const AIMailRoute = express.Router();
 
 // 🧠 1️⃣ Complaint Mail — user → platform owner/admin
 // Endpoint: POST /api/ai-mail/complaint
-// AIMailRoute.post("/complaint", sendComplaintMail);
+AIMailRoute.post("/complaint", sendComplaintMail);
 
 // 👥 2️⃣ Direct Mail — user ↔ user/admin
 // Endpoint: POST /api/ai-mail/direct
-// AIMailRoute.post("/direct", sendDirectMail);
+AIMailRoute.post("/direct", sendDirectMail);
 
 export default AIMailRoute;

@@ -1,10 +1,10 @@
 import { Router } from "express";
 import upload from "../Middlewares/Multer.Middleware.js";
-import { changeUserRole, DeleteUserProfile, getLastActiveTime, getPatchedUsers, getUserActivities, getUserByUsernameAndEmail, getUserDataById, getUserIDByUsername, getUsersByRole, getUsersTeam, ListAllUserProfiles, loginUser, PatchUserProfile, pushTeam, registerUser, SearchUserProfile, unlinkGithub, updateUserProfile } from "../Controllers/User.Controllers.js";
+import { changeUserRole, DeleteUserProfile, getLastActiveTime, getPatchedUsers, getUserActivities, getUserByUsernameAndEmail, getUserDataById, getUserIDByUsername, getUsersByRole, getUsersTeam, ListAllUserProfiles, loginUser, PatchUserProfile, pushTeam, registerUser, SearchUserProfile, unlinkGithub, updateUserProfile, getUserNotifications, markNotificationsRead } from "../Controllers/User.Controllers.js";
 
 
 const UserRoutes = Router(); 
- 
+
 UserRoutes.post('/register',upload.single('picture'),registerUser)
 UserRoutes.post('/login',loginUser)
 UserRoutes.get('/info/:userId',getUserDataById)
@@ -23,5 +23,7 @@ UserRoutes.get('/info/username/:username',getUserIDByUsername)
 UserRoutes.get('/info/user-detail/:username/:email',getUserByUsernameAndEmail)
 UserRoutes.delete('/github/unlink/:userId', unlinkGithub)
 UserRoutes.put('/:userId/:projectId',pushTeam)
+UserRoutes.get('/info/:userId/notifications', getUserNotifications)
+UserRoutes.put('/info/:userId/notifications/read', markNotificationsRead)
 export default UserRoutes
   

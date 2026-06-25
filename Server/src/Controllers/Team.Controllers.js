@@ -71,14 +71,16 @@ const createTeam = async (req, res) => {
 
 
     if (newTeam.members) {
-  newTeam.members.forEach(m => {
-    if (!newTeam.hasAuthToSee.includes(m)) {
-      newTeam.hasAuthToSee.push(m);
-    }
-  });
+      newTeam.members.forEach(m => {
+        const memberId = m.participant || m;
+        const memberIdStr = memberId.toString();
+        if (!newTeam.hasAuthToSee.some(authId => authId.toString() === memberIdStr)) {
+          newTeam.hasAuthToSee.push(memberId);
+        }
+      });
 
-  await newTeam.save();
-}
+      await newTeam.save();
+    }
 
 
 
@@ -346,6 +348,14 @@ const addMember = async (req, res) => {
       });
     }
 
+    const user = await User.findById(participant);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "❌ User not found",
+      });
+    }
+
     const alreadyInTeam = team.members.some(
       (m) => m.participant.toString() === participant
     );
@@ -357,42 +367,29 @@ const addMember = async (req, res) => {
       });
     }
 
-    team.members.push({ participant });
-    await team.save();
-
-    const user = await User.findById(participant);
-    if (!user) {
-      return res.status(404).json({
+    // Check if already requested or invited
+    if (team.joinRequests.some((id) => id.toString() === participant)) {
+      return res.status(409).json({
         success: false,
-        message: "❌ User not found",
+        message: "⚠️ An invitation is already pending for this user",
       });
     }
 
-    const projects = team.projects || [];
-    if (projects && projects.length > 0) {
-  await Promise.all(
-    projects.map(async (projectId) => {
-      const user = await User.findById(participant).select("manages");
-            if (user) {
-              user.manages = user.manages || [];
-              if (!user.manages.includes(projectId)) {
-                user.manages.push(projectId);
-                await user.save();
-              }
-            }
-    })
-  );
-}
+    // Add to joinRequests / teamJoinRequests as pending invitation
+    team.joinRequests.push(participant);
+    user.teamJoinRequests.push(teamId);
+    user.notifications.push({
+      message: `You have been invited to join the team "${team.name}".`,
+      read: false,
+      createdAt: new Date(),
+    });
 
-
-    if (!user.teams.includes(team._id)) {
-      user.teams.push(team._id);
-      await user.save();
-    }
+    await team.save();
+    await user.save();
 
     return res.status(200).json({
       success: true,
-      message: "✅ Member added to team successfully",
+      message: "✅ Team proposal sent to user successfully",
       data: team,
     });
   } catch (err) {
@@ -679,6 +676,30 @@ const joinUsingLink = async (req, res) => {
     user.teams.push(team._id);
     team.members.push({ participant: userId });
 
+    if (!team.hasAuthToSee.some((id) => id.toString() === userId)) {
+      team.hasAuthToSee.push(userId);
+    }
+
+    // Sync member with team projects
+    if (team.projects && team.projects.length > 0) {
+      for (const projId of team.projects) {
+        const project = await Project.findById(projId);
+        if (project) {
+          if (!project.members.some(id => id.toString() === userId)) {
+            project.members.push(userId);
+          }
+          if (!project.hasAuthToSee.some(id => id.toString() === userId)) {
+            project.hasAuthToSee.push(userId);
+          }
+          await project.save();
+
+          if (!user.manages.some(id => id.toString() === projId.toString())) {
+            user.manages.push(projId);
+          }
+        }
+      }
+    }
+
     await user.save();
     await team.save();
 
@@ -859,16 +880,23 @@ const getAllTeamsByMember = async (req, res) => {
 const searchTeam = async (req, res) => {
   try {
     const searchTerm = req.query.q;
-    if (!searchTerm || searchTerm.trim() === "") {
+    const createdBy = req.query.createdBy;
+
+    const filter = {};
+    if (searchTerm && searchTerm.trim() !== "") {
+      filter.name = { $regex: searchTerm, $options: "i" };
+    }
+
+    if (createdBy) {
+      filter.createdBy = createdBy;
+    } else if (!searchTerm) {
       return res.status(400).json({
         success: false,
-        message: "❌ Search term is missing or empty",
+        message: "❌ Search term or createdBy filter is missing",
       });
     }
 
-    const teams = await Team.find({
-      name: { $regex: searchTerm, $options: "i" },
-    }).select("name createdBy");
+    const teams = await Team.find(filter).select("name createdBy");
 
     return res.status(200).json({
       success: true,
@@ -1047,18 +1075,54 @@ const patchTeamJoinRequests = async (req, res) => {
     }
 
     // Process request
+    const creator = await User.findById(team.createdBy);
+
     if (patch === "accept") {
       if (!team.hasAuthToSee.some((id) => id.toString() === userId)) {
         team.hasAuthToSee.push(userId);
-        user.teams.push(teamId);
-        await user.save();
       }
-      if (!team.members.some((id) => id.toString() === userId)) {
-        team.members.push(userId);
+      if (!user.teams.some((id) => id.toString() === teamId)) {
+        user.teams.push(teamId);
+      }
+      user.teamJoinRequests.pull(teamId);
+
+      // Sync member with team projects
+      if (team.projects && team.projects.length > 0) {
+        for (const projId of team.projects) {
+          const project = await Project.findById(projId);
+          if (project) {
+            if (!project.members.some(id => id.toString() === userId)) {
+              project.members.push(userId);
+            }
+            if (!project.hasAuthToSee.some(id => id.toString() === userId)) {
+              project.hasAuthToSee.push(userId);
+            }
+            await project.save();
+
+            if (!user.manages.some(id => id.toString() === projId.toString())) {
+              user.manages.push(projId);
+            }
+          }
+        }
+      }
+
+      await user.save();
+
+      if (!team.members.some((m) => m.participant?.toString() === userId)) {
+        team.members.push({ participant: userId, joinedAt: new Date() });
       }
       team.joinRequests.pull(userId);
-
       await team.save();
+
+      if (creator) {
+        creator.notifications.push({
+          message: `User "${user.firstName} ${user.lastName}" has accepted your proposal to join the team "${team.name}".`,
+          read: false,
+          createdAt: new Date(),
+        });
+        await creator.save();
+      }
+
       return res.status(200).json({
         success: true,
         message: "User has been accepted into the team",
@@ -1070,8 +1134,20 @@ const patchTeamJoinRequests = async (req, res) => {
         team.rejectedJoinRequests.push(userId);
       }
       team.joinRequests.pull(userId);
-
       await team.save();
+
+      user.teamJoinRequests.pull(teamId);
+      await user.save();
+
+      if (creator) {
+        creator.notifications.push({
+          message: `User "${user.firstName} ${user.lastName}" has rejected your proposal to join the team "${team.name}".`,
+          read: false,
+          createdAt: new Date(),
+        });
+        await creator.save();
+      }
+
       return res.status(200).json({
         success: true,
         message: "User's request has been rejected",
@@ -1183,7 +1259,7 @@ const getJoinRequest = async (req, res) => {
     }
 
     // ✅ Allow only admin/owner to see requests
-    if (user.role !== "admin" && user.role !== "owner") {
+    if (user.role?.toLowerCase() !== "admin" && user.role?.toLowerCase() !== "owner") {
       return res.status(200).json({
         success: true,
         message: "You are not authorized to view join requests",

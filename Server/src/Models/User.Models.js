@@ -117,6 +117,18 @@ ticketsAssigned:[
         ref: "Ticket",
         
   },
+],
+createdBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "User",
+  default: null,
+},
+notifications: [
+  {
+    message: { type: String, required: true },
+    read: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now },
+  },
 ]
     
   },
