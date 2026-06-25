@@ -5,7 +5,12 @@ import {
   Bug,
   Users,
   LogOut,
-  Code
+  Code,
+  ChevronLeft,
+  ChevronRight,
+  UserPlus,
+  Calendar,
+  MessageSquare
 } from "lucide-react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
@@ -13,19 +18,32 @@ import { motion } from "framer-motion";
 
 const SideBar = ({ onSidebarChange }) => {
   const location = useLocation();
-  const { getUserDataById } = useContext(TrackForgeContextAPI);
+  const { getUserDataById, authUserData } = useContext(TrackForgeContextAPI);
   const { username, hash } = useParams();
-  const menu = [
+
+  const baseMenu = [
     { id: "dashboard", icon: LayoutDashboard, path: "dashboard", label: "Dashboard" },
     { id: "projects", icon: FolderKanban, path: "projects", label: "Projects" },
     { id: "code-editor", icon: Code, path: "code-editor/view-project", label: "Code Editor" },
     { id: "bugs", icon: Bug, path: "bugs", label: "Bugs" },
-    { id: "team", icon: Users, path: "team", label: "Team" },
+  ];
+
+  const isAdminOrOwner = authUserData?.role === "Owner" || authUserData?.role === "Admin";
+
+  const menu = [
+    ...baseMenu,
+    { id: "team", icon: Users, path: "team", label: isAdminOrOwner ? "Teams" : "My Teams" },
+    { id: "members", icon: MessageSquare, path: "members", label: "Inbox / Chat" },
+    ...(isAdminOrOwner
+      ? [
+          { id: "meetings", icon: Calendar, path: "meetings", label: "Meetings" }
+        ]
+      : []
+    ),
     { id: "logout", icon: LogOut, path: "logout", label: "Logout" },
   ];
 
   const [isOpen, setIsOpen] = useState(true);
-  const [lastActive, setLastActive] = useState(Date.now());
 
   const dashboardPath = `/auth/${hash}/${username}/workspace`;
 
@@ -47,106 +65,71 @@ const SideBar = ({ onSidebarChange }) => {
   // Report width to parent
   useEffect(() => {
     if (onSidebarChange) {
-      onSidebarChange(isOpen ? 120 : 60); // Adjusted widths
+      onSidebarChange(isOpen ? 220 : 70); // Adjusted widths
     }
   }, [isOpen]);
-
-  // auto-collapse after 20s inactivity
-  useEffect(() => {
-    const handleActivity = () => {
-      setLastActive(Date.now());
-    };
-
-    window.addEventListener("mousemove", handleActivity);
-    window.addEventListener("keypress", handleActivity);
-    window.addEventListener("click", handleActivity);
-
-    const interval = setInterval(() => {
-      if (Date.now() - lastActive > 20000) {
-        setIsOpen(false);
-      }
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("mousemove", handleActivity);
-      window.removeEventListener("keypress", handleActivity);
-      window.removeEventListener("click", handleActivity);
-    };
-  }, [lastActive]);
 
   const isActive = (segment) => location.pathname.includes(segment);
 
   return (
-    <div
-      className={`
-        h-full text-white 
-        flex flex-col py-6 transition-all duration-300 
-        ${isOpen ? "w-full" : "w-fit"}
-      `}
-    >
+    <div className="h-full text-[var(--text-sidebar)] flex flex-col py-6 transition-all duration-300 w-full">
+      {/* Manual Toggle Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`mb-6 p-2 rounded-xl bg-[var(--bg-sidebar)] hover:bg-[var(--bg-hover)] text-[var(--text-sidebar)] hover:text-[var(--text-sidebar-active)] transition-all border border-[var(--border-sidebar)] flex items-center justify-center cursor-pointer ${
+          isOpen ? "w-[180px] mx-auto gap-2" : "w-11 h-11 mx-auto"
+        }`}
+        title={isOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+      >
+        {isOpen ? (
+          <>
+            <ChevronLeft className="h-5 w-5" />
+            <span className="text-xs font-semibold uppercase tracking-wider">Collapse</span>
+          </>
+        ) : (
+          <ChevronRight className="h-5 w-5" />
+        )}
+      </button>
 
-     {menu.map(({ id, icon: Icon, path, label }, index) => {
-       const active = isActive(id);
-     
-       return (
-         <motion.div
-       key={id}
-       initial={{ opacity: 0, y: 5 }}
-       animate={{ opacity: 1, y: 0 }}
-       transition={{ duration: 0.25, delay: index * 0.03 }}
-        className="mb-5"
-     >
-       <Link
-         to={path}
-         className={`
-           h-11 
-           ${isOpen?"w[100px] border-b justify-start border-white/30":"w-11 rounded-xl border-2 border-white/20 items-center justify-center"}
-             cursor-pointer
-             flex 
-           backdrop-blur-md
-           transition-all duration-200
-           text-white
-           hover:bg-white hover:text-purple-600
-           
-           ${active
-             ? " border-transparent bg-white text-purple-600"
-             : " transition-all"
-           }
-         `}
-       >
-         
+      {menu.map(({ id, icon: Icon, path, label }, index) => {
+        const active = isActive(id);
 
-         {
-          isOpen
-          ?
-          (
-          <div className="flex items-center justify-between w-full px-2.5 gap-1">
-            <h1 className="text-sm font-medium">
-            {label}
-          </h1>
-          <Icon
-           className={`
-             h-5 w-5 transition-all 
-             ${active ? "text-purple-600" : "text-white hover:bg-white hover:text-purple-600 transition-all"}
-           `}
-         />
-          </div>
-          
-        )
-          :
-          (<Icon
-           className={`
-             h-6 w-6 transition-all 
-             ${active ? "text-purple-600" : "text-white hover:bg-white hover:text-purple-600 transition-all"}
-           `}
-         />)
-         }
-       </Link>
-     </motion.div>
-     
-       );
-     })}
+        return (
+          <motion.div
+            key={id}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: index * 0.03 }}
+            className="mb-5"
+          >
+            <Link
+              to={path}
+              className={`
+                h-11 cursor-pointer flex items-center transition-all duration-200 rounded-xl border
+                ${isOpen
+                  ? "w-[180px] px-4 justify-start mx-auto"
+                  : "w-11 justify-center mx-auto"
+                }
+                ${active
+                  ? "bg-[var(--button-primary)] text-[var(--button-primary-text)] border-transparent shadow-md font-semibold"
+                  : "text-[var(--text-sidebar)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-sidebar-active)] border-[var(--border-sidebar)]/30"
+                }
+              `}
+            >
+              {isOpen ? (
+                <>
+                  <Icon className="h-5 w-5 transition-all text-current mr-3" />
+                  <span className="text-sm font-medium">
+                    {label}
+                  </span>
+                </>
+              ) : (
+                <Icon className="h-6 w-6 transition-all text-current" />
+              )}
+            </Link>
+          </motion.div>
+        );
+      })}
     </div>
   );
 };

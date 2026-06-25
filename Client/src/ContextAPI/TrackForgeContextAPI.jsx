@@ -22,7 +22,20 @@ export const WorkContextProvider = ({ children }) => {
   const {hash,username} = useParams();
 
   // const serverURL = "https://trackforge.onrender.com/api";
-  const serverURL = "http://localhost:9000/api";
+  const serverURL = "http://127.0.0.1:9000/api";
+
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem("trackforge-theme") || "light";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("trackforge-theme", theme);
+  }, [theme]);
+
+  const toggleTheme = (newTheme) => {
+    setTheme(newTheme);
+  };
 
 
   const verifyResponse = (response) => {
@@ -33,12 +46,12 @@ export const WorkContextProvider = ({ children }) => {
     }
     if(!response.data.success){
       console.log(response)
-      // toast.error(response.data.message || "Cannot get positive response");
+      toast.error(response.data.message || "Cannot get positive response");
       return;
     }
   }
   const throwError=(error)=>{
-        // toast.error(error.response?.data?.error || error.response?.data?.message || error.message || "Internal Server Error");
+        toast.error(error.response?.data?.error || error.response?.data?.message || error.message || "Internal Server Error");
         console.log(error)
     return
   }
@@ -84,46 +97,40 @@ const PatchUserProfile = async(id,status)=>{
 const registerUser = async (data, path) => {
   if (!data) {
     toast.warn("Data is required");
-    return;
+    return false;
   }
 
   if (!path) {
     toast.warn("Path is required");
-    return;
+    return false;
   }
 
   try {
     const response = await axios.post(`${serverURL}/user/${path}`, data);
 
     verifyResponse(response);
-    
 
-   const { success, message, user, token, secureHash, loginTime } = response.data;
-  //  console.log(response)
+    const { success, message, user, token, secureHash } = response.data;
 
-if (!success) {
-  toast.error(message || "Server responded with failure");
-  return;
-}
+    if (!success) {
+      toast.error(message || "Server responded with failure");
+      return false;
+    }
 
-setUserData(user);
+    setUserData(user);
 
-
-
-const actualId = user._id || user.id; // Check both common naming conventions
+    const actualId = user._id || user.id;
     const username = user.username.toLowerCase();
 
-localStorage.setItem("userId", actualId);   // ✅ consistent naming
-localStorage.setItem("userToken", token);
-await PatchUserProfile(user._id, "online");
-toast.success(message);
-navigate(`/auth/${secureHash}/${username}/workspace`);
-
-
-
-
+    localStorage.setItem("userId", actualId);
+    localStorage.setItem("userToken", token);
+    await PatchUserProfile(user._id, "online");
+    toast.success(message);
+    navigate(`/auth/${secureHash}/${username}/workspace`);
+    return true;
   } catch (error) {
-  throwError(error)
+    throwError(error);
+    return false;
   }
 }; 
 
@@ -257,7 +264,7 @@ const getLastActiveTime = async(id)=>{
     toast.warn("ID is required");
   } 
   try {
-    const response = await axios.get(`${serverURL}/user/info/:${id}/lastSeen`);
+    const response = await axios.get(`${serverURL}/user/info/${id}/lastSeen`);
     verifyResponse(response);
     if(response.data.success){
       const data = response.data.user;
@@ -293,7 +300,7 @@ const changeUserRole = async(id,role)=>{
         toast.warn("ID and role are required");
       }
       try {
-        const response = await axios.put(`${serverURL}/user/info/:${id}/update/${role}`);
+        const response = await axios.put(`${serverURL}/user/info/${id}/update/${role}`);
         verifyResponse(response);
         if(response.data.success){
           toast.success("Role updated to - ",role);
@@ -377,13 +384,15 @@ const searchUser =async (email,username)=>{
 
 const [allUserProfiles,setAllUserProfiles] = useState([]);
 const searchUserProfiles = async(search)=>{
-
-  if(!search){
-    toast.warn("Search text is required");
-
-  }
   try {
-      const response = await axios.get(`${serverURL}/user/info/list/all/search?q=${search}`);
+      const userId = localStorage.getItem("userId");
+      
+      let targetCreatedBy = userId;
+      if (authUserData && authUserData.role !== "Owner" && authUserData.role !== "Admin" && authUserData.createdBy) {
+        targetCreatedBy = authUserData.createdBy;
+      }
+
+      const response = await axios.get(`${serverURL}/user/info/list/all/search?q=${search || ""}&createdBy=${targetCreatedBy || ""}`);
       verifyResponse(response);
       if(response.data.success){
           const data = response.data.users;
@@ -392,7 +401,6 @@ const searchUserProfiles = async(search)=>{
   } catch (error) {
     throwError(error) 
   }
-
 }
 
 
@@ -515,7 +523,7 @@ const getThisUserGithubRepo = async()=>{
     toast.warn("ID is required for fetching repo");
   }
   try {
-    const response = await axios.get(`${serverURL}/api/authorize/github-repo/${id}`);
+    const response = await axios.get(`${serverURL}/authorize/github-repo/${id}`);
     verifyResponse(response);
     if(response.data.success){
       const data = response.data.repos;
@@ -538,7 +546,7 @@ const linkThisUserGithub = async()=>{
     toast.warn("ID is required for fetching repo");
   }
   try {
-    const response = await axios.put(`${serverURL}/api/authorize/github/link/${id}`);
+    const response = await axios.get(`${serverURL}/authorize/github/link/${id}`);
     verifyResponse(response);
     if(response.data.success){
       toast.success("Github profile added successfully");
@@ -593,7 +601,7 @@ const patchProjectJoinRequest = async(projectId,patch)=>{
       }
       try {
         const userId = localStorage.getItem("userId");
-        const response = await axios.post(`${serverURL}/project/list/project=${projectId}/user=${userId}/decision=${patch}`);
+        const response = await axios.patch(`${serverURL}/project/list/project=${projectId}/user=${userId}/decision=${patch}`);
         verifyResponse(response);
         if(response.data.success){
           toast.success(response.data.message);
@@ -649,7 +657,7 @@ const getActivitiesOfProject = async(id)=>{
     toast.warn("ID is required");
   }
   try {
-    const response = await axios.get(`${serverURL}/project/list/:${id}/activities`);
+    const response = await axios.get(`${serverURL}/project/list/${id}/activities`);
     verifyResponse(response);
     if(response.data.success){
       const data = response.data.allActivities;
@@ -668,7 +676,7 @@ const getProjectTeam = async (id)=>{
     toast.warn("ID is required");
   }
   try {
-    const response = await axios.get(`${serverURL}/project/${id}/teams-list`);
+    const response = await axios.get(`${serverURL}/project/list/${id}/teams-list`);
     verifyResponse(response);
     if(response.data.success){
       const data = response.data.teams;
@@ -686,7 +694,7 @@ const getAllMembers = async(id)=>{
     toast.warn("ID is required");
   }
   try {
-    const response = await axios.get(`${serverURL}/project/${id}/members-list`);
+    const response = await axios.get(`${serverURL}/project/list/${id}/members-list`);
     verifyResponse(response);
     if(response.data.success){
       const data = response.data.members;
@@ -785,21 +793,16 @@ const getProjectStats = async(id)=>{
 const [searchedProjects,setSearchedProjects] = useState(null);
 
 const searchProjects = async(text,page)=>{
-  if(!text || !page){
-    toast.warn("Search text is required");
-  }
   try {
-    const response = await axios.get(`${serverURL}/project/list/all/search?q=${text}&page=${page}`);
+    const response = await axios.get(`${serverURL}/project/list/all/search?q=${text || ""}&page=${page || 1}`);
     verifyResponse(response);
     if(response.data.success){
       const data = response.data;
       setSearchedProjects(data);
     }
-    
   } catch (error) {
-    throwError(error)
+    throwError(error);
   }
-
 }
 
 const updateProject = async(pId,uId,updates,location)=>{
@@ -846,7 +849,7 @@ const deleteProject = async(id)=>{
 const [projectFiles,setProjectFiles] = useState([]);
 const getProjectFiles = async(id)=>{
   try {
-    const response = await axios.get(`${serverURL}/project/list/${id}/files`);
+    const response = await axios.get(`${serverURL}/project/${id}/folder/files`);
     verifyResponse(response);
     if(response.data.success){
       const data = response.data.files;
@@ -971,6 +974,46 @@ const createTeam = async(data)=>{
   }
 }
 
+const inviteMemberToTeam = async (teamId, participant) => {
+  if (!teamId || !participant) {
+    toast.warn("Team ID and Participant ID are required");
+    return false;
+  }
+  try {
+    const response = await axios.put(`${serverURL}/team/add/${teamId}/participant/${participant}`);
+    verifyResponse(response);
+    if (response.data.success) {
+      toast.success(response.data.message || "Team invitation sent successfully");
+      await getTeamByID(teamId);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    throwError(error);
+    return false;
+  }
+};
+
+const removeMemberFromTeam = async (teamId, participant) => {
+  if (!teamId || !participant) {
+    toast.warn("Team ID and Participant ID are required");
+    return false;
+  }
+  try {
+    const response = await axios.delete(`${serverURL}/team/remove/${teamId}/participant/${participant}`);
+    verifyResponse(response);
+    if (response.data.success) {
+      toast.success(response.data.message || "Member removed from team");
+      await getTeamByID(teamId);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    throwError(error);
+    return false;
+  }
+};
+
 const [teamData,setTeamData] = useState(null);
 
 const getTeamByID = async(id)=>{
@@ -1025,11 +1068,9 @@ const getTeamIDByName = async(name)=>{
 const [searchedTeams,setSearchedTeams] = useState(null);
 
 const searchTeams = async(text)=>{
-  if(!text ){
-    toast.warn("Search text is required");
-  }
   try {
-    const response = await axios.get(`${serverURL}/team/list/all/search?q=${text}`);
+    const userId = localStorage.getItem("userId");
+    const response = await axios.get(`${serverURL}/team/list/all/search?q=${text || ""}&createdBy=${userId || ""}`);
     verifyResponse(response);
     if(response.data.success){
       const data = response.data;
@@ -1099,7 +1140,7 @@ const patchTeamJoinRequest = async (teamId, patch) => {
   }
   try {
     const userId = localStorage.getItem("userId");
-    const response = await axios.post(
+    const response = await axios.patch(
       `${serverURL}/team/list/team=${teamId}/user=${userId}/decision=${patch}`
     );
     verifyResponse(response);
@@ -1594,21 +1635,72 @@ const sendComplaintMail = async (senderName, senderEmail, subject, context) => {
 
 
 
-// console.log(localStorage.getItem("userId"))
+const [userNotifications, setUserNotifications] = useState([]);
 
+const getUserNotifications = async (userId) => {
+  if (!userId) return;
+  try {
+    const response = await axios.get(`${serverURL}/user/info/${userId}/notifications`);
+    verifyResponse(response);
+    if (response.data.success) {
+      setUserNotifications(response.data.notifications);
+    }
+  } catch (error) {
+    throwError(error);
+  }
+};
+
+const markNotificationsRead = async (userId) => {
+  if (!userId) return;
+  try {
+    const response = await axios.put(`${serverURL}/user/info/${userId}/notifications/read`);
+    verifyResponse(response);
+    if (response.data.success) {
+      getUserNotifications(userId);
+    }
+  } catch (error) {
+    throwError(error);
+  }
+};
+
+const createTeamMember = async (data) => {
+  if (!data) {
+    toast.warn("Data is required");
+    return false;
+  }
+  try {
+    const response = await axios.post(`${serverURL}/user/register`, data);
+    verifyResponse(response);
+    if (response.data.success) {
+      toast.success("Team member created successfully");
+      return true;
+    }
+    return false;
+  } catch (error) {
+    throwError(error);
+    return false;
+  }
+};
 
   useEffect(()=>{
     setUserData(userData);
-
-
   },[userData]);
 
 
-  const contextObj = {unLinkThisUserGithub,linkThisUserGithub,getThisUserGithubRepo,githubRepo,getTeamJoinRequests,teamJoinReqList,getPendingProjectRequests,pendingProjectReqLists,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,checkProjectJoinRequest,reqStatus,patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,fetchProjectFiles,thisProjectFiles,uploadProjectFILES,uploadedFolders,createTeam,registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles, sendDirectMail,
+  const contextObj = {serverURL, unLinkThisUserGithub,linkThisUserGithub,getThisUserGithubRepo,githubRepo,getTeamJoinRequests,teamJoinReqList,getPendingProjectRequests,pendingProjectReqLists,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,checkProjectJoinRequest,reqStatus,patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,fetchProjectFiles,thisProjectFiles,uploadProjectFILES,uploadedFolders,createTeam,registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles, sendDirectMail,
     sendComplaintMail,
     loading,
     lastResponse,
-    error,};
+    error,
+    theme,
+    toggleTheme,
+    userNotifications,
+    getUserNotifications,
+    markNotificationsRead,
+    createTeamMember,
+    inviteMemberToTeam,
+    removeMemberFromTeam,
+  };
 
   return (
     <TrackForgeContextAPI.Provider value={contextObj}>

@@ -30,9 +30,9 @@ const ProjectShowcase = () => {
           <motion.div
             key={index}
             className="
-              w-80 h-[380px] bg-[#111318] rounded-2xl border border-[#2d0a39]
-              shadow-[0_0_25px_rgba(200,0,255,0.25)]
-              hover:shadow-[0_0_55px_rgba(255,0,200,0.55)]
+              w-80 h-[380px] bg-card rounded-2xl border border-default
+              shadow-[0_0_20px_var(--glow-shadow)]
+              hover:shadow-[0_0_30px_var(--glow-shadow)] hover:border-neon
               hover:-translate-y-2 hover:scale-[1.03] transition-all duration-300 
               overflow-hidden flex-shrink-0 cursor-pointer group
             "
@@ -43,7 +43,7 @@ const ProjectShowcase = () => {
               className="
                 text-center py-3 text-xl font-semibold 
                 bg-gradient-to-r from-purple-500 to-pink-600 
-                text-white border-b border-[#2d0a39]
+                text-white border-b border-default
               "
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
@@ -54,7 +54,7 @@ const ProjectShowcase = () => {
             </motion.h1>
 
             {/* IMAGE */}
-            <div className="w-full h-[320px] p-3 bg-[#0D0F14]">
+            <div className="w-full h-[320px] p-3 bg-secondary">
               <motion.img
                 src={project.image}
                 alt={project.title}
@@ -75,18 +75,18 @@ const ProjectShowcase = () => {
 
       {/* Fade Shadows Left */}
       <div
-        className="
-          pointer-events-none absolute left-0 top-0 h-full w-24
-          bg-gradient-to-r from-[#0A0A0C] via-[#0A0A0C]/80 to-transparent
-        "
+        className="pointer-events-none absolute left-0 top-0 h-full w-24"
+        style={{
+          background: `linear-gradient(to right, var(--bg-primary) 0%, var(--bg-primary) 50%, transparent 100%)`
+        }}
       ></div>
 
       {/* Fade Shadows Right */}
       <div
-        className="
-          pointer-events-none absolute right-0 top-0 h-full w-24
-          bg-gradient-to-l from-[#0A0A0C] via-[#0A0A0C]/80 to-transparent
-        "
+        className="pointer-events-none absolute right-0 top-0 h-full w-24"
+        style={{
+          background: `linear-gradient(to left, var(--bg-primary) 0%, var(--bg-primary) 50%, transparent 100%)`
+        }}
       ></div>
     </motion.div>
   );

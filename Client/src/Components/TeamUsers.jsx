@@ -27,12 +27,12 @@ const slideRight = {
 
 const TeamUsers = () => {
   return (
-    <div className="pt-24 bg-[#0A0A0C] text-white relative">
+    <div className="pt-24 bg-primary text-primary relative">
 
       {/* BACKGROUND GLOW */}
       <div
         className="absolute top-20 left-1/4 w-[600px] h-[600px] rounded-full 
-                    bg-[radial-gradient(circle,rgba(200,0,255,0.25),rgba(0,0,0,0.95))] 
+                    bg-[radial-gradient(circle,var(--blob-color-1),transparent)] 
                     blur-3xl opacity-70 -z-10"
       ></div>
 
@@ -41,31 +41,27 @@ const TeamUsers = () => {
 
         {/* CARD — slide left */}
         <motion.div
-          className="p-10 rounded-2xl bg-[#111318] border border-[#2d0a39]
-                      shadow-[0_0_30px_rgba(200,0,255,0.35)]
-                      hover:shadow-[0_0_50px_rgba(255,0,200,0.55)]
+          className="p-10 rounded-2xl bg-card border border-default
+                      shadow-[0_0_20px_var(--glow-shadow)]
+                      hover:shadow-[0_0_30px_var(--glow-shadow)] hover:border-neon
                       transition-all max-w-xl"
           initial="initial"
           whileInView="animate"
            viewport={{ amount: 0.2, once: false }}
           variants={slideLeft}
         >
-          <h1 className="text-4xl font-semibold bg-gradient-to-r 
-                         from-purple-400 to-pink-500 bg-clip-text text-transparent">
-            Do we have any features for Team ??
+          <h1 className="text-4xl font-bold text-gradient leading-tight">
+            Do we have any features for Team?
           </h1>
 
-          <p className="text-gray-300 text-lg mt-3">
-            Absolutely Yes!! Explore our platform features and create your own team.
+          <p className="text-secondary text-lg mt-3">
+            Absolutely Yes! Explore our platform features and create your own team.
           </p>
 
           <div className="mt-8">
             <Link
-              className="py-3 px-10 text-lg font-semibold 
-                         bg-gradient-to-r from-purple-500 to-pink-600 
-                         text-white rounded-lg shadow-[0_0_20px_rgba(255,0,200,0.45)] 
-                         hover:shadow-[0_0_40px_rgba(255,0,200,0.75)]
-                         transition-all"
+              to="/register"
+              className="inline-block py-3 px-10 text-lg font-semibold btn-gradient rounded-xl shadow-lg transition-all"
             >
               Create Team
             </Link>
@@ -114,7 +110,7 @@ const TeamUsers = () => {
 
       {/* ================= SECTION 2 — Manage Team Activities ================= */}
       <div className="flex items-start justify-center gap-16 w-full mt-20 px-6 py-20 
-                      bg-[#0D0F14] rounded-2xl">
+                      bg-secondary border border-default rounded-2xl">
 
         {/* LEFT COLUMN: chained fade-ups */}
         <motion.div
@@ -127,13 +123,13 @@ const TeamUsers = () => {
           <motion.div
            viewport={{ amount: 0.2, once: false }}
             variants={fadeUp}
-            className="p-10 bg-[#111318] rounded-2xl border border-[#2d0a39]
-                        shadow-[0_0_30px_rgba(200,0,255,0.35)] max-w-xl"
+            className="p-10 bg-card rounded-2xl border border-default
+                        shadow-[0_0_20px_var(--glow-shadow)] max-w-xl"
           >
-            <h1 className="text-4xl font-semibold text-purple-300 mb-3">
+            <h1 className="text-4xl font-bold text-gradient mb-3">
               Manage Team Activities
             </h1>
-            <p className="text-gray-400 leading-relaxed">
+            <p className="text-secondary leading-relaxed">
               Stay on top of your team's workflow with centralized activity tracking.
               Collaborate seamlessly by adding comments, tagging team members,
               and resolving issues together in real-time.
@@ -149,9 +145,8 @@ const TeamUsers = () => {
             <motion.div
               key={idx}
               className="mt-6 py-5 px-10 flex items-center gap-5 
-                        bg-gradient-to-r from-purple-600 to-pink-600 w-fit 
-                        rounded-xl shadow-[0_0_25px_rgba(255,0,200,0.45)]
-                        hover:shadow-[0_0_40px_rgba(255,0,200,0.75)]
+                        btn-gradient w-fit 
+                        rounded-xl shadow-lg
                         transition-all cursor-pointer"
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -159,7 +154,7 @@ const TeamUsers = () => {
                viewport={{ amount: 0.2, once: false }}
             >
               <h1 className="text-white font-semibold text-lg">{text}</h1>
-              <Icon className="h-12 w-12 p-2 bg-[#0A0A0C] text-purple-300 
+              <Icon className="h-12 w-12 p-2 bg-primary text-neon 
                                rounded-full shadow-lg" />
             </motion.div>
           ))}
@@ -190,13 +185,13 @@ const TeamUsers = () => {
              viewport={{ amount: 0.2, once: false }}
             variants={slideLeft}
           >
-            <div className="p-10 bg-[#111318] rounded-2xl border border-[#2d0a39]
-                            shadow-[0_0_30px_rgba(200,0,255,0.35)]">
-              <h1 className="text-5xl text-purple-200 font-bold mb-6">
+            <div className="p-10 bg-card rounded-2xl border border-default
+                            shadow-[0_0_20px_var(--glow-shadow)]">
+              <h1 className="text-5xl text-primary font-bold mb-6">
                 Personalized Dashboards for Your Team
               </h1>
 
-              <p className="text-gray-300 text-lg leading-relaxed">
+              <p className="text-secondary text-lg leading-relaxed">
                 Give every team member a clear, focused view of their tasks,
                 projects, and activity. TrackForge's customizable dashboards
                 ensure that everyone—from developers to project leads—

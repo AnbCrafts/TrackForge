@@ -32,7 +32,7 @@ const IndividualUsers = () => {
       <div
         className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 
                     w-[600px] h-[600px] rounded-full 
-                    bg-[radial-gradient(circle,rgba(200,0,255,0.35),rgba(0,0,0,0.95))] 
+                    bg-[radial-gradient(circle,var(--blob-color-1),transparent)] 
                     blur-3xl opacity-70 -z-10"
       ></div>
 
@@ -52,24 +52,21 @@ const IndividualUsers = () => {
 
         {/* CARD */}
         <motion.div
-          className="bg-[#111318] p-10 rounded-2xl  
-                      border border-[#2d0a39] 
+          className="bg-card p-10 rounded-2xl  
+                      border border-default 
                       max-w-xl 
-                      hover:shadow-[0_0_40px_rgba(255,0,180,0.55)] 
+                      hover:shadow-[0_0_30px_var(--glow-shadow)] hover:border-neon
                       transition-all duration-300"
           initial="initial"
           whileInView="animate"
            viewport={{ amount: 0.2, once: false }}
           variants={slideLeft}
         >
-          <h1
-            className="text-5xl font-semibold bg-gradient-to-r 
-                         from-purple-400 to-pink-500 bg-clip-text text-transparent"
-          >
+          <h1 className="text-5xl font-extrabold text-gradient leading-tight">
             For Individual Users
           </h1>
 
-          <p className="text-lg text-gray-300 font-medium pt-4 leading-relaxed">
+          <p className="text-lg text-secondary font-medium pt-4 leading-relaxed">
             Explore the features and facilities we provide for a user to enhance
             your work experience and make your job easy.
           </p>
@@ -77,11 +74,8 @@ const IndividualUsers = () => {
           {/* BUTTON */}
           <div className="mt-8">
             <Link
-              className="py-3 px-10 text-lg font-semibold 
-                         bg-gradient-to-r from-purple-500 to-pink-600 
-                         text-white rounded-lg shadow-[0_0_20px_rgba(255,0,200,0.45)] 
-                         hover:shadow-[0_0_35px_rgba(255,0,200,0.75)] 
-                         transition-all"
+              to="/register"
+              className="inline-block py-3 px-10 text-lg font-semibold btn-gradient rounded-xl shadow-lg transition-all"
             >
               Create Account
             </Link>

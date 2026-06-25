@@ -40,23 +40,23 @@ const Circle = () => {
         <div
           className="absolute inset-0 rounded-full
                      bg-[conic-gradient(from_180deg_at_center,
-                     rgba(255,0,200,0.5),
-                     rgba(120,0,255,0.4),
-                     rgba(255,0,200,0.5))]
+                     var(--blob-color-1),
+                     var(--blob-color-2),
+                     var(--blob-color-1))]
                      opacity-40 blur-[60px]"
         ></div>
 
         {/* Inner Soft Circle */}
         <div
           className="absolute inset-0 rounded-full
-                     bg-[radial-gradient(circle,rgba(200,0,255,0.35),transparent_65%)]
+                     bg-[radial-gradient(circle,var(--blob-color-1),transparent_65%)]
                      blur-[80px] opacity-60 z-10"
         ></div>
 
         {/* Bottom Fade */}
         <div
           className="absolute inset-0 rounded-full
-                     bg-gradient-to-b from-transparent to-[#0A0A0C]"
+                     bg-gradient-to-b from-transparent to-[var(--bg-primary)]"
         ></div>
       </div>
     </div>

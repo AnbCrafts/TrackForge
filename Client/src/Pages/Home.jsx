@@ -16,10 +16,8 @@ const Home = () => {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-
-   const [sidebarWidth,setSideBarWidth] = useState(120);
- 
+  const [sidebarWidth, setSideBarWidth] = useState(220);
+  const isSidebarOpen = sidebarWidth > 100;
 
   // Paths
   const codeEditorPath = `/auth/${hash}/${username}/workspace/code-editor`
@@ -49,24 +47,23 @@ const Home = () => {
     if (id) getUserDataById(id)
   }, [hash])
 
-  useEffect(()=>{
-    setIsSidebarOpen(!isSidebarOpen);
-  },[sidebarWidth])
-
-  // 📌 AUTO COLLAPSE OR EXPAND SIDEBAR BASED ON PAGE
- 
   return (
     <div className="h-screen w-full flex text-white">
 
       {/* ================= Sidebar ================= */}
       <div
-        className={`fixed top-0 left-0 h-full border-r border-[#312E81]/40 transition-all duration-300 z-30 shadow-xl
-          w-[${sidebarWidth}]px
-        `}
+        className="fixed top-0 left-0 h-full border-r border-[var(--border-default)]/40 transition-all duration-300 z-30 shadow-xl overflow-hidden"
+        style={{ width: `${sidebarWidth}px` }}
       >
           <div className=" py-3 flex sidebar h-full flex-col items-center">
-            <Link to={dashboardPath} className="flex items-center justify-center gap-4 flex-wrap">
-              <img src={assets.logo} className="w-14 rounded-2xl border border-white/20 shadow-lg" alt="" />
+            <Link to={dashboardPath} className="flex items-center justify-center py-2 transition-all">
+              <img 
+                src={assets.logo} 
+                className={`rounded-2xl border border-white/20 shadow-lg transition-all duration-300 ${
+                  isSidebarOpen ? "w-14 h-14" : "w-10 h-10"
+                }`} 
+                alt="Logo" 
+              />
             </Link>
 
             {/* Sidebar is unchanged — just wrapped */}
@@ -75,15 +72,10 @@ const Home = () => {
        
       </div>
 
-
-        
-
       {/* ================= Main Content ================= */}
       <div
-        className={`
-          flex-1 overflow-y-auto h-screen transition-all duration-300
-          ${!isSidebarOpen ? "ml-[118px]" : "ml-[56px]"}
-        `}
+        className="flex-1 overflow-y-auto h-screen transition-all duration-300"
+        style={{ marginLeft: `${sidebarWidth}px` }}
       >
         <PageHeader want={false} />
 

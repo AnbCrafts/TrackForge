@@ -27,9 +27,9 @@ const FeatureCard = ({ Icon, title, description }) => (
   <motion.div
     variants={staggerChild}
      viewport={{ amount: 0.2, once: false }}
-    className="bg-[#111318] border border-[#2d0a39] p-6 rounded-xl
-               shadow-[0_0_25px_rgba(200,0,255,0.25)]
-               hover:shadow-[0_0_45px_rgba(255,0,200,0.5)]
+    className="bg-card border border-default p-6 rounded-xl
+               shadow-[0_0_20px_var(--glow-shadow)]
+               hover:shadow-[0_0_30px_var(--glow-shadow)] hover:border-neon
                hover:-translate-y-1 hover:scale-[1.03]
                transition-all duration-300"
   >
@@ -37,23 +37,22 @@ const FeatureCard = ({ Icon, title, description }) => (
     <div className="mb-4">
       <Icon
         className="h-12 w-12 p-2 rounded-full
-                   bg-gradient-to-r from-purple-500 to-pink-500
-                   text-white shadow-lg"
+                   bg-gradient text-white shadow-lg"
       />
     </div>
 
     {/* Title */}
-    <h3 className="text-xl font-semibold text-purple-200 mb-2">{title}</h3>
+    <h3 className="text-xl font-bold text-primary mb-2">{title}</h3>
 
     {/* Description */}
-    <p className="text-gray-300 leading-relaxed">{description}</p>
+    <p className="text-secondary leading-relaxed">{description}</p>
   </motion.div>
 );
 
 // ===================== MAIN SECTION ===================== //
 export const FeatureSection = ({ heading, intro, features }) => (
   <motion.section
-    className="py-20 px-10 w-full mx-auto text-white relative"
+    className="py-20 px-10 w-full mx-auto text-primary relative"
     initial="initial"
     whileInView="animate"
      viewport={{ amount: 0.2, once: false }}
@@ -62,7 +61,7 @@ export const FeatureSection = ({ heading, intro, features }) => (
     {/* Background Glow */}
     <div
       className="absolute top-0 left-1/2 -translate-x-1/2 w-[500px] h-[500px]
-                 bg-[radial-gradient(circle,rgba(200,0,255,0.25),rgba(0,0,0,0.95))]
+                 bg-[radial-gradient(circle,var(--blob-color-1),transparent)]
                  blur-3xl opacity-60 -z-10"
     ></div>
 
@@ -70,9 +69,7 @@ export const FeatureSection = ({ heading, intro, features }) => (
 
       {/* Heading */}
       <motion.h2
-        className="text-4xl font-bold mb-4
-                   bg-gradient-to-r from-purple-400 to-pink-500
-                   bg-clip-text text-transparent"
+        className="text-4xl font-bold mb-4 text-gradient"
         variants={fadeUp}
          viewport={{ amount: 0.2, once: false }}
       >
@@ -81,7 +78,7 @@ export const FeatureSection = ({ heading, intro, features }) => (
 
       {/* Intro */}
       <motion.p
-        className="text-gray-300 mb-12 max-w-3xl leading-relaxed"
+        className="text-secondary mb-12 max-w-3xl leading-relaxed"
         variants={fadeUp}
          viewport={{ amount: 0.2, once: false }}
         transition={{ delay: 0.1 }}

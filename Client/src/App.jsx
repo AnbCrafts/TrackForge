@@ -23,6 +23,9 @@ import Settings from './Pages/Settings'
 import EditProfile from './Pages/EditProfile'
 import CodeEditor from './Pages/CodeEditor'
 import GoogleOAuthCallback from './Pages/GoogleAuthCallback'
+import Members from './Pages/Members'
+import Meetings from './Pages/Meetings'
+import MeetingRoom from './Pages/MeetingRoom'
 // import SmokeCursor from './Components/Cursor'
 
 const App = () => {
@@ -98,6 +101,9 @@ const App = () => {
         <Route path='ticket-detail/:ticketId/activity/:activityId/edit' element={<EditActivity />} />
         <Route path='profile' element={<Profile />} />
         <Route path='notifications' element={<Notifications />} />
+        <Route path='members' element={<Members />} />
+        <Route path='meetings' element={<Meetings />} />
+        <Route path='meeting-room/:roomId' element={<MeetingRoom />} />
         <Route path='projects/:projectId' element={<ProjectDetail />} /> 
         <Route path='projects/:projectId/edit' element={<EditProject />} /> 
         <Route path='team' element={<Teams />} >

@@ -11,9 +11,9 @@ const Logo = ({ path }) => {
       <img
         src={assets.logo}
         alt="TrackForge Logo"
-        className="w-16 rounded-2xl shadow-lg border border-white p-0.5"
+        className="w-12 h-12 rounded-2xl shadow-lg border border-default p-0.5 object-cover"
       />
-      <h1 className="font-semibold text-white text-lg">Track Forge</h1>
+      <h1 className="text-gradient text-2xl font-extrabold tracking-wide">TrackForge</h1>
     </Link>
   );
 };

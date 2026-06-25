@@ -34,12 +34,12 @@ const slideRight = {
 
 const ProjectSection = () => {
   return (
-    <div className="relative bg-[#0A0A0C] text-white">
+    <div className="relative bg-primary text-primary">
 
       {/* BACKGROUND GLOW */}
       <div
         className="absolute top-40 right-1/4 w-[600px] h-[600px] rounded-full
-                    bg-[radial-gradient(circle,rgba(200,0,255,0.3),rgba(0,0,0,0.95))]
+                    bg-[radial-gradient(circle,var(--blob-color-1),transparent)]
                     blur-3xl opacity-60 -z-10"
       ></div>
 
@@ -59,26 +59,25 @@ const ProjectSection = () => {
 
         {/* CARD — slide right */}
         <motion.div
-          className="p-10 bg-[#111318] rounded-2xl border border-[#2d0a39]
-                      shadow-[0_0_40px_rgba(200,0,255,0.35)]
-                      max-w-3xl hover:shadow-[0_0_60px_rgba(255,0,200,0.55)]
+          className="p-10 bg-card rounded-2xl border border-default
+                      shadow-[0_0_20px_var(--glow-shadow)]
+                      max-w-3xl hover:shadow-[0_0_30px_var(--glow-shadow)] hover:border-neon
                       transition-all"
           initial="initial"
           whileInView="animate"
         viewport={{ amount: 0.2, once: false }}
           variants={slideRight}
         >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 
-                         bg-clip-text text-transparent">
+          <h1 className="text-4xl font-bold text-gradient leading-tight">
             Powerful Project Management Features
           </h1>
 
-          <p className="text-gray-300 text-lg mt-4 mb-6">
-            TrackForge empowers you to create, manage, and own projects with ease...
+          <p className="text-secondary text-lg mt-4 mb-6">
+            TrackForge empowers you to create, manage, and own projects with ease.
           </p>
 
           {/* LIST */}
-          <ul className="space-y-4 text-gray-300 text-base">
+          <ul className="space-y-4 text-secondary text-base">
             {[
               "Create and organize multiple projects effortlessly",
               "Assign tasks and roles to team members",
@@ -107,27 +106,31 @@ const ProjectSection = () => {
       <div className="relative">
         <img
           src={assets.project}
-          className="w-full h-[120vh] object-cover opacity-40"
+          className="w-full h-[120vh] object-cover"
+          style={{ opacity: "var(--showcase-img-opacity, 0.4)" }}
           alt=""
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/85 to-black/90">
+        <div 
+          className="absolute inset-0"
+          style={{ background: "var(--showcase-overlay, linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0.7)))" }}
+        >
 
           {/* TITLE BLOCK — fade down */}
           <motion.div
-            className="text-center p-10 bg-[#111318] 
-                       shadow-[0_0_30px_rgba(200,0,255,0.2)] mb-10"
+            className="text-center p-10 bg-card border border-default rounded-2xl
+                       shadow-[0_0_20px_var(--glow-shadow)] mb-10 max-w-4xl mx-auto mt-10"
             initial="initial"
             whileInView="animate"
              viewport={{ amount: 0.2, once: false }}
             variants={fadeDown}
           >
-            <h1 className="text-5xl font-bold text-purple-200 mb-4">
+            <h1 className="text-5xl font-bold text-primary mb-4">
               Discover Projects in Motion
             </h1>
 
-            <p className="text-gray-300 text-lg max-w-2xl mx-auto">
-              Explore ongoing projects your teams are actively working on...
+            <p className="text-secondary text-lg max-w-2xl mx-auto">
+              Explore ongoing projects your teams are actively working on.
             </p>
           </motion.div>
 
@@ -150,10 +153,10 @@ const ProjectSection = () => {
              viewport={{ amount: 0.2, once: false }}
           >
             <Link
-              className="py-4 px-12 text-xl font-semibold text-white 
-                         bg-gradient-to-r from-purple-600 to-pink-600 
-                         rounded-xl shadow-[0_0_25px_rgba(255,0,200,0.45)] 
-                         hover:-translate-y-1 transition-all flex gap-3 items-center"
+              to="/register"
+              className="inline-flex py-4 px-12 text-xl font-semibold btn-gradient 
+                         rounded-xl shadow-lg 
+                         hover:-translate-y-1 transition-all gap-3 items-center"
             >
               <Rocket className="bg-white text-pink-500 h-10 w-10 p-1.5 rounded-full" />
               Create Project Now

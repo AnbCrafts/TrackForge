@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import{  FiCloudLightning, FiLock, FiZap } from "react-icons/fi";
 import { assets } from '../assets/assets';
 import { CloudLightningIcon } from 'lucide-react';
+import ThemeSwitcher from './ThemeSwitcher';
 
 const Nav = () => {
   return (
     
-     <nav className="w-full  px-6 md:px-12 py-4 backdrop-blur-md border-b border-default">
+     <nav className="w-full px-6 md:px-12 py-4 backdrop-blur-md border-b border-default bg-secondary/40">
   <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
 
     {/* Logo + Name */}
@@ -24,26 +25,30 @@ const Nav = () => {
       </h1>
     </div>
 
-    {/* Feature Pills */}
-    <div className="flex flex-wrap md:flex-nowrap items-center justify-center gap-3">
+    {/* Feature Pills & Theme Switcher */}
+    <div className="flex flex-wrap md:flex-nowrap items-center justify-center gap-4">
 
-      {[
-        { icon: FiLock, label: "Secure" },
-        { icon: CloudLightningIcon, label: "Efficient" },
-        { icon: FiCloudLightning, label: "Robust" },
-        { icon: FiZap, label: "Fast" },
-      ].map((item, i) => {
-        const Icon = item.icon;
-        return (
-          <div
-            key={i}
-            className="glass px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all hover:border-neon"
-          >
-            <Icon className="text-neon text-lg" />
-            <span className="text-secondary text-sm md:text-base">{item.label}</span>
-          </div>
-        );
-      })}
+      <div className="flex flex-wrap items-center gap-3">
+        {[
+          { icon: FiLock, label: "Secure" },
+          { icon: CloudLightningIcon, label: "Efficient" },
+          { icon: FiCloudLightning, label: "Robust" },
+          { icon: FiZap, label: "Fast" },
+        ].map((item, i) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={i}
+              className="glass px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all hover:border-neon"
+            >
+              <Icon className="text-neon text-lg" />
+              <span className="text-secondary text-sm md:text-base">{item.label}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <ThemeSwitcher />
 
     </div>
 

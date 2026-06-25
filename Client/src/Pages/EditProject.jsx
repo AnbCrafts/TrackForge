@@ -1,20 +1,27 @@
 import React, { useContext, useEffect, useState } from "react";
 import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 import { useNavigate, useParams } from "react-router-dom";
-import { Activity, Archive, Clock, Crown, Database, Delete, File, Group, StepBack, Text, Trash, User, Users } from "lucide-react";
+import {
+  Archive,
+  Clock,
+  Crown,
+  Database,
+  Group,
+  StepBack,
+  Text,
+  Users,
+} from "lucide-react";
 import SearchTeam from "../Components/SearchTeams";
 import SearchUser from "../Components/SearchUser";
 
 const EditProject = () => {
-  const { updateProject, projectById, project } =
-    useContext(TrackForgeContextAPI);
+  const { updateProject, projectById, project } = useContext(TrackForgeContextAPI);
   const { projectId, hash, username } = useParams();
+  const navigate = useNavigate();
+
   const [selectedMemberIds, setSelectedMembersIds] = useState([]);
   const [selectedTeamIds, setSelectedTeamIds] = useState([]);
-
-  useEffect(() => {
-    projectById(projectId);
-  }, [projectId]);
+  const [activeTab, setActiveTab] = useState("details");
 
   const [updateProjectForm, setUpdateProjectForm] = useState({
     name: "",
@@ -29,433 +36,334 @@ const EditProject = () => {
   });
 
   useEffect(() => {
+    projectById(projectId);
+  }, [projectId]);
+
+  useEffect(() => {
     if (project && Object.keys(project).length > 0) {
       setUpdateProjectForm((prev) => ({
         ...prev,
-    name: project?.project?.name,
-    description: project?.project?.description,
-    owner: project?.project?.owner,
-    members: project?.members,
-    teams: project?.teams,
-    activity: project?.project?.activity,
-    startedOn:project?.project?.startedOn,
-    deadline: project?.project?.deadline,
-    archived: project?.project?.archived,
+        name: project?.project?.name || "",
+        description: project?.project?.description || "",
+        owner: project?.project?.owner || "",
+        members: project?.members || [],
+        teams: project?.teams || [],
+        activity: project?.project?.activity || [],
+        startedOn: project?.project?.startedOn || "",
+        deadline: project?.project?.deadline || "",
+        archived: project?.project?.archived || false,
       }));
 
       setSelectedMembersIds((prev) =>
-  prev.length > 0 ? prev : (project.members ? project.members.map(m => m._id) : [])
-);
-
-setSelectedTeamIds((prev) =>
-  prev.length > 0 ? prev : (project.teams ? project.teams.map(t => t._id) : [])
-);
-
+        prev.length > 0 ? prev : (project.members ? project.members.map((m) => m._id) : [])
+      );
+      setSelectedTeamIds((prev) =>
+        prev.length > 0 ? prev : (project.teams ? project.teams.map((t) => t._id) : [])
+      );
     }
   }, [project]);
 
-
- const submitUpdateForm = async (e) => {
-  e.preventDefault();
-
-  const id = localStorage.getItem("userId");
-
-  // create payload with updated teams & members
-  const payload = {
-    ...updateProjectForm,
-    teams: selectedTeamIds,
-    members: selectedMemberIds,
+  const submitUpdateForm = async (e) => {
+    e.preventDefault();
+    const id = localStorage.getItem("userId");
+    const payload = {
+      ...updateProjectForm,
+      teams: selectedTeamIds,
+      members: selectedMemberIds,
+    };
+    setUpdateProjectForm(payload);
+    updateProject(projectId, id, payload);
   };
 
-  // update state (so UI stays in sync)
-  setUpdateProjectForm(payload);
-
-  // call API with fresh payload
-  updateProject(projectId, id, payload);
-};
-
-
-
-
-
-
-
-  const navigate = useNavigate();
+  const tabs = [
+    { id: "details", label: "Project Details", icon: Database },
+    { id: "members", label: "Members", icon: Users },
+    { id: "teams", label: "Teams", icon: Group },
+  ];
 
   return (
-    <div className="min-h-[100vh] p-3">
-
-      <div className="p-3 mb-5 w-full bg-white text-gray-900 flex items-center justify-start gap-5">
-
-        <StepBack onClick={()=>navigate(`/auth/${hash}/${username}/workspace/projects/${projectId}`)} className="h-9 w-9 p-1.5 cursor-pointer rounded-full bg-gray-900 text-white"/>
-        <h1 className="font-medium text-2xl">Go back to project</h1>
-
+    <div className="min-h-[100vh] bg-primary text-primary">
+      {/* Header */}
+      <div className="px-6 py-4 w-full bg-card border-b border-default flex items-center gap-4 shadow-sm sticky top-0 z-20">
+        <button
+          type="button"
+          onClick={() => navigate(`/auth/${hash}/${username}/workspace/projects/${projectId}`)}
+          className="p-2 cursor-pointer rounded-xl bg-secondary hover:bg-hover border border-default text-secondary hover:text-primary transition-all"
+        >
+          <StepBack className="h-5 w-5" />
+        </button>
+        <div>
+          <h1 className="font-bold text-xl text-primary">Edit Project</h1>
+          <p className="text-xs text-muted">Update project details, members, and teams</p>
+        </div>
       </div>
-      
-      
-      <div className=" flex items-start justify-between gap-5">
-        <form onSubmit={submitUpdateForm} className="flex-1 max-w-3xl bg-white h-full p-3 border border-gray-200 rounded text-gray-900">
-            <div className="mb-20 p-3 border-b border-gray-200">
-  <h1 className="text-2xl font-bold text-gray-800">Update Project</h1>
-  <p className="mt-2 text-gray-600">
-    Make changes to your project details below. You can update the project name, description, members, teams, start and deadline dates, or archive status. 
-    All updates will be reflected immediately and tracked in the project activity log.
-  </p>
-</div>
 
-
-         
-          <div className="flex items-start justify-start gap-3 mb-8">
-            <label
-              htmlFor="name"
-              className="text-gray-600 flex items-center justify-start gap-2 w-40"
+      <div className="p-6 max-w-6xl mx-auto">
+        {/* Tabs */}
+        <div className="flex gap-1 p-1 bg-secondary/40 rounded-xl border border-default mb-6 w-fit">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === tab.id
+                  ? "bg-card border border-default text-primary shadow-sm"
+                  : "text-muted hover:text-primary"
+              }`}
             >
-              <Database className="" /> Project:
-            </label>
-            <input
-              type="text"
-              name="name"
-              id="name"
-              value={updateProjectForm?.name}
-              onChange={(e) =>
-                setUpdateProjectForm((prev) => ({
-                  ...prev,
-                  name: e.target.value,
-                }))
-              }
-              className="flex-1 border border-gray-200 px-3 py-2 rounded outline-none"
-            />
-          </div>
-
-          <div className="flex items-start justify-start gap-3 mb-8">
-            <label
-              htmlFor="description"
-              className="text-gray-600 flex items-center justify-start gap-2 w-40"
-            >
-              <Text className="" /> Description:
-            </label>
-            <textarea
-              type="text"
-              name="description"
-              id="description"
-              value={updateProjectForm?.description}
-              onChange={(e) =>
-                setUpdateProjectForm((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-              className="flex-1 border border-gray-200 px-3 py-2 rounded outline-none h-80 overflow-y-scroll noScroll"
-            />
-          </div>
-        
-        <div className="flex items-start justify-start gap-3 mb-8">
-            <label
-              htmlFor="startedOn"
-              className="text-gray-600 flex items-center justify-start gap-2 w-40"
-            >
-              <Clock className="" /> Started On:
-            </label>
-
-            <input
-              type="text"
-              name="startedOn"
-              id="startedOn"
-              value={Date(updateProjectForm?.startedOn)}
-              readOnly
-              className="flex-1 bg-gray-600 text-white px-3 py-2 rounded outline-none cursor-not-allowed"
-
-            />
-            <input
-              type="date"
-              name="startedOn"
-              id="startedOn"
-              value={updateProjectForm?.startedOn}
-              onChange={(e) =>
-                setUpdateProjectForm((prev) => ({
-                  ...prev,
-                  startedOn: e.target.value,
-                }))
-              }
-              className="flex-1 border border-gray-200 px-3 py-2 rounded outline-none"
-            />
-          </div>
-
-           <div className="flex items-start justify-start gap-3 mb-8">
-            <label
-              htmlFor="deadline"
-              className="text-gray-600 flex items-center justify-start gap-2 w-40"
-            >
-              <Clock className="" /> Deadline :
-            </label>
-
-            <input
-              type="text"
-              name="deadline"
-              id="deadline"
-              value={Date(updateProjectForm?.deadline)}
-              readOnly
-              className="flex-1 bg-gray-600 text-white px-3 py-2 rounded outline-none cursor-not-allowed"
-
-            />
-            <input
-              type="date"
-              name="deadline"
-              id="deadline"
-              value={updateProjectForm?.deadline}
-              onChange={(e) =>
-                setUpdateProjectForm((prev) => ({
-                  ...prev,
-                  deadline: e.target.value,
-                }))
-              }
-              className="flex-1 border border-gray-200 px-3 py-2 rounded outline-none"
-            />
-          </div>
-
-        <div className="flex items-start justify-start gap-3 mb-8">
-            <label
-              htmlFor="archived"
-              className="text-gray-600 flex items-center justify-start gap-2 w-40"
-            >
-              <Archive className="" /> Status:
-            </label>
-            <input
-              type="text"
-              name="archived"
-              id="archived"
-              value={updateProjectForm?.archived?"Archived":"Active"}
-              readOnly
-              className="flex-1 bg-gray-600 text-white px-3 py-2 rounded outline-none cursor-not-allowed"
-            />
-
-            <select name="archived" id="archived"
-              className="flex-1 border border-gray-200 px-3 py-2 rounded outline-none"
-            >
-                <option value={updateProjectForm?.archived}>
-                {updateProjectForm?.archived?"Archive":"Activate"}
-                </option>
-                <option value={!(updateProjectForm?.archived)}>
-                {!(updateProjectForm?.archived)?"Archive":"Activate"}
-
-                </option>
-            </select>
-          </div> 
-
-          <div className="flex items-start justify-start gap-3 mb-8">
-            <label
-              htmlFor="members"
-              className="text-gray-600 flex items-center justify-start gap-2 w-40"
-            >
-              <Users className="" /> Members:
-            </label>
-
-            {updateProjectForm.members.length > 0 ? (
-              <div className="">
-                <div className="flex items-center justify-start gap-3 flex-wrap max-w-lg">
-                  {updateProjectForm.members.length > 0
-                    ? updateProjectForm.members.map((t, i) => {
-                        return (
-                          <p
-                            className="bg-gray-200 px-2.5 py-1 text-sm rounded shadow flex items-center justify-between gap-4  max-w-60"
-                            key={i}
-                          >
-                            <span>
-                            {t.username}
-
-                            </span>
-                            <span className="flex items-center justify-start gap-1 font-medium">
-                            {t.role}
-                            {
-                              (t.role ==="Admin" || t.role ==="Owner")
-                              && (
-                                <Crown className="text-sm h-4 w-4 text-orange-500"/>
-                              )  
-                            }
-
-                            </span>
-                            
-                          </p>
-                        );
-                      })
-                    : ""}
-                </div>
-              </div>
-            ):(
-                <p>No Members Added</p>
-            )}
-            
-
-          </div> 
-
-          <div className="flex items-start justify-start gap-3 mb-8">
-            <label
-              htmlFor="teams"
-              className="text-gray-600 flex items-center justify-start gap-2 w-40"
-            >
-              <Group className="" /> Teams:
-            </label>
-
-            {updateProjectForm.teams.length > 0 ? (
-              <div className="">
-                <div className="flex items-center justify-start gap-3 flex-wrap">
-                  {updateProjectForm.teams.length > 0
-                    ? updateProjectForm.teams.map((t, i) => {
-                        return (
-                          <span
-                            className="bg-gray-200 px-2.5 py-1 text-sm rounded shadow flex items-center justify-start gap-3"
-                            key={i}
-                          >
-                            {t.name}{" "}
-                            
-                          </span>
-                        );
-                      })
-                    : ""}
-                </div>
-              </div>
-            ):(
-                <p>No Members Added</p>
-            )}
-            
-
-          </div>
-
-
-           <div className="flex items-start justify-start gap-3 mb-8">
-            <label
-              htmlFor="activity"
-              className="text-gray-600 flex items-center justify-start gap-2 w-40"
-            >
-              <Activity className="" /> Activities:
-            </label>
-
-            {updateProjectForm.activity.length > 0 ? (
-              <div className="">
-                <div className="flex items-center justify-start gap-3 flex-wrap">
-                  {updateProjectForm.activity.length > 0
-                    ? updateProjectForm.activity.map((t, i) => {
-                        return (
-                          <span
-                            className="bg-gray-200 px-2.5 py-1 text-sm rounded shadow flex items-center justify-start gap-3"
-                            key={i}
-                          >
-                            {t}{" "}
-                             <Trash
-            className="p-1 rounded-full bg-gray-600 text-gray-200 cursor-pointer"
-            onClick={() =>
-              setUpdateProjectForm((prev) => ({
-                ...prev,
-                activity: prev.activity.filter((act, index) => index !== i),
-              }))
-            }
-          />
-                            
-                          </span>
-                        );
-                      })
-                    : ""}
-                </div>
-              </div>
-            ):(
-                <p>No Activities Added</p>
-            )}
-            
-
-          </div> 
-
-
-
-            <div className="w-fit mx-auto mb-10 mt-20">
-              <button type="submit"
-              className="px-10 py-2 border border-gray-200 rounded font-medium cursor-pointer hover:bg-green-500 hover:text-white transition-all"
-              >
-                Update Project
-              </button>
-
-            </div>
-        
-        
-        
-        
-        </form>
-
-        <div className="flex-1 space-y-10 ">
-          <div className="px-2 py-5 shadow rounded-lg bg-white">
-            <SearchTeam
-              selectedTeamIds={selectedTeamIds}
-              setSelectedTeamIds={setSelectedTeamIds}
-            />
-            {selectedTeamIds.length > 0 && (
-              <div className="mt-5 p-3 border-gray-100 border rounded shadow">
-                <h1 className="mb-2">Selected Teams to add</h1>
-
-                <div className="flex items-center justify-start gap-3 flex-wrap">
-                  {selectedTeamIds.length > 0
-                    ? selectedTeamIds.map((t, i) => {
-                        return (
-                          <span
-                            className="bg-gray-200 px-2.5 py-1 text-sm rounded shadow flex items-center justify-start gap-3"
-                            key={i}
-                          >
-                            {t}{" "}
-                            <Delete
-                              onClick={() =>
-                                setSelectedTeamIds(
-                                  (prev) =>
-                                    prev.filter((team) => team._id !== t._id) // remove by id
-                                )
-                              }
-                              className="p-0.5 rounded-full bg-gray-400 text-gray-600 cursor-pointer"
-                            />
-                          </span>
-                        );
-                      })
-                    : ""}
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="px-2 py-5 shadow rounded-lg bg-white">
-            <SearchUser
-              selectedUserIds={selectedMemberIds}
-              setSelectedUserIds={setSelectedMembersIds}
-            />
-            {selectedMemberIds.length > 0 && (
-              <div className="mt-5 p-3 border-gray-100 border rounded shadow">
-                <h1 className="mb-2">Selected Users to add</h1>
-
-                <div className="flex items-center justify-start gap-3 flex-wrap">
-                  {selectedMemberIds.length > 0
-                    ? selectedMemberIds.map((m, i) => {
-                        return (
-                          <span
-                            className="bg-gray-200 px-2.5 py-1 text-sm rounded shadow flex items-center justify-start gap-3"
-                            key={m._id || i} // better to use _id
-                          >
-                            {m}
-                            <Delete
-                              className="p-0.5 rounded-full bg-gray-400 text-gray-600 cursor-pointer"
-                              onClick={() =>
-                                setSelectedMembersIds(
-                                  (prev) =>
-                                    prev.filter((mem) => mem._id !== m._id) // remove by id
-                                )
-                              }
-                            />
-                          </span>
-                        );
-                      })
-                    : null}
-                </div>
-              </div>
-            )}
-          </div>
+              <tab.icon className="h-3.5 w-3.5" />
+              {tab.label}
+            </button>
+          ))}
         </div>
 
+        <form onSubmit={submitUpdateForm}>
+          {/* ─── DETAILS TAB ─── */}
+          {activeTab === "details" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: Project Info */}
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-5">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Project Information
+                </h2>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="name" className="text-xs font-semibold text-secondary flex items-center gap-1.5">
+                    <Database className="h-3.5 w-3.5 text-neon" /> Project Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={updateProjectForm.name}
+                    onChange={(e) => setUpdateProjectForm((p) => ({ ...p, name: e.target.value }))}
+                    placeholder="Enter project name..."
+                    className="outline-none focus:ring-2 focus:ring-[var(--border-neon)]/40 transition rounded-xl px-3 py-2.5 bg-secondary border border-default text-primary text-sm"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="description" className="text-xs font-semibold text-secondary flex items-center gap-1.5">
+                    <Text className="h-3.5 w-3.5 text-neon" /> Description
+                  </label>
+                  <textarea
+                    id="description"
+                    rows={6}
+                    value={updateProjectForm.description}
+                    onChange={(e) => setUpdateProjectForm((p) => ({ ...p, description: e.target.value }))}
+                    placeholder="Describe this project..."
+                    className="outline-none focus:ring-2 focus:ring-[var(--border-neon)]/40 transition rounded-xl px-3 py-2.5 bg-secondary border border-default text-primary text-sm resize-none noScroll"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="archived" className="text-xs font-semibold text-secondary flex items-center gap-1.5">
+                    <Archive className="h-3.5 w-3.5 text-neon" /> Status
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
+                        updateProjectForm.archived
+                          ? "bg-red-500/10 text-red-400 border-red-500/20"
+                          : "bg-green-500/10 text-green-400 border-green-500/20"
+                      }`}
+                    >
+                      Currently: {updateProjectForm.archived ? "Archived" : "Active"}
+                    </span>
+                    <select
+                      id="archived"
+                      value={String(updateProjectForm.archived)}
+                      onChange={(e) =>
+                        setUpdateProjectForm((p) => ({ ...p, archived: e.target.value === "true" }))
+                      }
+                      className="flex-1 outline-none focus:ring-2 focus:ring-[var(--border-neon)]/40 transition rounded-xl px-3 py-2.5 bg-secondary border border-default text-primary text-sm cursor-pointer"
+                    >
+                      <option value="false">Active</option>
+                      <option value="true">Archived</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Dates */}
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-5">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Dates &amp; Timeline
+                </h2>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="startedOn" className="text-xs font-semibold text-secondary flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-neon" /> Started On
+                  </label>
+                  <div className="px-3 py-2 bg-secondary/40 border border-default rounded-xl text-xs text-muted font-mono">
+                    Current:{" "}
+                    {updateProjectForm.startedOn
+                      ? new Date(updateProjectForm.startedOn).toLocaleDateString()
+                      : "Not set"}
+                  </div>
+                  <input
+                    type="date"
+                    id="startedOn"
+                    value={
+                      updateProjectForm.startedOn
+                        ? String(updateProjectForm.startedOn).split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) => setUpdateProjectForm((p) => ({ ...p, startedOn: e.target.value }))}
+                    className="w-full outline-none focus:ring-2 focus:ring-[var(--border-neon)]/40 transition rounded-xl px-3 py-2.5 bg-secondary border border-default text-primary text-sm cursor-pointer"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="deadline" className="text-xs font-semibold text-secondary flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-neon" /> Deadline
+                  </label>
+                  <div className="px-3 py-2 bg-secondary/40 border border-default rounded-xl text-xs text-muted font-mono">
+                    Current:{" "}
+                    {updateProjectForm.deadline
+                      ? new Date(updateProjectForm.deadline).toLocaleDateString()
+                      : "Not set"}
+                  </div>
+                  <input
+                    type="date"
+                    id="deadline"
+                    value={
+                      updateProjectForm.deadline
+                        ? String(updateProjectForm.deadline).split("T")[0]
+                        : ""
+                    }
+                    onChange={(e) => setUpdateProjectForm((p) => ({ ...p, deadline: e.target.value }))}
+                    className="w-full outline-none focus:ring-2 focus:ring-[var(--border-neon)]/40 transition rounded-xl px-3 py-2.5 bg-secondary border border-default text-primary text-sm cursor-pointer"
+                  />
+                </div>
+
+                {/* Quick stats */}
+                <div className="pt-3 border-t border-default/50 space-y-2">
+                  <p className="text-xs font-bold text-secondary uppercase tracking-wider">Quick Summary</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="p-3 bg-secondary/35 border border-default rounded-xl text-center">
+                      <p className="text-[10px] text-muted">Members</p>
+                      <p className="text-2xl font-extrabold text-primary">{updateProjectForm.members?.length || 0}</p>
+                    </div>
+                    <div className="p-3 bg-secondary/35 border border-default rounded-xl text-center">
+                      <p className="text-[10px] text-muted">Teams</p>
+                      <p className="text-2xl font-extrabold text-primary">{updateProjectForm.teams?.length || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── MEMBERS TAB ─── */}
+          {activeTab === "members" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Current Members ({updateProjectForm.members?.length || 0})
+                </h2>
+                <div className="flex flex-wrap gap-2 max-h-72 overflow-y-auto noScroll">
+                  {updateProjectForm.members?.length > 0 ? (
+                    updateProjectForm.members.map((m, i) => {
+                      const initials = `${m.firstName?.[0] || ""}${m.lastName?.[0] || ""}`.toUpperCase();
+                      return (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-2 px-2.5 py-1.5 bg-secondary/40 border border-default rounded-full text-xs font-semibold text-primary"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-purple-500/10 text-[9px] flex items-center justify-center font-bold text-[var(--text-neon)]">
+                            {initials}
+                          </span>
+                          {m.username}
+                          <span className="px-1.5 py-0.5 bg-card border border-default rounded text-[9px] text-secondary">
+                            {m.role}
+                          </span>
+                          {(m.role === "Admin" || m.role === "Owner") && (
+                            <Crown className="h-3 w-3 text-amber-400" />
+                          )}
+                        </span>
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-muted py-4">No members added yet</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Search &amp; Select Members
+                </h2>
+                <p className="text-xs text-muted">
+                  Search for users created by you and select them to add as members:
+                </p>
+                <SearchUser
+                  selectedUserIds={selectedMemberIds}
+                  setSelectedUserIds={setSelectedMembersIds}
+                  initialSelected={project?.members || []}
+                />
+                <p className="text-[10px] text-muted pt-1">
+                  ✅ {selectedMemberIds.length} member(s) selected
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ─── TEAMS TAB ─── */}
+          {activeTab === "teams" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Linked Teams ({updateProjectForm.teams?.length || 0})
+                </h2>
+                <div className="flex flex-wrap gap-2 max-h-72 overflow-y-auto noScroll">
+                  {updateProjectForm.teams?.length > 0 ? (
+                    updateProjectForm.teams.map((t, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-secondary/40 border border-default rounded-full text-xs font-semibold text-primary"
+                      >
+                        <Group className="h-3.5 w-3.5 text-neon" />
+                        {t.name}
+                      </span>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted py-4">No teams linked yet</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Search &amp; Select Teams
+                </h2>
+                <p className="text-xs text-muted">
+                  Search for teams you created and link them to this project:
+                </p>
+                <SearchTeam
+                  selectedTeamIds={selectedTeamIds}
+                  setSelectedTeamIds={setSelectedTeamIds}
+                  initialSelected={project?.teams || []}
+                />
+                <p className="text-[10px] text-muted pt-1">
+                  ✅ {selectedTeamIds.length} team(s) selected
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Save button */}
+          <div className="mt-6 flex justify-end">
+            <button
+              type="submit"
+              className="px-8 py-2.5 btn-gradient text-white rounded-xl shadow-lg font-bold text-sm cursor-pointer hover:opacity-90 transition-all flex items-center gap-2"
+            >
+              <Database className="h-4 w-4" />
+              Save Changes
+            </button>
+          </div>
+        </form>
       </div>
-
-
     </div>
   );
 };

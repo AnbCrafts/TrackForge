@@ -1,7 +1,6 @@
 import {
   Clock,
   Group,
-  IndentIncrease,
   Leaf,
   Link2,
   Rocket,
@@ -10,7 +9,6 @@ import {
   Trash,
   Trophy,
   Users,
-  Workflow,
 } from "lucide-react";
 import React, { useContext, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -31,21 +29,14 @@ const EditTeam = () => {
     teamId && getTeamByID(teamId);
   }, [teamId]);
 
-
-
+  const [activeTab, setActiveTab] = useState("info");
   const [customUrl, setCustomUrl] = useState("");
-  const [showProjectSearch, setShowProjectSearch] = useState(false);
-  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [newValidity, setNewValidity] = useState("");
 
   const [teamUpdateForm, setTeamUpdateForm] = useState({
     name: "",
-    projects: [], 
-    members: [
-      {
-        participant: "",
-        joinedAt: Date.now(),
-      },
-    ],
+    projects: [],
+    members: [{ participant: "", joinedAt: Date.now() }],
     link: {
       url: "",
       createdAt: "",
@@ -55,111 +46,69 @@ const EditTeam = () => {
     },
   });
 
-  // Sync teamData into local form state safely (merge nested link too)
+  // Sync teamData into local form state
   useEffect(() => {
     if (teamData?.raw) {
       setTeamUpdateForm((prev) => ({
         ...prev,
         name: teamData.raw.name ?? prev.name,
-        projects: Array.isArray(teamData.raw.projects)
-          ? teamData.raw.projects
-          : prev.projects,
-        members: Array.isArray(teamData.raw.members)
-          ? teamData.raw.members
-          : prev.members,
-        link: {
-          ...prev.link,
-          ...(teamData.raw.link ? teamData.raw.link : {}),
-        },
+        projects: Array.isArray(teamData.raw.projects) ? teamData.raw.projects : prev.projects,
+        members: Array.isArray(teamData.raw.members) ? teamData.raw.members : prev.members,
+        link: { ...prev.link, ...(teamData.raw.link ? teamData.raw.link : {}) },
       }));
-      // Pre-fill selected ids so search previews show them (optional but helpful)
       if (Array.isArray(teamData.raw.projects)) {
         setSelectedProjectIds(teamData.raw.projects);
       }
       if (Array.isArray(teamData.raw.members)) {
-        // if members in teamData.raw are objects with participant or _id, map to ids
         const ids = teamData.raw.members.map((m) => m.participant ?? m._id ?? m);
         setSelectedUserIds(ids.filter(Boolean));
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamData]);
 
-  // Set projects from selectedProjectIds
+  // Sync selected projects
   useEffect(() => {
-    setTeamUpdateForm((prev) => ({
-      ...prev,
-      projects: selectedProjectIds,
-    }));
+    setTeamUpdateForm((prev) => ({ ...prev, projects: selectedProjectIds }));
   }, [selectedProjectIds]);
 
-  // Build members array correctly from selectedUserIds
-  // Build members array correctly from selectedUserIds
-useEffect(() => {
-  if (selectedUserIds && selectedUserIds.length > 0) {
-    const memberSchema = selectedUserIds.map((id) => {
-      // try to find existing member in teamData.raw.members
-      const existing = teamData?.raw?.members?.find(
-        (m) => m.participant === id || m._id === id
-      );
-      return {
-        participant: id,
-        joinedAt: existing?.joinedAt ?? new Date().toISOString(), // keep old if available
-      };
-    });
+  // Sync selected members
+  useEffect(() => {
+    if (selectedUserIds && selectedUserIds.length > 0) {
+      const memberSchema = selectedUserIds.map((id) => {
+        const existing = teamData?.raw?.members?.find(
+          (m) => m.participant === id || m._id === id
+        );
+        return { participant: id, joinedAt: existing?.joinedAt ?? new Date().toISOString() };
+      });
+      setTeamUpdateForm((prev) => ({ ...prev, members: memberSchema }));
+    }
+  }, [selectedUserIds, teamData]);
 
-    setTeamUpdateForm((prev) => ({
-      ...prev,
-      members: memberSchema,
-    }));
-  }
-}, [selectedUserIds, teamData]);
-
-
-  const [newValidity, setNewValidity] = useState("");
-
-  // Improved isEmpty: check required fields explicitly (avoids false positives)
   const isEmpty = (form) => {
     if (!form || typeof form !== "object") return true;
-
-    // name
     if (!form.name || String(form.name).trim() === "") return true;
-
-    // projects
     if (!Array.isArray(form.projects) || form.projects.length === 0) return true;
-
-    // members (each must have a participant)
     if (!Array.isArray(form.members) || form.members.length === 0) return true;
     for (const m of form.members) {
       if (!m || (!m.participant && m.participant !== 0)) return true;
-      if (typeof m.participant === "string" && m.participant.trim() === "")
-        return true;
+      if (typeof m.participant === "string" && m.participant.trim() === "") return true;
     }
-
-    // link
     if (!form.link) return true;
     if (!form.link.url || String(form.link.url).trim() === "") return true;
-    if (!form.link.createdBy || String(form.link.createdBy).trim() === "")
-      return true;
+    if (!form.link.createdBy || String(form.link.createdBy).trim() === "") return true;
     if (!form.link.validTill) return true;
-
-    return false; // no required fields empty
+    return false;
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-
-    // Build final payload WITHOUT relying on setState (setState is async)
     const payload = { ...teamUpdateForm };
 
-
-    // If user entered a customUrl (input), create a fresh link object. Otherwise keep existing link.
     if (customUrl && customUrl.trim() !== "") {
       const id = localStorage.getItem("userId");
-      const tId = teamId;
       payload.link = {
-        url: `https://track-forge/invite/team/${tId}/creator-${id}-${customUrl}`,
-        createdAt: Date.now() + 3 * 60 * 1000, // 3 minutes ahead as you asked earlier
+        url: `https://track-forge/invite/team/${teamId}/creator-${id}-${customUrl}`,
+        createdAt: Date.now() + 3 * 60 * 1000,
         createdBy: id,
         validTill:
           newValidity && newValidity !== ""
@@ -168,18 +117,12 @@ useEffect(() => {
         status: payload.link?.status ?? "Active",
       };
     } else {
-      // If link.url is empty in form, fallback to existing teamData raw link (as original code intended)
       if ((!payload.link || !payload.link.url) && teamData?.raw?.link) {
-        payload.link = {
-          ...teamData.raw.link,
-        };
+        payload.link = { ...teamData.raw.link };
       } else {
-        // ensure validTill is numeric timestamp if user entered date string earlier
         if (payload.link?.validTill && typeof payload.link.validTill === "string") {
           const t = new Date(payload.link.validTill).getTime();
-          if (!Number.isNaN(t)) {
-            payload.link.validTill = t;
-          }
+          if (!Number.isNaN(t)) payload.link.validTill = t;
         }
       }
     }
@@ -191,12 +134,8 @@ useEffect(() => {
       return;
     }
 
-      console.log("Payload sent to backend:", payload);
-
-
     try {
       await updateTeam(teamId, payload, path);
-
       toast.success("Team updated successfully");
     } catch (err) {
       console.error("updateTeam error:", err);
@@ -204,284 +143,274 @@ useEffect(() => {
     }
   };
 
+  const isLinkExpired = Date.now() > (new Date(teamUpdateForm?.link?.validTill).getTime() || 0);
+
+  const tabs = [
+    { id: "info", label: "Team Info", icon: Group },
+    { id: "members", label: "Members", icon: Users },
+    { id: "projects", label: "Projects", icon: Leaf },
+    { id: "link", label: "Invite Link", icon: Link2 },
+  ];
+
   return (
-    <div className="min-h-[100vh] w-full">
-      <Link
-        to={`/auth/${hash}/${username}/workspace/team/${teamId}`}
-        className="p-3 block mb-3"
-      >
-        <StepBack className="h-9 w-9 p-1 bg-gray-600 text-white rounded shadow hover:bg-gray-900 hover:text-white transition-all cursor-pointer" />
-      </Link>
-
-      <div className="w-full h-full p-3">
-        {/* ADDED onSubmit to trigger handleUpdate */}
-        <form
-          onSubmit={handleUpdate}
-          className="w-full h-full p-3 border border-gray-200 rounded"
+    <div className="min-h-[100vh] bg-primary text-primary">
+      {/* Header */}
+      <div className="px-6 py-4 w-full bg-card border-b border-default flex items-center gap-4 shadow-sm sticky top-0 z-20">
+        <Link
+          to={`/auth/${hash}/${username}/workspace/team/${teamId}`}
+          className="p-2 rounded-xl bg-secondary hover:bg-hover border border-default text-secondary hover:text-primary transition-all"
         >
-          <h1 className="text-2xl font-medium text-gray-500 mb-4">
-            Edit Team Info
-          </h1>
+          <StepBack className="h-5 w-5" />
+        </Link>
+        <div>
+          <h1 className="font-bold text-xl text-primary">Edit Team</h1>
+          <p className="text-xs text-muted">Manage team information, members, projects, and invite links</p>
+        </div>
+      </div>
 
-          <div className="flex items-start justify-between gap-5">
-            <div>
-              <div className="flex items-start justify-start w-2xl mb-7">
-                <label
-                  htmlFor="name"
-                  className="flex items-center text-gray-500 justify-start text-lg gap-2 w-50 "
-                >
-                  <Group />
-                  <span className="font-medium ">Title :</span>
+      <div className="p-6 max-w-5xl mx-auto">
+        {/* Tabs */}
+        <div className="flex gap-1 p-1 bg-secondary/40 rounded-xl border border-default mb-6 flex-wrap">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === tab.id
+                  ? "bg-card border border-default text-primary shadow-sm"
+                  : "text-muted hover:text-primary"
+              }`}
+            >
+              <tab.icon className="h-3.5 w-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleUpdate}>
+          {/* ─── INFO TAB ─── */}
+          {activeTab === "info" && (
+            <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-5 max-w-2xl">
+              <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">Team Name</h2>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="teamName" className="text-xs font-semibold text-secondary flex items-center gap-1.5">
+                  <Group className="h-3.5 w-3.5 text-neon" /> Team Name
                 </label>
-
                 <input
-                  onChange={(e) =>
-                    setTeamUpdateForm((prev) => ({
-                      ...prev,
-                      name: e.target.value,
-                    }))
-                  }
+                  id="teamName"
+                  type="text"
                   value={teamUpdateForm.name}
-                  type="text"
-                  name="name"
-                  id="name"
-                  placeholder="Tech knights..."
-                  className="flex-1 border border-gray-200 px-3 py-2 rounded outline-none"
+                  onChange={(e) => setTeamUpdateForm((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Tech Knights..."
+                  className="outline-none focus:ring-2 focus:ring-[var(--border-neon)]/40 transition rounded-xl px-3 py-2.5 bg-secondary border border-default text-primary text-sm"
                 />
               </div>
-
-              <div className="flex items-start justify-start w-2xl mb-7">
-                <label
-                  htmlFor="members"
-                  className="flex items-center text-gray-500 justify-start text-lg gap-2 w-50 "
-                >
-                  <Users />
-                  <span className="font-medium ">Members :</span>
-                </label>
-
-                <div className="flex-1">
-                  {teamData && teamData.members && teamData.members.length > 0 ? (
-                    teamData.members.map((m) => {
-                      return (
-                        <p
-                          className=" w-full flex items-center justify-between px-2 py-1.5 mb-2 border border-gray-200 rounded"
-                          key={m._id}
-                        >
-                          <div className="flex items-center justify-start gap-2">
-                            <span>{m.firstName}</span>
-                            <span>({m.username})</span>
-                          </div>
-                          <div className="flex items-center justify-start gap-2">
-                            <span>{m.role}</span>
-                            {m.role === "Admin" || m.role === "Owner" ? (
-                              <Trophy className="bg-green-500 text-white rounded p-0.5" />
-                            ) : (
-                              <Trash className="bg-red-500 cursor-pointer text-white rounded p-0.5" />
-                            )}
-                          </div>
-                        </p>
-                      );
-                    })
-                  ) : (
-                    <p>No Members found for this team</p>
-                  )}
-
-                  {!showUserSearch && (
-                    <span
-                      onClick={() => setShowUserSearch(!showUserSearch)}
-                      className="px-4 py-1 mt-3 block border border-gray-200 w-fit bg-gray-900 text-white rounded  cursor-pointer "
-                    >
-                      Search Users
-                    </span>
-                  )}
-
-                  { selectedUserIds.length > 0 && (
-                    <div className="mt-5 p-3 border-gray-100 border rounded shadow">
-                      <h1 className="mb-2">Selected Users to add</h1>
-
-                      <div className="flex items-center justify-start gap-3 flex-wrap">
-                        {selectedUserIds.length > 0
-                          ? selectedUserIds.map((u, i) => {
-                              return (
-                                <span
-                                  className="bg-gray-200 px-1.5 py-0.5 text-sm rounded shadow"
-                                  key={i}
-                                >
-                                  {u}
-                                </span>
-                              );
-                            })
-                          : ""}
-                      </div>
-                    </div>
-                  )}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-default/50">
+                <div className="p-3 bg-secondary/35 border border-default rounded-xl text-center">
+                  <p className="text-[10px] text-muted">Members</p>
+                  <p className="text-2xl font-extrabold text-primary">{teamData?.members?.length || 0}</p>
                 </div>
-              </div>
-
-              <div className="flex items-start justify-start w-2xl mb-7">
-                <label
-                  htmlFor="project"
-                  className="flex items-center text-gray-500 justify-start text-lg gap-2 w-50 "
-                >
-                  <Leaf />
-                  <span className="font-medium ">Projects :</span>
-                </label>
-
-                <div className="flex-1">
-                  <div>
-                    {teamData && teamData.projects && teamData.projects.length > 0 ? (
-                      teamData.projects.map((p) => {
-                        return (
-                          <p
-                            className=" w-full flex items-center justify-between px-2 py-1.5 mb-2 border border-gray-200 rounded"
-                            key={p._id}
-                          >
-                            <span>{p.name}</span>
-                            <Trash className="bg-red-500 cursor-pointer text-white rounded p-0.5" />
-                          </p>
-                        );
-                      })
-                    ) : (
-                      <p>No Projects found for this team, add !!</p>
-                    )}
-                  </div>
-
-                  {!showProjectSearch ? (
-                    <span
-                      onClick={() => setShowProjectSearch(!showProjectSearch)}
-                      className="px-4 py-1 mt-3 block border border-gray-200 w-fit bg-gray-900 text-white rounded  cursor-pointer "
-                    >
-                      Search projects
-                    </span>
-                  ) : selectedProjectIds.length > 0 ? (
-                    <div className="mt-5 p-3 border-gray-100 border rounded shadow">
-                      <h1 className="mb-2">Selected Projects to add</h1>
-
-                      <div className="flex items-center justify-start gap-3 flex-wrap">
-                        {selectedProjectIds.length > 0
-                          ? selectedProjectIds.map((m, i) => {
-                              return (
-                                <span
-                                  className="bg-gray-200 px-1.5 py-0.5 text-sm rounded shadow"
-                                  key={i}
-                                >
-                                  {m}
-                                </span>
-                              );
-                            })
-                          : ""}
-                      </div>
-                    </div>
-                  ) : null}
+                <div className="p-3 bg-secondary/35 border border-default rounded-xl text-center">
+                  <p className="text-[10px] text-muted">Projects</p>
+                  <p className="text-2xl font-extrabold text-primary">{teamData?.projects?.length || 0}</p>
                 </div>
-              </div>
-
-              <div className="flex items-start justify-start w-2xl mb-7">
-                <label
-                  htmlFor="link"
-                  className="flex items-center text-gray-500 justify-start text-lg gap-2 w-50 "
-                >
-                  <Link2 />
-                  <span className="font-medium ">Link :</span>
-                </label>
-
-                <input
-                  value={teamUpdateForm.link?.url || ""}
-                  type="text"
-                  name="link"
-                  id="link"
-                  onChange={(e) => setCustomUrl(e.target.value)}
-                  className="flex-1 border border-gray-200 px-3 py-2 rounded outline-none"
-                />
-                <Trash className="bg-red-500 ml-3 cursor-pointer text-white rounded p-0.5" />
-              </div>
-
-              <div className="flex items-start justify-start w-2xl mb-7">
-                <label
-                  htmlFor="validity"
-                  className="flex items-center text-gray-500 justify-start text-lg gap-2 w-50 "
-                >
-                  <Clock />
-                  <span className="font-medium ">Validity :</span>
-                </label>
-
-                <div className="flex-1">
-                  <div className="w-full flex items-center justify-start">
-                    {/* show current validity from form (not from teamData directly) */}
-                    <input
-                      value={formatDateTime(teamUpdateForm?.link?.validTill)}
-                      type="text"
-                      name="validity"
-                      id="validity"
-                      readOnly
-                      className="flex-1 border border-gray-200 px-3 py-2 rounded outline-none bg-gray-100"
-                    />
-                    {Date.now() >
-                    (new Date(teamUpdateForm?.link?.validTill).getTime() || 0) ? (
-                      <Skull className="bg-red-500 ml-3 cursor-pointer text-white rounded p-0.5" />
-                    ) : (
-                      <Rocket className="bg-green-500 ml-3 cursor-pointer text-white rounded p-0.5" />
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full mt-3">
-                {Date.now() >
-                  (new Date(teamUpdateForm?.link?.validTill).getTime() || 0) && (
-                  <div>
-                    <p className="text-gray-600 mb-3">
-                      Link has expired , expand date or create new Link
-                    </p>
-                    <div className="flex items-start justify-start w-2xl mb-7">
-                      <label
-                        htmlFor="validTill"
-                        className="flex items-center text-gray-500 justify-start text-lg gap-2 w-50 "
-                      >
-                        <Group />
-                        <span className="font-medium ">Title :</span>
-                      </label>
-
-                      <input
-                        onChange={(e) => setNewValidity(e.target.value)}
-                        value={newValidity}
-                        type="date"
-                        name="validTill"
-                        id="validTill"
-                        placeholder="Add a time"
-                        className="flex-1 border border-gray-200 px-3 py-2 rounded outline-none"
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
+          )}
 
-            <div className=" flex-1 h-auto">
-              {showProjectSearch && (
-                <SearchProjects
-                  toggle={setShowProjectSearch}
-                  selectedProjectIds={selectedProjectIds}
-                  setSelectedProjectIds={setSelectedProjectIds}
-                />
-              )}
+          {/* ─── MEMBERS TAB ─── */}
+          {activeTab === "members" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Current members list */}
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Current Members ({teamData?.members?.length || 0})
+                </h2>
+                <div className="space-y-2 max-h-72 overflow-y-auto noScroll">
+                  {teamData?.members?.length > 0 ? (
+                    teamData.members.map((m) => (
+                      <div
+                        key={m._id}
+                        className="flex items-center justify-between px-3 py-2 bg-secondary/40 border border-default rounded-xl"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-7 h-7 rounded-full bg-purple-500/10 flex items-center justify-center text-[10px] font-bold text-[var(--text-neon)]">
+                            {`${m.firstName?.[0] || ""}${m.lastName?.[0] || ""}`.toUpperCase()}
+                          </span>
+                          <div>
+                            <p className="text-xs font-semibold text-primary">{m.firstName} {m.lastName}</p>
+                            <p className="text-[10px] text-muted">@{m.username}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] px-2 py-0.5 bg-card border border-default rounded-full text-secondary">
+                            {m.role}
+                          </span>
+                          {m.role === "Admin" || m.role === "Owner" ? (
+                            <Trophy className="h-4 w-4 text-amber-400" />
+                          ) : (
+                            <Trash className="h-4 w-4 text-red-400 cursor-pointer" />
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted py-4">No members found for this team</p>
+                  )}
+                </div>
+              </div>
 
-              {showUserSearch && (
+              {/* Add members */}
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Search &amp; Add Members
+                </h2>
                 <SearchUser
-                  toggle={setShowUserSearch}
                   selectedUserIds={selectedUserIds}
                   setSelectedUserIds={setSelectedUserIds}
+                  initialSelected={teamData?.raw?.members?.map((m) => m.participant).filter(Boolean) || []}
                 />
-              )}
+                <p className="text-[10px] text-muted">✅ {selectedUserIds.length} member(s) selected</p>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="my-15 mx-auto w-fit">
+          {/* ─── PROJECTS TAB ─── */}
+          {activeTab === "projects" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Current projects list */}
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Linked Projects ({teamData?.projects?.length || 0})
+                </h2>
+                <div className="space-y-2 max-h-72 overflow-y-auto noScroll">
+                  {teamData?.projects?.length > 0 ? (
+                    teamData.projects.map((p) => (
+                      <div
+                        key={p._id}
+                        className="flex items-center justify-between px-3 py-2 bg-secondary/40 border border-default rounded-xl"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Leaf className="h-3.5 w-3.5 text-neon" />
+                          <span className="text-xs font-semibold text-primary">{p.name}</span>
+                        </div>
+                        <Trash className="h-4 w-4 text-red-400 cursor-pointer" />
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted py-4">No projects linked — add some!</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Add projects */}
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Search &amp; Add Projects
+                </h2>
+                <SearchProjects
+                  selectedProjectIds={selectedProjectIds}
+                  setSelectedProjectIds={setSelectedProjectIds}
+                  initialSelected={teamData?.projects || []}
+                />
+                <p className="text-[10px] text-muted">✅ {selectedProjectIds.length} project(s) selected</p>
+              </div>
+            </div>
+          )}
+
+          {/* ─── LINK TAB ─── */}
+          {activeTab === "link" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Current link status */}
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-4">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  Current Invite Link
+                </h2>
+
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-[10px] text-muted uppercase tracking-wider font-semibold">URL</p>
+                    <div className="px-3 py-2 bg-secondary/40 border border-default rounded-xl text-xs text-primary font-mono break-all">
+                      {teamUpdateForm.link?.url || "No link set"}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <p className="text-[10px] text-muted uppercase tracking-wider font-semibold">Validity</p>
+                    <div className={`flex items-center gap-2 px-3 py-2 border rounded-xl text-xs font-semibold ${
+                      isLinkExpired
+                        ? "bg-red-500/10 border-red-500/20 text-red-400"
+                        : "bg-green-500/10 border-green-500/20 text-green-400"
+                    }`}>
+                      {isLinkExpired ? (
+                        <Skull className="h-4 w-4" />
+                      ) : (
+                        <Rocket className="h-4 w-4" />
+                      )}
+                      {isLinkExpired ? "Link Expired" : "Link Active"} —{" "}
+                      {formatDateTime(teamUpdateForm?.link?.validTill)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Create new / update link */}
+              <div className="bg-card border border-default rounded-2xl p-6 shadow-xl space-y-5">
+                <h2 className="text-lg font-bold text-primary border-b border-default/50 pb-3">
+                  {isLinkExpired ? "Renew Invite Link" : "Update Invite Link"}
+                </h2>
+
+                {isLinkExpired && (
+                  <div className="px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400">
+                    ⚠️ The current invite link has expired. Create a new one below.
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="customUrl" className="text-xs font-semibold text-secondary flex items-center gap-1.5">
+                    <Link2 className="h-3.5 w-3.5 text-neon" /> Custom Link Suffix
+                  </label>
+                  <input
+                    id="customUrl"
+                    type="text"
+                    value={customUrl}
+                    onChange={(e) => setCustomUrl(e.target.value)}
+                    placeholder="e.g. summer-invite-2025"
+                    className="outline-none focus:ring-2 focus:ring-[var(--border-neon)]/40 transition rounded-xl px-3 py-2.5 bg-secondary border border-default text-primary text-sm"
+                  />
+                  {customUrl && (
+                    <p className="text-[10px] text-muted font-mono px-1">
+                      Will become: track-forge/invite/team/{teamId}/creator-…-{customUrl}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="validTill" className="text-xs font-semibold text-secondary flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-neon" /> Valid Until
+                  </label>
+                  <input
+                    id="validTill"
+                    type="date"
+                    value={newValidity}
+                    onChange={(e) => setNewValidity(e.target.value)}
+                    className="outline-none focus:ring-2 focus:ring-[var(--border-neon)]/40 transition rounded-xl px-3 py-2.5 bg-secondary border border-default text-primary text-sm cursor-pointer"
+                  />
+                  <p className="text-[10px] text-muted">Leave empty to default to 7 days from now</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Save Button */}
+          <div className="mt-6 flex justify-end">
             <button
               type="submit"
-              className="px-10 py-2 border border-gray-200 rounded font-medium cursor-pointer hover:bg-green-500 hover:text-white transition-all"
+              className="px-8 py-2.5 btn-gradient text-white rounded-xl shadow-lg font-bold text-sm cursor-pointer hover:opacity-90 transition-all flex items-center gap-2"
             >
-              Save Changes
+              <Group className="h-4 w-4" />
+              Save Team Changes
             </button>
           </div>
         </form>
