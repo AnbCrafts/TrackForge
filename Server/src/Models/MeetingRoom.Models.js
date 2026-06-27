@@ -43,6 +43,10 @@ const MeetingRoomSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    aiSummary: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

@@ -8,6 +8,8 @@ import User from "../Models/User.Models.js";
 import validationUtils from "../Utility/Validation.Utility.js";
 import mongoose from "mongoose"; 
 import { uploadOnCloudinary } from "../Utility/ProjectFiles.Utility.js";
+import path from "path";
+import fs from "fs";
  
 const getActivityData = async (activity) => {
   if (!activity || activity.length === 0) return [];
@@ -555,10 +557,12 @@ const getAllProjectsOfUser = async (req, res) => {
       return res.status(404).json({ success: false, message: "This user does not manage any projects" });
     }
 
+    const uniqueProjectIds = [...new Set((user.manages || []).map(id => id.toString()))];
+
     const projectData = [];
 
     await Promise.all(
-      user.manages.map(async (projectId) => {
+      uniqueProjectIds.map(async (projectId) => {
         const project = await Project.findById(projectId);
         if (project) {
           const owner = await User.findById(project.owner).select("_id username email role");
@@ -1216,6 +1220,25 @@ const addFilesToProject = async (req, res) => {
           uploadedAt: new Date(),
           path: cloudResp.secure_url,
         });
+      } else {
+        // Fallback to local file URL
+        const relativeDir = path.dirname(file.originalname).replace(/\\/g, "/");
+        const folderPart = (relativeDir && relativeDir !== ".") ? `${relativeDir}/` : "";
+        const localPath = `/public/files/${folderPart}${file.filename}`;
+        
+        const serverHost = req.get("host") || "localhost:9000";
+        const localUrl = `${req.protocol}://${serverHost}${localPath}`;
+
+        console.log(`⚠️ Cloudinary upload failed. Falling back to local file storage: ${localUrl}`);
+        
+        existingFolder.files.push({
+          filename: file.originalname,
+          size: file.size,
+          fileType: file.mimetype,
+          uploadedBy: req.user?._id || null,
+          uploadedAt: new Date(),
+          path: localUrl,
+        });
       }
     }
 
@@ -1744,6 +1767,19 @@ const getFileContent = async (req, res) => {
     if (!fileUrl) {
       return res.status(400).json({ success: false, message: "fileUrl query parameter is required" });
     }
+
+    // Check if it's a local file URL
+    if (fileUrl.includes("/public/files/")) {
+      const parts = fileUrl.split("/public/files/");
+      const relativeFilePath = parts[1];
+      const diskPath = path.join(process.cwd(), "src/public/files", decodeURIComponent(relativeFilePath));
+      
+      if (fs.existsSync(diskPath)) {
+        const content = fs.readFileSync(diskPath, "utf-8");
+        return res.send(content);
+      }
+    }
+
     const response = await axios.get(fileUrl, { responseType: 'text' });
     return res.send(response.data);
   } catch (error) {
@@ -1752,4 +1788,88 @@ const getFileContent = async (req, res) => {
   }
 };
 
-export {getFileContent, getJoinRequest,checkUserRequestStatus,patchJoinRequests,requestToJoinProject,checkForProjectAuthorization,getUserProjectFolders,getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }
+const saveFileContent = async (req, res) => {
+  try {
+    const { projectId, fileUrl, content } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ success: false, message: "projectId is required" });
+    }
+    if (!fileUrl) {
+      return res.status(400).json({ success: false, message: "fileUrl is required" });
+    }
+    if (content === undefined) {
+      return res.status(400).json({ success: false, message: "content is required" });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    let foundFile = null;
+    for (const folder of project.folders) {
+      const file = folder.files.find(f => f.path === fileUrl);
+      if (file) {
+        foundFile = file;
+        break;
+      }
+    }
+
+    if (!foundFile) {
+      return res.status(404).json({ success: false, message: "File not found in project" });
+    }
+
+    // Check if it's a local file URL
+    if (fileUrl.includes("/public/files/")) {
+      const parts = fileUrl.split("/public/files/");
+      const relativeFilePath = parts[1];
+      const diskPath = path.join(process.cwd(), "src/public/files", decodeURIComponent(relativeFilePath));
+      
+      // Ensure directory exists
+      fs.mkdirSync(path.dirname(diskPath), { recursive: true });
+      fs.writeFileSync(diskPath, content, "utf-8");
+      
+      // Update DB metadata
+      foundFile.size = Buffer.byteLength(content, "utf-8");
+      project.markModified("folders");
+      await project.save();
+
+      return res.status(200).json({ success: true, message: "Local file saved successfully", size: foundFile.size });
+    }
+
+    // Cloudinary file update path
+    // Write content to a temp local file
+    const tempFilename = `temp_${Date.now()}_${foundFile.filename.replace(/\\|\//g, "_")}`;
+    const tempDir = path.join(process.cwd(), "src/public/files/temp");
+    fs.mkdirSync(tempDir, { recursive: true });
+    const tempPath = path.join(tempDir, tempFilename);
+    fs.writeFileSync(tempPath, content, "utf-8");
+
+    const cloudResp = await uploadOnCloudinary(
+      tempPath,
+      project._id.toString(),
+      foundFile.filename
+    );
+
+    if (cloudResp?.secure_url) {
+      foundFile.path = cloudResp.secure_url;
+      foundFile.size = Buffer.byteLength(content, "utf-8");
+      project.markModified("folders");
+      await project.save();
+
+      return res.status(200).json({ success: true, message: "Cloudinary file saved successfully", fileUrl: cloudResp.secure_url, size: foundFile.size });
+    } else {
+      // Clean up temp path if upload failed
+      if (fs.existsSync(tempPath)) {
+        fs.unlinkSync(tempPath);
+      }
+      return res.status(500).json({ success: false, message: "Failed to upload updated file to Cloudinary" });
+    }
+
+  } catch (error) {
+    console.error("Error saving file content:", error);
+    return res.status(500).json({ success: false, message: "Failed to save file content", error: error.message });
+  }
+};
+
+export {saveFileContent, getFileContent, getJoinRequest,checkUserRequestStatus,patchJoinRequests,requestToJoinProject,checkForProjectAuthorization,getUserProjectFolders,getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }

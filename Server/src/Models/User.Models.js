@@ -56,8 +56,7 @@ const UserSchema = new mongoose.Schema(
     status: {
       type: String,
       default: "Online",
-      enum: ["Offline", "Online", "Blocked"],
-      toLowerCase:true
+      enum: ["Offline", "Online", "Blocked"]
     },
     role: {
       type: String,

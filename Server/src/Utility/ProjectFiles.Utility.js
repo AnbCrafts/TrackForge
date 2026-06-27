@@ -49,11 +49,7 @@ const uploadOnCloudinary = async (localFilePath, projectName, originalPath) => {
 
     return response;
   } catch (error) {
-    // cleanup local file if error
-    if (fs.existsSync(localFilePath)) {
-      fs.unlinkSync(localFilePath);
-    }
-    console.error("❌ Error occurred while uploading: ", error);
+    console.error("❌ Error occurred while uploading to Cloudinary: ", error);
     return null;
   }
 };

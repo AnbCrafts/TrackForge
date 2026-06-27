@@ -677,9 +677,13 @@ const pushTeam = async(req,res)=>{
     }
 
     const user = await User.findById(userId);
-    user.manages.push(projectId);
-
-    await user.save();
+    if (!user.manages) {
+      user.manages = [];
+    }
+    if (!user.manages.some(id => id.toString() === projectId.toString())) {
+      user.manages.push(projectId);
+      await user.save();
+    }
 
     return res.json({success:true})
 

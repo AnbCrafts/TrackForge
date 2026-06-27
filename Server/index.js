@@ -1,6 +1,11 @@
 import express from 'express';
 import cors from 'cors';
 import connectDB from './src/DB/ConnectDB.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import UserRoutes from './src/Routes/User.Route.js';
 import ProjectRoutes from './src/Routes/Project.Routes.js';
@@ -12,6 +17,7 @@ import MessageRoutes from './src/Routes/Message.Routes.js';
 import MeetingRoomRoutes from './src/Routes/MeetingRoom.Routes.js';
 
 import AIMailRoute from './src/Routes/AIMailer.Routes.js';
+import AIRoutes from './src/Routes/AI.Routes.js';
 
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -62,6 +68,8 @@ app.use(cors({
   credentials: true
 }));
 
+app.use('/public', express.static(path.join(__dirname, 'src/public')));
+
 app.use(
   session({
     secret: process.env.HASH_SECRET,   // much safer
@@ -86,6 +94,7 @@ app.use('/api/authorize', GithubOAuthRouter);
 app.use('/api/ai-mail', AIMailRoute);
 app.use('/api/message', MessageRoutes);
 app.use('/api/meeting', MeetingRoomRoutes);
+app.use('/api/ai', AIRoutes);
 
 app.get('/', (req, res) => {
   res.send("Server Started Successfully, you are in the homepage...");

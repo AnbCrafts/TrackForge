@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import { getFileContent, addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities, addFilesToProject, getProjectFiles, getUserProjectFolders, checkForProjectAuthorization, requestToJoinProject, patchJoinRequests, checkUserRequestStatus, getJoinRequest} from '../Controllers/Project.Controllers.js';
+import { saveFileContent, getFileContent, addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities, addFilesToProject, getProjectFiles, getUserProjectFolders, checkForProjectAuthorization, requestToJoinProject, patchJoinRequests, checkUserRequestStatus, getJoinRequest} from '../Controllers/Project.Controllers.js';
 import upload from '../Middlewares/ProjectFiles.Middleware.js';
 
 const projectRoutes = Router();
@@ -8,6 +8,7 @@ const projectRoutes = Router();
 projectRoutes.post("/create/new",addNewProject)
 
 projectRoutes.get("/files/content", getFileContent);
+projectRoutes.put("/files/content", saveFileContent);
 
 projectRoutes.put(
   "/:projectId/files",

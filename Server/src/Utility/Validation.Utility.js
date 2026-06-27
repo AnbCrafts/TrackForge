@@ -80,7 +80,7 @@ import mongoose from "mongoose";
       "any.invalid": "Invalid userId format.",
     }),
 
-    status: Joi.string().valid('online', 'offline', 'block').required()
+    status: Joi.string().lowercase().valid('online', 'offline', 'block').required()
 });
  const userIdRoleValidationSchema = Joi.object({
   userId: Joi.string()

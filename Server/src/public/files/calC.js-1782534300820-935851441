@@ -1,0 +1,60 @@
+const display = document.querySelector("#screen");
+const btns = document.querySelectorAll(".btn");
+let result = "";
+
+btns.forEach(button => {
+    button.addEventListener('click', () => {
+
+
+        if (button.textContent === "AC") {
+            
+            display.value = "0";
+            result = "";
+        }
+        else if (button.textContent === "DEL") {
+            display.value = display.value.slice(0, -1);
+        }
+        else  if (button.textContent === "=") {
+            result = eval(display.value);
+            display.value = result;
+            result = "";
+        }
+        // else  if (button.textContent === "log") {
+            
+        //     let base = 10;
+        //     let num = button.textContent;
+        //     if (num > 0 && base > 1) {
+        //         result = Math.log(num) / Math.log(base);
+        //          display.value = result;
+
+        //     }
+        //     else {
+        //         display.value = "Error"
+        //     }
+            // }
+            
+
+        else if (button.textContent === "log") {
+   
+
+    
+    let num = parseFloat(prompt("Enter a number:")); 
+    if (!isNaN(num) && num > 0) {
+        let base = 10; // Assuming you're calculating base 10 logarithm
+
+        let result = Math.log(num) / Math.log(base);
+        display.value = result;
+    } else {
+        display.value = "Error: Please enter a valid positive number";
+    }
+}
+    
+        else {
+            result += button.textContent;
+            display.value = result;
+            
+        }
+        
+    })
+    
+})
