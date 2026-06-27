@@ -38,7 +38,7 @@ connectDB();
 const server = createServer(app);
 const io = new SocketIOServer(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, callback) => callback(null, true),
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -64,7 +64,7 @@ io.on("connection", (socket) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: (origin, callback) => callback(null, true),
   credentials: true
 }));
 
