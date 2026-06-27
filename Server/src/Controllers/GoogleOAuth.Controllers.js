@@ -55,10 +55,10 @@ export const googleCallback = async (req, res) => {
     };
 
     // Redirect URL for frontend
-    // const redirectUrl = `http://localhost:5173/auth/${secureHash}/${user.username}/workspace`;
     // Redirect URL for frontend (with query params)
-const redirectUrl = `http://localhost:5173/auth/${secureHash}/${user.username}/workspace` +
-  `?token=${token}&userId=${user.id}&username=${user.username}&email=${user.email}`;
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    const redirectUrl = `${clientUrl}/auth/${secureHash}/${user.username}/workspace` +
+      `?token=${token}&userId=${user.id}&username=${user.username}&email=${user.email}`;
 
     // Send response
     // return res.status(200).json({

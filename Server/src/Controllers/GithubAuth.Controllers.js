@@ -57,8 +57,9 @@ export const githubCallback = async (req, res) => {
     };
 
     // Redirect URL (with query params)
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
     const redirectUrl =
-      `http://localhost:5173/auth/${secureHash}/${user.username}/workspace` +
+      `${clientUrl}/auth/${secureHash}/${user.username}/workspace` +
       `?token=${token}&userId=${user.id}&username=${user.username}&email=${user.email}`;
 
     return res.redirect(redirectUrl);
@@ -105,7 +106,8 @@ export const startGithubLink = async (req, res) => {
     return res.status(400).json({ success: false, message: "User ID is required" });
   }
 
-  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_AUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent("http://localhost:9000/api/authorize/github/link/callback")}&scope=user:email,repo&state=${userId}`;
+  const serverUrl = process.env.SERVER_URL || "http://localhost:9000";
+  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_AUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent(serverUrl + "/api/authorize/github/link/callback")}&scope=user:email,repo&state=${userId}`;
   
   return res.redirect(redirectUrl);
 };
@@ -123,7 +125,7 @@ export const githubLinkCallback = async (req, res) => {
         client_id: process.env.GITHUB_AUTH_CLIENT_ID,
         client_secret: process.env.GITHUB_AUTH_CLIENT_SECRET,
         code,
-        redirect_uri: "http://localhost:9000/api/authorize/github/link/callback",
+        redirect_uri: (process.env.SERVER_URL || "http://localhost:9000") + "/api/authorize/github/link/callback",
         state,
       },
       { headers: { Accept: "application/json" } }
@@ -157,7 +159,8 @@ export const githubLinkCallback = async (req, res) => {
     user.githubUsername = githubProfile.login;
     await user.save();
 
-    return res.redirect(`http://localhost:5173/settings?githubLinked=true`);
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+    return res.redirect(`${clientUrl}/settings?githubLinked=true`);
   } catch (err) {
     console.error("GitHub Linking Error:", err.message);
     return res.status(500).json({
