@@ -1,8 +1,13 @@
+import React, { useContext } from "react";
+import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 import { FaGithub } from "react-icons/fa";
 
 const GithubLoginButton = () => {
-  const handleGithubLogin = () =>
-    (window.location.href = "http://localhost:9000/api/authorize/github");
+  const { serverURL } = useContext(TrackForgeContextAPI);
+  const handleGithubLogin = () => {
+    const apiBase = serverURL.replace("/api", "");
+    window.location.href = `${apiBase}/api/authorize/github`;
+  };
 
   return (
     <button

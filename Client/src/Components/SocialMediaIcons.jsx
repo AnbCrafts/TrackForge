@@ -1,11 +1,17 @@
+import React, { useContext } from 'react';
+import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 import { Facebook, Twitter, Instagram, Linkedin, Github } from 'lucide-react';
 
 const SocialIcons = () => {
+  const { serverURL } = useContext(TrackForgeContextAPI);
   const iconList = [
     {
       name: "GitHub",
       icon: Github,
-      onClick: () => (window.location.href = "http://localhost:9000/api/authorize/github"),
+      onClick: () => {
+        const apiBase = serverURL.replace("/api", "");
+        window.location.href = `${apiBase}/api/authorize/github`;
+      },
       color: "hover:text-black",
       type: "button",
     },

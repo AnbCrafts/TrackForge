@@ -1,8 +1,13 @@
+import React, { useContext } from "react";
+import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 import { FcGoogle } from "react-icons/fc";
 
 const GoogleLoginButton = () => {
-  const handleGoogleLogin = () =>
-    (window.location.href = "http://localhost:9000/api/authorize/google");
+  const { serverURL } = useContext(TrackForgeContextAPI);
+  const handleGoogleLogin = () => {
+    const apiBase = serverURL.replace("/api", "");
+    window.location.href = `${apiBase}/api/authorize/google`;
+  };
 
   return (
     <button

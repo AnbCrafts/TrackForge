@@ -1,7 +1,10 @@
+import React, { useContext } from 'react';
+import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 import { Github } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 const LinkGithubButton = () => {
+    const { serverURL } = useContext(TrackForgeContextAPI);
     const id = localStorage.getItem("userId")
   const handleLinkGithub = () => {
     if (!id) {
@@ -10,7 +13,8 @@ const LinkGithubButton = () => {
     }
 
     // Redirect user to backend GitHub OAuth link route
-    window.location.href = `http://localhost:9000/api/authorize/github/link/${id}`;
+    const apiBase = serverURL.replace("/api", "");
+    window.location.href = `${apiBase}/api/authorize/github/link/${id}`;
   };
 
   return (

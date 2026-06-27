@@ -1,13 +1,15 @@
-import { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 
 export default function GoogleOAuthCallback() {
   const navigate = useNavigate();
+  const { serverURL } = useContext(TrackForgeContextAPI);
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const res = await fetch("http://localhost:9000/api/authorize/google/callback", {
+        const res = await fetch(`${serverURL}/authorize/google/callback`, {
           method: "GET",
           credentials: "include", // for cookies/session
         });

@@ -33,7 +33,7 @@ const SideBar = ({ onSidebarChange }) => {
   const menu = [
     ...baseMenu,
     { id: "team", icon: Users, path: "team", label: isAdminOrOwner ? "Teams" : "My Teams" },
-    { id: "members", icon: MessageSquare, path: "members", label: "Inbox / Chat" },
+    { id: "members", icon: UserPlus, path: "members", label: "Users" },
     ...(isAdminOrOwner
       ? [
           { id: "meetings", icon: Calendar, path: "meetings", label: "Meetings" }
