@@ -1,6 +1,6 @@
 import Editor from "@monaco-editor/react";
 
-export default function CodeViewer({ file }) {
+export default function CodeViewer({ file, onChange, readOnly = false }) {
   return (
     <div className="w-full h-screen max-h-[97vh] overflow-hidden rounded-lg">
       <Editor
@@ -9,8 +9,9 @@ export default function CodeViewer({ file }) {
         language={getLanguageFromExtension(file?.filename)}
         value={file?.content || ""}
         theme="vs-dark"
+        onChange={onChange}
         options={{
-          readOnly: true,
+          readOnly: readOnly,
           minimap: { enabled: true },
           lineNumbers: "on",
           scrollBeyondLastLine: false,

@@ -2,6 +2,9 @@ import React, { useContext, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
 import { toast } from "react-toastify";
+import axios from "axios";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
   Text,
   ActivityIcon,
@@ -20,8 +23,130 @@ import {
   AlignLeft,
   Flag,
   Flame,
+  Sparkles,
 } from "lucide-react";
 import { CreateActivityForm } from "../Components/ActivityForm";
+
+// Helper components for parsing/rendering AI Markdown suggestions
+const parseInlineStyles = (text) => {
+  if (!text) return "";
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={idx} className="font-bold text-gray-950">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return <code key={idx} className="px-1.5 py-0.5 bg-gray-100 border rounded text-[10.5px] font-mono text-purple-600">{part.slice(1, -1)}</code>;
+    }
+    return part;
+  });
+};
+
+const AIAnalysisRenderer = ({ text }) => {
+  if (!text) return null;
+
+  // Split by code blocks: ```lang\ncode\n```
+  const parts = text.split(/(```[\s\S]*?```)/g);
+
+  return (
+    <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
+      {parts.map((part, index) => {
+        if (part.startsWith("```")) {
+          // Parse code block
+          const match = part.match(/```(\w*)\n([\s\S]*?)```/);
+          const lang = match ? match[1] : "javascript";
+          const code = match ? match[2] : part.slice(3, -3);
+
+          return (
+            <div key={index} className="relative group my-4 rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-[#1e1e1e]">
+              <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-gray-700/50">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{lang}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(code.trim());
+                    toast.success("Code copied!");
+                  }}
+                  className="text-xs text-gray-400 hover:text-white transition flex items-center gap-1 cursor-pointer bg-transparent border-none outline-none"
+                >
+                  <Copy size={12} /> Copy Code
+                </button>
+              </div>
+              <div className="p-4 text-xs font-mono overflow-x-auto">
+                <SyntaxHighlighter
+                  language={lang}
+                  style={vscDarkPlus}
+                  customStyle={{
+                    margin: 0,
+                    background: "transparent",
+                    padding: 0,
+                  }}
+                >
+                  {code.trim()}
+                </SyntaxHighlighter>
+              </div>
+            </div>
+          );
+        } else {
+          // Parse standard text lines, format headings and lists
+          return (
+            <div key={index} className="space-y-2">
+              {part.split("\n").map((line, lIdx) => {
+                const trimmed = line.trim();
+                if (!trimmed) return <div key={lIdx} className="h-2" />;
+
+                // Headings
+                if (trimmed.startsWith("### ")) {
+                  return (
+                    <h4 key={lIdx} className="text-sm font-bold text-gray-900 mt-4 mb-2 flex items-center gap-2">
+                      {trimmed.slice(4)}
+                    </h4>
+                  );
+                }
+                if (trimmed.startsWith("## ")) {
+                  return (
+                    <h3 key={lIdx} className="text-sm font-bold text-purple-600 mt-6 mb-3 flex items-center gap-2 border-b pb-1">
+                      {trimmed.slice(3)}
+                    </h3>
+                  );
+                }
+                if (trimmed.startsWith("# ")) {
+                  return (
+                    <h2 key={lIdx} className="text-base font-bold text-purple-700 mt-6 mb-4 flex items-center gap-2">
+                      {trimmed.slice(2)}
+                    </h2>
+                  );
+                }
+
+                // Bullet points
+                if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+                  return (
+                    <div key={lIdx} className="flex items-start gap-2 pl-4 text-xs text-gray-600">
+                      <span className="text-purple-500 mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-purple-500" />
+                      <span>{parseInlineStyles(trimmed.slice(2))}</span>
+                    </div>
+                  );
+                }
+
+                // Ordered lists
+                const numMatch = trimmed.match(/^(\d+)\.\s(.*)/);
+                if (numMatch) {
+                  return (
+                    <div key={lIdx} className="flex items-start gap-2 pl-4 text-xs text-gray-600">
+                      <span className="text-purple-600 font-bold mt-0.5 shrink-0 text-[11px]">{numMatch[1]}.</span>
+                      <span>{parseInlineStyles(numMatch[2])}</span>
+                    </div>
+                  );
+                }
+
+                return <p key={lIdx} className="text-xs text-gray-600 leading-relaxed">{parseInlineStyles(line)}</p>;
+              })}
+            </div>
+          );
+        }
+      })}
+    </div>
+  );
+};
 
 const ViewDetailedBug = () => {
   const { ticketId } = useParams();
@@ -35,12 +160,37 @@ const ViewDetailedBug = () => {
     postComment,
     getThisTicketActivities,
     thisTicketActivities,
+    serverURL,
   } = useContext(TrackForgeContextAPI);
 
   const [currTickPage, setCurrTickPage] = useState(1);
   const [userId, setUserId] = useState(null);
   const [leftOpen, setLeftOpen] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
+
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [loadingAi, setLoadingAi] = useState(false);
+
+  const handleAnalyzeBug = async () => {
+    if (!ticketId || !serverURL) {
+      return toast.error("Unable to resolve ticket parameters.");
+    }
+    setLoadingAi(true);
+    try {
+      const response = await axios.post(`${serverURL}/ai/bug/${ticketId}/analyze`);
+      if (response.data.success) {
+        setAiAnalysis(response.data.analysis);
+        toast.success("AI Bug analysis completed!");
+      } else {
+        toast.error(response.data.message || "Failed to analyze bug.");
+      }
+    } catch (err) {
+      console.error("AI Bug analysis error:", err);
+      toast.error(err.response?.data?.message || "Failed to analyze bug.");
+    } finally {
+      setLoadingAi(false);
+    }
+  };
 
   const [activityForm, setActivityForm] = useState({
     actionType: "",
@@ -216,9 +366,30 @@ const ViewDetailedBug = () => {
 
           <div className="pt-6 space-y-2 text-sm">
             <p className="uppercase text-gray-500 text-xs font-semibold">Sections</p>
-            <p className="hover:text-blue-600 cursor-pointer">Overview</p>
-            <p className="hover:text-blue-600 cursor-pointer">Activity</p>
-            <p className="hover:text-blue-600 cursor-pointer">Comments</p>
+            <button
+              onClick={() => document.getElementById("overview-section")?.scrollIntoView({ behavior: "smooth" })}
+              className="block w-full text-left hover:text-blue-600 cursor-pointer bg-transparent border-none p-0 outline-none text-gray-700"
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => document.getElementById("ai-analyst-section")?.scrollIntoView({ behavior: "smooth" })}
+              className="block w-full text-left hover:text-purple-600 cursor-pointer bg-transparent border-none p-0 outline-none text-purple-600 font-semibold"
+            >
+              ✨ AI Analyst
+            </button>
+            <button
+              onClick={() => document.getElementById("activity-section")?.scrollIntoView({ behavior: "smooth" })}
+              className="block w-full text-left hover:text-blue-600 cursor-pointer bg-transparent border-none p-0 outline-none text-gray-700"
+            >
+              Activity Log
+            </button>
+            <button
+              onClick={() => document.getElementById("comments-section")?.scrollIntoView({ behavior: "smooth" })}
+              className="block w-full text-left hover:text-blue-600 cursor-pointer bg-transparent border-none p-0 outline-none text-gray-700"
+            >
+              Comments
+            </button>
           </div>
         </div>
 
@@ -243,7 +414,7 @@ const ViewDetailedBug = () => {
           </div>
 
           {/* TITLE + STATUS */}
-          <div className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
+          <div id="overview-section" className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
             <h1 className="text-3xl font-semibold text-gray-800">{singleTicket?.title}</h1>
 
             <div className="flex items-center gap-3">
@@ -287,8 +458,53 @@ const ViewDetailedBug = () => {
             </ul>
           </div>
 
+          {/* AI Bug Analyst Section */}
+          <div id="ai-analyst-section" className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-purple-100">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h2 className="text-xl font-semibold flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                <Sparkles className="text-purple-600 shrink-0" /> AI Bug Analyst
+              </h2>
+              {aiAnalysis && !loadingAi && (
+                <button
+                  onClick={handleAnalyzeBug}
+                  disabled={loadingAi}
+                  className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Sparkles size={12} className="animate-pulse" /> Re-Analyze Bug
+                </button>
+              )}
+            </div>
+
+            {loadingAi ? (
+              <div className="flex flex-col items-center justify-center py-10 space-y-3">
+                <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+                <p className="text-xs text-gray-500 animate-pulse">Gemini is analyzing issue, root causes &amp; proposing a patch...</p>
+              </div>
+            ) : aiAnalysis ? (
+              <div className="bg-purple-50/30 border border-purple-100/50 p-5 rounded-xl">
+                <AIAnalysisRenderer text={aiAnalysis} />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
+                <div className="p-3 bg-purple-50 rounded-full text-purple-600">
+                  <Sparkles size={28} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold text-gray-800">Need help resolving this issue?</h3>
+                  <p className="text-xs text-gray-500 max-w-sm">Get instant code recommendations, root cause analysis, and prevention guidelines directly from Gemini AI.</p>
+                </div>
+                <button
+                  onClick={handleAnalyzeBug}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-semibold text-xs shadow-md hover:scale-[1.02] flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <Sparkles size={14} /> Analyze Bug with AI
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* ACTIVITY LOG */}
-          <div className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
+          <div id="activity-section" className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
             <h2 className="text-xl font-semibold flex items-center gap-2 text-green-600">
               <CheckCircle /> Activity Log
             </h2>
@@ -324,7 +540,7 @@ const ViewDetailedBug = () => {
           </div>
 
           {/* COMMENTS */}
-          <div className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
+          <div id="comments-section" className="bg-white p-6 rounded-xl shadow-md space-y-4 border border-gray-100">
             <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-700">
               <MessageSquare /> Comments
             </h2>

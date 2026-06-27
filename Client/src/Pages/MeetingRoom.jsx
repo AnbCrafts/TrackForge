@@ -16,7 +16,11 @@ import {
   Clock,
   Shield,
   X,
-  File
+  File,
+  Sparkles,
+  Info,
+  Check,
+  Plus
 } from "lucide-react";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -25,7 +29,16 @@ import { io } from "socket.io-client";
 export default function MeetingRoom() {
   const { roomId, hash, username } = useParams();
   const navigate = useNavigate();
-  const { serverURL, authUserData, getUserDataById } = useContext(TrackForgeContextAPI);
+  const { 
+    serverURL, 
+    authUserData, 
+    getUserDataById, 
+    allProjects, 
+    getAllProjects, 
+    allUserProfiles, 
+    searchUserProfiles, 
+    createTicket 
+  } = useContext(TrackForgeContextAPI);
   const myUserId = localStorage.getItem("userId");
 
   const [room, setRoom] = useState(null);
@@ -40,6 +53,22 @@ export default function MeetingRoom() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  // AI Summary & Action Items states
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [summaryData, setSummaryData] = useState(null);
+
+  const [activeTaskToCreate, setActiveTaskToCreate] = useState(null);
+  const [quickTicketForm, setQuickTicketForm] = useState({
+    title: "",
+    description: "",
+    projectId: "",
+    assignedTo: "",
+    priority: "Medium"
+  });
+
+  const isAdminOrOwner = authUserData?.role === "Owner" || authUserData?.role === "Admin";
 
   // Load user data if not present
   useEffect(() => {
@@ -58,9 +87,16 @@ export default function MeetingRoom() {
           const roomObj = detailsRes.data.room;
           setRoom(roomObj);
 
+          if (roomObj.aiSummary) {
+            try {
+              setSummaryData(JSON.parse(roomObj.aiSummary));
+            } catch (e) {
+              console.error("Failed to parse saved aiSummary:", e);
+            }
+          }
+
           // Verify permission
           const isCreator = roomObj.creator?._id === myUserId;
-          const isAdminOrOwner = authUserData?.role === "Owner" || authUserData?.role === "Admin";
           const isInvitedUser = roomObj.users?.some((u) => (u._id || u).toString() === myUserId);
           const isInvitedTeamMember = roomObj.teams?.some((team) => 
             team.members?.some((m) => {
@@ -123,6 +159,14 @@ export default function MeetingRoom() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Load projects and users for action items ticket quick creation when modal opens
+  useEffect(() => {
+    if (isSummaryModalOpen) {
+      getAllProjects();
+      searchUserProfiles("");
+    }
+  }, [isSummaryModalOpen]);
 
   if (isLoading) {
     return (
@@ -263,6 +307,78 @@ export default function MeetingRoom() {
     return (first + last).toUpperCase();
   };
 
+  const handleGenerateSummary = async () => {
+    setIsGeneratingSummary(true);
+    try {
+      const response = await axios.post(`${serverURL}/ai/meeting/${roomId}/summarize`);
+      if (response.data.success) {
+        toast.success("✨ Meeting summarized successfully!");
+        setSummaryData(response.data.summary);
+        setRoom(prev => ({ ...prev, aiSummary: JSON.stringify(response.data.summary) }));
+        setIsSummaryModalOpen(true);
+      } else {
+        toast.error(response.data.message || "Failed to generate summary.");
+      }
+    } catch (err) {
+      console.error("Generate summary error:", err);
+      toast.error(err.response?.data?.message || "Failed to generate summary.");
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+  const handleOpenQuickTicket = (item) => {
+    // Attempt to map suggested assignee to an actual user
+    let matchedAssigneeId = "";
+    if (item.suggestedAssignee && allUserProfiles) {
+      const cleanedAssignee = item.suggestedAssignee.replace("@", "").trim().toLowerCase();
+      const matchedUser = allUserProfiles.find(
+        (u) =>
+          u.username.toLowerCase() === cleanedAssignee ||
+          `${u.firstName} ${u.lastName}`.toLowerCase().includes(cleanedAssignee)
+      );
+      if (matchedUser) {
+        matchedAssigneeId = matchedUser._id;
+      }
+    }
+
+    setQuickTicketForm({
+      title: item.task,
+      description: `Action item from meeting "${room.title}" held on ${new Date(room.scheduledDate).toLocaleDateString()}.\n\nAI Suggested Assignee: ${item.suggestedAssignee || "Unspecified"}`,
+      projectId: room.projectId?._id || room.projectId || "",
+      assignedTo: matchedAssigneeId,
+      priority: "Medium"
+    });
+    setActiveTaskToCreate(item);
+  };
+
+  const handleCreateQuickTicket = async (e) => {
+    e.preventDefault();
+    if (!quickTicketForm.title.trim() || !quickTicketForm.projectId) {
+      toast.warn("Title and Project are required.");
+      return;
+    }
+
+    try {
+      const payload = {
+        title: quickTicketForm.title.trim(),
+        description: quickTicketForm.description.trim(),
+        projectId: quickTicketForm.projectId,
+        assignedTo: quickTicketForm.assignedTo || null,
+        priority: quickTicketForm.priority,
+        createdBy: myUserId,
+        stepsToReproduce: [],
+        status: "Open"
+      };
+
+      await createTicket(payload);
+      setActiveTaskToCreate(null); // close ticket quick-create
+    } catch (err) {
+      console.error("Error creating ticket from AI action item:", err);
+      toast.error("Failed to create ticket.");
+    }
+  };
+
   return (
     <div className="min-h-screen p-6 bg-primary text-primary flex flex-col h-[100vh]">
       {/* EVENT HEADER */}
@@ -349,6 +465,50 @@ export default function MeetingRoom() {
               </div>
             </div>
           )}
+
+          {/* AI Meeting Minutes Section */}
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted mb-2 flex items-center gap-1.5">
+              <span>AI Meeting Minutes</span>
+              <span className="px-1.5 py-0.2 bg-purple-500/10 border border-purple-500/20 text-[8px] text-purple-400 font-bold uppercase rounded">AI</span>
+            </h2>
+            <div className="space-y-2">
+              {room.aiSummary ? (
+                <button
+                  onClick={() => setIsSummaryModalOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow-md transition cursor-pointer"
+                >
+                  <Sparkles className="h-4 w-4 text-yellow-300" />
+                  <span>View AI Summary</span>
+                </button>
+              ) : (
+                isAdminOrOwner || room.creator?._id === myUserId ? (
+                  <button
+                    onClick={handleGenerateSummary}
+                    disabled={isGeneratingSummary}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary border border-default text-primary hover:bg-hover rounded-xl font-bold text-xs shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {isGeneratingSummary ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin"></span>
+                        <span>Summarizing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 text-neon" />
+                        <span>Generate AI Summary</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="text-[10px] text-muted flex items-center gap-1 bg-secondary/10 border border-default rounded-lg p-2.5">
+                    <Info className="h-3.5 w-3.5 text-neon shrink-0" />
+                    <span>Summary has not been generated by the organizer yet.</span>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
 
           {/* Invited teams / members lists */}
           {room.teams && room.teams.length > 0 && (
@@ -564,6 +724,203 @@ export default function MeetingRoom() {
 
         </div>
       </div>
+
+      {/* ================= AI SUMMARY MODAL ================= */}
+      {isSummaryModalOpen && summaryData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-3xl bg-card border border-default rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            
+            {/* Header */}
+            <div className="p-5 border-b border-default flex items-center justify-between bg-secondary/15 bg-purple-950/10">
+              <h2 className="text-base font-bold text-primary flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-400 animate-pulse" />
+                <span>AI Meeting Sync Insights</span>
+              </h2>
+              <button
+                onClick={() => {
+                  setIsSummaryModalOpen(false);
+                  setActiveTaskToCreate(null);
+                }}
+                className="p-1 rounded-lg hover:bg-secondary text-muted hover:text-primary transition cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto noScroll p-6 space-y-6">
+              
+              {/* Summary Section */}
+              <div>
+                <h3 className="text-xs font-bold text-neon uppercase tracking-wider mb-2">Discussion Summary</h3>
+                <div className="bg-secondary/10 border border-default rounded-xl p-4 text-xs text-primary leading-relaxed whitespace-pre-wrap">
+                  {summaryData.summary}
+                </div>
+              </div>
+
+              {/* Decisions Section */}
+              {summaryData.decisions && summaryData.decisions.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-bold text-neon uppercase tracking-wider mb-3">Key Decisions Made</h3>
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {summaryData.decisions.map((decision, idx) => (
+                      <div key={idx} className="flex items-start gap-2.5 bg-green-500/5 border border-green-500/10 p-3 rounded-xl">
+                        <Check className="h-4 w-4 text-green-400 shrink-0 mt-0.5" />
+                        <span className="text-xs text-primary">{decision}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Items Section */}
+              {summaryData.actionItems && summaryData.actionItems.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-bold text-neon uppercase tracking-wider mb-3">Action Items &amp; Tasks</h3>
+                  <div className="space-y-3">
+                    {summaryData.actionItems.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between gap-4 bg-secondary/20 border border-default p-4 rounded-xl hover:border-purple-500/20 transition shadow-sm"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-primary">{item.task}</p>
+                          {item.suggestedAssignee && (
+                            <p className="text-[10px] text-muted mt-1">
+                              Suggested Assignee: <span className="font-bold text-neon">{item.suggestedAssignee}</span>
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Quick create ticket button */}
+                        {isAdminOrOwner && (
+                          <button
+                            onClick={() => handleOpenQuickTicket(item)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-[10px] shadow transition shrink-0 cursor-pointer"
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>Create Ticket</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= QUICK TICKET MODAL ================= */}
+      {activeTaskToCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-card border border-default rounded-xl shadow-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-default">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-1.5">
+                <Plus className="h-4 w-4 text-neon" /> Create Task Ticket
+              </h3>
+              <button
+                onClick={() => setActiveTaskToCreate(null)}
+                className="p-1 rounded-lg hover:bg-secondary text-muted hover:text-primary transition cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateQuickTicket} className="space-y-4">
+              {/* Title */}
+              <div>
+                <label className="block text-[10px] font-semibold text-secondary mb-1">Ticket Title</label>
+                <input
+                  required
+                  type="text"
+                  value={quickTicketForm.title}
+                  onChange={(e) => setQuickTicketForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full outline-none border rounded-lg border-default px-3 py-2 bg-secondary text-primary text-xs"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-[10px] font-semibold text-secondary mb-1">Description</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={quickTicketForm.description}
+                  onChange={(e) => setQuickTicketForm(prev => ({ ...prev, description: e.target.value }))}
+                  className="w-full outline-none border rounded-lg border-default px-3 py-2 bg-secondary text-primary text-xs resize-none"
+                />
+              </div>
+
+              {/* Project selector */}
+              <div>
+                <label className="block text-[10px] font-semibold text-secondary mb-1">Target Project</label>
+                <select
+                  required
+                  value={quickTicketForm.projectId}
+                  onChange={(e) => setQuickTicketForm(prev => ({ ...prev, projectId: e.target.value }))}
+                  className="w-full outline-none border rounded-lg border-default px-3 py-2 bg-secondary text-primary text-xs cursor-pointer"
+                >
+                  <option value="" disabled>-- Select Project --</option>
+                  {allProjects?.projects?.map(p => (
+                    <option key={p._id} value={p._id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Assignee selector */}
+              <div>
+                <label className="block text-[10px] font-semibold text-secondary mb-1">Assign User (Optional)</label>
+                <select
+                  value={quickTicketForm.assignedTo}
+                  onChange={(e) => setQuickTicketForm(prev => ({ ...prev, assignedTo: e.target.value }))}
+                  className="w-full outline-none border rounded-lg border-default px-3 py-2 bg-secondary text-primary text-xs cursor-pointer"
+                >
+                  <option value="">-- Unassigned --</option>
+                  {allUserProfiles?.map(u => (
+                    <option key={u._id} value={u._id}>{u.firstName} {u.lastName} (@{u.username})</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Priority */}
+              <div>
+                <label className="block text-[10px] font-semibold text-secondary mb-1">Priority</label>
+                <select
+                  value={quickTicketForm.priority}
+                  onChange={(e) => setQuickTicketForm(prev => ({ ...prev, priority: e.target.value }))}
+                  className="w-full outline-none border rounded-lg border-default px-3 py-2 bg-secondary text-primary text-xs cursor-pointer"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                  <option value="Critical">Critical</option>
+                </select>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-default">
+                <button
+                  type="button"
+                  onClick={() => setActiveTaskToCreate(null)}
+                  className="px-4 py-1.5 border border-default bg-secondary hover:bg-hover rounded-lg text-primary text-xs transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 btn-gradient text-white rounded-lg text-xs font-bold shadow hover:opacity-95 transition"
+                >
+                  Create Ticket
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

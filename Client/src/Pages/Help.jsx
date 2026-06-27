@@ -6,6 +6,7 @@ import { assets } from "../assets/assets";
 import Gallery from "../Components/Gallery";
 import { useState, useMemo } from "react";
 import FAQSection from "../Components/FAQSection";
+import AIMail from "../Components/AIMail";
 
 const imageObjects = [
   { title: 'Intro', image: assets.intro },
@@ -64,6 +65,7 @@ export default function Help() {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [isMailModalOpen, setIsMailModalOpen] = useState(false);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return helpQuestions;
@@ -276,7 +278,10 @@ export default function Help() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
             <h3 className="text-lg font-semibold mb-2">Need More Help?</h3>
             <p className="text-sm text-gray-600 mb-3">Our support team is here for you.</p>
-            <button className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">
+            <button
+              onClick={() => setIsMailModalOpen(true)}
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition cursor-pointer"
+            >
               Contact Support
             </button>
           </div>
@@ -365,7 +370,10 @@ export default function Help() {
       </section>
 
       {/* FULL FAQ SECTION */}
-        <FAQSection />
+      <FAQSection />
+
+      {/* AI Mail Modal */}
+      <AIMail isOpen={isMailModalOpen} onClose={() => setIsMailModalOpen(false)} />
      
     </div>
   );

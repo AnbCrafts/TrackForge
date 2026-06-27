@@ -498,8 +498,8 @@ const uploadProjectFILES = async(id, data)=>{
 
 const [thisProjectFiles,setThisProjectFiles] = useState([]);
 const fetchProjectFiles = async(id)=>{
-  if(!id){
-    toast.warn("ID is required");
+  if(!id || id === "undefined"){
+    return;
   }
   try {
     const uId = localStorage.getItem("userId");
@@ -632,8 +632,8 @@ const getAllProjects = async(page)=>{
 
 const [project,setProject] = useState(null);
 const projectById = async(id)=>{
-  if(!id){
-    toast.warn("ID is required");
+  if(!id || id === "undefined"){
+    return;
   }
   try {
     const response = await axios.get(`${serverURL}/project/list/${id}`);

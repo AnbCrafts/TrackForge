@@ -50,14 +50,16 @@ export default function Bugs() {
     if (userId) {
       getUserProjects(userId);
     }
-  }, [userId, getUserProjects]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   // Load tickets when project or page changes
   useEffect(() => {
     if (selectedProject?._id) {
       getThisProjectTickets(selectedProject?._id, currPage, 10);
     }
-  }, [selectedProject, currPage, getThisProjectTickets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProject, currPage]);
 
   // Auto-select first ticket or update selected ticket details
   useEffect(() => {
