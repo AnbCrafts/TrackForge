@@ -352,21 +352,20 @@ For visitors or testers looking to explore the live application or test differen
 ---
 
 ### 👥 **Role-Based Test Accounts**
-All of the following accounts share the password: **`TestPass@12345`**
 
-| Username | Role | Purpose |
-|----------|------|---------|
-| `johnowner` | **Owner** | Full organization control, billing permissions, team and project creations. |
-| `jackadmin` | **Admin** | Managing user invitations, scheduling meetings, configuring workspaces. |
-| `bobdeveloper` | **Developer** | Viewing repository file explorer, editing code files, requesting/logging project activities. |
-| `frankdev` | **Developer** | Alternate developer credentials for workspace collaboration. |
-| `karendev` | **Developer** | Alternate developer credentials for workspace collaboration. |
-| `nathandeveloper` | **Developer** | Alternate developer credentials for workspace collaboration. |
-| `charliedebugger` | **Debugger** | Static code analysis reviews, viewing AI bug reports, updating ticket logs. |
-| `henrydebugger` | **Debugger** | Alternate debugger credentials. |
-| `miadebugger` | **Debugger** | Alternate debugger credentials. |
-| `davidetester` | **Tester** | Simulating issues, writing reproduction steps, reporting new bug tickets. |
-| `gracetester` | **Tester** | Alternate tester credentials. |
-| `leotester` | **Tester** | Alternate tester credentials. |
-| `evemember` | **Member** | General workspace observation, commenting on tickets, joining meeting rooms. |
-| `isabelmember` | **Member** | Alternate member credentials. |
+| Username | Password | Role | Purpose |
+|----------|----------|------|---------|
+| `johnowner` | `TestPass@12345` | **Owner** | Full organization control, billing permissions, team and project creations. |
+| `jackadmin` | `TestPass@12345` | **Admin** | Managing user invitations, scheduling meetings, configuring workspaces. |
+| `bobdeveloper` | `TestPass@12345` | **Developer** | Viewing repository file explorer, editing code files, requesting/logging project activities. |
+| `frankdev` | `TestPass@12345` | **Developer** | Alternate developer credentials for workspace collaboration. |
+| `karendev` | `TestPass@12345` | **Developer** | Alternate developer credentials for workspace collaboration. |
+| `nathandeveloper` | `TestPass@12345` | **Developer** | Alternate developer credentials for workspace collaboration. |
+| `charliedebugger` | `TestPass@12345` | **Debugger** | Static code analysis reviews, viewing AI bug reports, updating ticket logs. |
+| `henrydebugger` | `TestPass@12345` | **Debugger** | Alternate debugger credentials. |
+| `miadebugger` | `TestPass@12345` | **Debugger** | Alternate debugger credentials. |
+| `davidetester` | `TestPass@12345` | **Tester** | Simulating issues, writing reproduction steps, reporting new bug tickets. |
+| `gracetester` | `TestPass@12345` | **Tester** | Alternate tester credentials. |
+| `leotester` | `TestPass@12345` | **Tester** | Alternate tester credentials. |
+| `evemember` | `TestPass@12345` | **Member** | General workspace observation, commenting on tickets, joining meeting rooms. |
+| `isabelmember` | `TestPass@12345` | **Member** | Alternate member credentials. |
