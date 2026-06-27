@@ -21,7 +21,11 @@ export const WorkContextProvider = ({ children }) => {
   const navigate = useNavigate();
   const {hash,username} = useParams();
 
-  const serverURL = import.meta.env.VITE_SERVER_URL || "http://127.0.0.1:9000/api";
+  const serverURL = import.meta.env.VITE_SERVER_URL || (
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+      ? "http://127.0.0.1:9000/api"
+      : "https://trackforge-server-side.onrender.com/api"
+  );
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("trackforge-theme") || "light";
