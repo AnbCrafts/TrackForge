@@ -91,9 +91,11 @@ This hybrid design makes TrackForge feel **fun on the outside, powerful on the i
 
 * Ticket volume, project load, priority insights, status breakdown, and developer productivity indicators
 
-### 🤖 **AI Chatbot for Assistance**
+### 🤖 **AI-Powered Code Intelligence**
 
-* Helps with bug explanations, logical suggestions, steps to reproduce, and helps developers understand ticket summaries faster
+* **AI Chatbot**: Helps with bug explanations, logical suggestions, steps to reproduce, and helps developers understand ticket summaries faster.
+* **AI Code Analyzer & Bug Finder**: Integrates deep static analysis directly into the Code Editor page. Use the Gemini model to analyze active files for syntax errors, logical bugs, security vulnerabilities (such as exposed credentials or SQL injection risk), and performance bottlenecks.
+* **Auto-Bug Ticket Reporter**: Allows developers to report AI-flagged code issues as full project tickets with a single click. Automatically maps the associated project ID, active file, line range, and severity level, bringing up a spacious modal for assignee mapping and priority designation.
 
 ### 🟣 **Framer Motion Everywhere**
 
