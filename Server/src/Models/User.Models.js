@@ -122,13 +122,29 @@ createdBy: {
   ref: "User",
   default: null,
 },
-notifications: [
-  {
-    message: { type: String, required: true },
-    read: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now },
-  },
-]
+    notifications: [
+      {
+        message: { type: String, required: true },
+        read: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
+    skills: {
+      type: [String],
+      default: []
+    },
+    strengths: {
+      type: [String],
+      default: []
+    },
+    experience: {
+      type: String,
+      default: ""
+    },
+    resumeUrl: {
+      type: String,
+      default: ""
+    }
     
   },
   { timestamps: true }

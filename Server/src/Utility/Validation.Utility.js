@@ -200,7 +200,7 @@ const updateUserValidation = Joi.object({
     .messages({
       "array.base": "Activity must be an array.",
     }),
-});
+}).unknown(true);
 
 
 
