@@ -93,8 +93,9 @@ This hybrid design makes TrackForge feel **fun on the outside, powerful on the i
 
 ### 🤖 **AI-Powered Code Intelligence**
 
-* **AI Chatbot**: Helps with bug explanations, logical suggestions, steps to reproduce, and helps developers understand ticket summaries faster.
+* **AI Chatbot (Groq Llama-3.3)**: Floating global chatbot widget powered by Groq's Llama model (`llama-3.3-70b-versatile`). Tailored to software development scope and saves user history logs inside MongoDB for seamless session history retrieval.
 * **AI Code Analyzer & Bug Finder**: Integrates deep static analysis directly into the Code Editor page. Use the Gemini model to analyze active files for syntax errors, logical bugs, security vulnerabilities (such as exposed credentials or SQL injection risk), and performance bottlenecks.
+* **AI Assignee Suggestion (Ranked)**: Aggregates direct and team-associated members, loads their professional profiles (skills, strengths, experience, resume links), and calls Llama-3.3 to rank the top matching candidates (up to 3 maximum) for resolving a bug ticket. Displays reasoning and one-click assign actions.
 * **Auto-Bug Ticket Reporter**: Allows developers to report AI-flagged code issues as full project tickets with a single click. Automatically maps the associated project ID, active file, line range, and severity level, bringing up a spacious modal for assignee mapping and priority designation.
 
 ### 🟣 **Framer Motion Everywhere**
@@ -176,29 +177,33 @@ Prevents:
 ```
 TrackForge
 │
-├── Landing Page (Neon Theme)
-│    ├── Parallax moon
-│    └── SmokeCursor
+├── Client
+│    ├── src
+│    │    ├── Components
+│    │    │    ├── ChatbotWidget.jsx      <-- Floating Chatbot Widget (Groq integrations)
+│    │    │    ├── ActivityForm.jsx       <-- Sleek Dark-Theme Activity logger
+│    │    │    └── LinkGithubButton.jsx
+│    │    ├── Pages
+│    │    │    ├── Profile.jsx            <-- Redesigned user profile (Skills, Strengths, Experience, Resume Link)
+│    │    │    ├── EditProfile.jsx        <-- Upgraded edit profile inputs (dark theme styling)
+│    │    │    ├── ViewDetailedBug.jsx    <-- Upgraded Bug details + AI Analyst + Ranked AI Assignee Suggestion
+│    │    │    └── Bugs.jsx               <-- Direct bugs explorer + split details pane with AI Analyst and Matcher
+│    │    └── App.jsx
 │
-├── Workspace (SaaS Dashboard Theme)
-│    ├── Projects
-│    ├── Tickets
-│    ├── Teams
-│    ├── Members
-│    ├── Analytics
-│    └── AI Assistant
-│
-├── Security Layer
-│    └── 256-bit cipher token for workspace session routing
-│
-└── Backend API
-     ├── Auth
-     ├── Projects
-     ├── Tickets
-     ├── Comments
-     ├── Teams
-     ├── Analytics
-     └── Maintenance
+└── Server
+     ├── src
+     │    ├── Models
+     │    │    ├── User.Models.js         <-- Added skills, strengths, experience, resumeUrl fields
+     │    │    ├── AIChat.Models.js       <-- Added chatbot conversation history schema
+     │    │    └── Ticket.Models.js
+     │    ├── Controllers
+     │    │    ├── AI.Controllers.js      <-- getChatbotResponse, getChatbotHistory, suggestAssignee (ranked matches)
+     │    │    └── User.Controllers.js
+     │    ├── Routes
+     │    │    └── AI.Routes.js           <-- Chatbot endpoints + Ranked Matcher endpoints
+     │    └── Utility
+     │         └── Validation.Utility.js  <-- Added .unknown(true) to updateUserValidation
+     └── index.js
 ```
 
 ---
@@ -227,9 +232,9 @@ Here is a structured preview of the platform:
 
 <div align="center">
 
-| Dashboard | Workspace | Project View |
-|-----------|-----------|--------------|
-| ![Dashboard](./screenshots/dashboard.png) | ![Workspace](./screenshots/workspace.png) | ![Project](./screenshots/project.png) |
+| Dashboard | Workspace | Project View | Profile |
+|-----------|-----------|--------------|---------|
+| ![Dashboard](./screenshots/dashboard.png) | ![Workspace](./screenshots/workspace.png) | ![Project](./screenshots/project.png) | ![Profile](./screenshots/profile.png) |
 
 </div>
 
