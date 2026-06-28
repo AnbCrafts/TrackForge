@@ -26,6 +26,7 @@ import GoogleOAuthCallback from './Pages/GoogleAuthCallback'
 import Members from './Pages/Members'
 import Meetings from './Pages/Meetings'
 import MeetingRoom from './Pages/MeetingRoom'
+import ChatbotWidget from './Components/ChatbotWidget'
 // import SmokeCursor from './Components/Cursor'
 
 const App = () => {
@@ -129,7 +130,7 @@ const App = () => {
 */}
 
       </Routes>
-      
+      <ChatbotWidget />
     </div>
   )
 }

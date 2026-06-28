@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { TrackForgeContextAPI } from "../ContextAPI/TrackForgeContextAPI";
+import axios from "axios";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
   AlertTriangle,
   Calendar,
@@ -16,10 +19,132 @@ import {
   ChevronRight,
   ClipboardList,
   FolderKanban,
+  Sparkles,
+  Bot,
+  Flag,
+  AlertCircle,
+  Copy,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { PaginationControls } from "../Components/PaginationControls";
 import CreateActivityModal from "../Components/CreateActivityModal";
+
+// Helper components for parsing/rendering AI Markdown suggestions
+const parseInlineStyles = (text) => {
+  if (!text) return "";
+  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={idx} className="font-bold text-primary">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return <code key={idx} className="px-1.5 py-0.5 bg-secondary border border-default rounded text-[10.5px] font-mono text-neon">{part.slice(1, -1)}</code>;
+    }
+    return part;
+  });
+};
+
+const AIAnalysisRenderer = ({ text }) => {
+  if (!text) return null;
+
+  // Split by code blocks
+  const parts = text.split(/(```[\s\S]*?```)/g);
+
+  return (
+    <div className="space-y-4 text-xs text-secondary leading-relaxed">
+      {parts.map((part, index) => {
+        if (part.startsWith("```")) {
+          const match = part.match(/```(\w*)\n([\s\S]*?)```/);
+          const lang = match ? match[1] : "javascript";
+          const code = match ? match[2] : part.slice(3, -3);
+
+          return (
+            <div key={index} className="relative group my-4 rounded-xl overflow-hidden border border-default shadow-sm bg-[#0f0f13]">
+              <div className="flex items-center justify-between px-4 py-2 bg-[#1a1a24] border-b border-default">
+                <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">{lang}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(code.trim());
+                    toast.success("Code copied!");
+                  }}
+                  className="text-xs text-secondary hover:text-primary transition flex items-center gap-1 cursor-pointer bg-transparent border-none outline-none"
+                >
+                  <Copy size={12} /> Copy Code
+                </button>
+              </div>
+              <div className="p-4 text-xs font-mono overflow-x-auto">
+                <SyntaxHighlighter
+                  language={lang}
+                  style={vscDarkPlus}
+                  customStyle={{
+                    margin: 0,
+                    background: "transparent",
+                    padding: 0,
+                  }}
+                >
+                  {code.trim()}
+                </SyntaxHighlighter>
+              </div>
+            </div>
+          );
+        } else {
+          return (
+            <div key={index} className="space-y-2">
+              {part.split("\n").map((line, lIdx) => {
+                const trimmed = line.trim();
+                if (!trimmed) return <div key={lIdx} className="h-2" />;
+
+                if (trimmed.startsWith("### ")) {
+                  return (
+                    <h4 key={lIdx} className="text-sm font-bold text-primary mt-4 mb-2 flex items-center gap-2">
+                      {trimmed.slice(4)}
+                    </h4>
+                  );
+                }
+                if (trimmed.startsWith("## ")) {
+                  return (
+                    <h3 key={lIdx} className="text-sm font-bold text-neon mt-6 mb-3 flex items-center gap-2 border-b border-default pb-1">
+                      {trimmed.slice(3)}
+                    </h3>
+                  );
+                }
+                if (trimmed.startsWith("# ")) {
+                  return (
+                    <h2 key={lIdx} className="text-base font-bold text-neon mt-6 mb-4 flex items-center gap-2">
+                      {trimmed.slice(2)}
+                    </h2>
+                  );
+                }
+
+                if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+                  return (
+                    <div key={lIdx} className="flex items-start gap-2 pl-4 text-xs text-secondary">
+                      <span className="text-neon mt-1.5 shrink-0 w-1.5 h-1.5 rounded-full bg-neon shadow-[0_0_6px_var(--border-neon)]" />
+                      <span>{parseInlineStyles(trimmed.slice(2))}</span>
+                    </div>
+                  );
+                }
+
+                const numMatch = trimmed.match(/^(\d+)\.\s(.*)/);
+                if (numMatch) {
+                  return (
+                    <div key={lIdx} className="flex items-start gap-2 pl-4 text-xs text-secondary">
+                      <span className="text-neon font-bold mt-0.5 shrink-0 text-[11px]">{numMatch[1]}.</span>
+                      <span>{parseInlineStyles(numMatch[2])}</span>
+                    </div>
+                  );
+                }
+
+                return <p key={lIdx} className="text-xs text-secondary leading-relaxed">{parseInlineStyles(line)}</p>;
+              })}
+            </div>
+          );
+        }
+      })}
+    </div>
+  );
+};
 
 export default function Bugs() {
   const {
@@ -32,6 +157,7 @@ export default function Bugs() {
     postComment,
     getThisTicketActivities,
     thisTicketActivities,
+    serverURL,
   } = useContext(TrackForgeContextAPI);
 
   const [selectedProject, setSelectedProject] = useState(null);
@@ -43,6 +169,12 @@ export default function Bugs() {
   const [leftOpen, setLeftOpen] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
 
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [loadingAi, setLoadingAi] = useState(false);
+
+  const [recommendations, setRecommendations] = useState([]);
+  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
+
   const userId = localStorage.getItem("userId");
 
   // Load user's projects on mount
@@ -50,7 +182,6 @@ export default function Bugs() {
     if (userId) {
       getUserProjects(userId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   // Load tickets when project or page changes
@@ -58,7 +189,6 @@ export default function Bugs() {
     if (selectedProject?._id) {
       getThisProjectTickets(selectedProject?._id, currPage, 10);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProject, currPage]);
 
   // Auto-select first ticket or update selected ticket details
@@ -76,7 +206,6 @@ export default function Bugs() {
       if (found) {
         setSelectedTicket(found);
       } else {
-        // Default to select first ticket
         const first = ticketsList[0];
         setSelectedTicket(first);
         if (first?._id) {
@@ -88,6 +217,76 @@ export default function Bugs() {
       setSelectedTicket(null);
     }
   }, [thisProjectTickets, selectedProject]);
+
+  // Reset suggestions when switching tickets
+  useEffect(() => {
+    setAiAnalysis(null);
+    setRecommendations([]);
+  }, [selectedTicket?._id]);
+
+  const handleAnalyzeBug = async () => {
+    if (!selectedTicket?._id || !serverURL) {
+      return toast.error("Unable to resolve ticket parameters.");
+    }
+    setLoadingAi(true);
+    try {
+      const response = await axios.post(`${serverURL}/ai/bug/${selectedTicket._id}/analyze`);
+      if (response.data.success) {
+        setAiAnalysis(response.data.analysis);
+        toast.success("AI Bug analysis completed!");
+      } else {
+        toast.error(response.data.message || "Failed to analyze bug.");
+      }
+    } catch (err) {
+      console.error("AI Bug analysis error:", err);
+      toast.error(err.response?.data?.message || "Failed to analyze bug.");
+    } finally {
+      setLoadingAi(false);
+    }
+  };
+
+  const handleSuggestAssignee = async () => {
+    if (!selectedTicket?._id || !serverURL) {
+      return toast.error("Unable to resolve ticket parameters.");
+    }
+    setLoadingSuggestion(true);
+    setRecommendations([]);
+    try {
+      const response = await axios.post(`${serverURL}/ai/ticket/suggest-assignee`, { ticketId: selectedTicket._id });
+      if (response.data.success && response.data.recommendations) {
+        setRecommendations(response.data.recommendations);
+        if (response.data.recommendations.length > 0) {
+          toast.success("AI Assignee suggestions retrieved!");
+        } else {
+          toast.warn("No suitable candidates found for this bug.");
+        }
+      } else {
+        toast.warn(response.data.message || "Failed to retrieve AI suggestion.");
+      }
+    } catch (err) {
+      console.error("AI Suggest Assignee error:", err);
+      toast.error(err.response?.data?.message || "Failed to retrieve AI suggestion.");
+    } finally {
+      setLoadingSuggestion(false);
+    }
+  };
+
+  const handleAssignUser = async (targetUserId) => {
+    if (!selectedTicket?._id || !serverURL) return;
+    try {
+      const response = await axios.put(`${serverURL}/ticket/${selectedTicket._id}/user/${targetUserId}`);
+      if (response.data.success) {
+        toast.success("Ticket successfully assigned!");
+        setRecommendations([]);
+        getThisProjectTickets(selectedProject?._id, currPage, 10);
+      } else {
+        toast.error(response.data.message || "Failed to assign ticket.");
+      }
+    } catch (err) {
+      console.error("Assign ticket error:", err);
+      toast.error(err.response?.data?.message || "Failed to assign ticket.");
+    }
+  };
 
   const shortId = (id) =>
     id ? id.slice(0, 6) + "..." + id.slice(-4) : "-";
@@ -127,12 +326,10 @@ export default function Bugs() {
       projectId: selectedProject?._id,
     });
     setCommentForm((prev) => ({ ...prev, message: "" }));
-    // Refresh comments
     getTicketComments(selectedTicket._id, 1);
   };
 
   const handleSelectProject = (proj) => {
-    // The API returns { project, owner, members, activities } — flatten it
     const flat = proj?.project ? proj.project : proj;
     setSelectedProject(flat);
     setCurrPage(1);
@@ -155,7 +352,6 @@ export default function Bugs() {
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
           {userProjects?.projects && userProjects.projects.length > 0 ? (
             userProjects.projects.map((proj) => {
-              // API returns { project, owner, members, activities }
               const p = proj?.project || proj;
               return (
                 <div
@@ -173,7 +369,6 @@ export default function Bugs() {
                     <p className="text-secondary text-xs line-clamp-3 mb-3">
                       {p.description || "No description provided."}
                     </p>
-                    {/* Member count badge */}
                     {proj.members && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary/40 border border-default rounded-full text-[10px] text-muted font-semibold">
                         <User className="w-3 h-3" /> {proj.members.length} member{proj.members.length !== 1 ? "s" : ""}
@@ -215,7 +410,6 @@ export default function Bugs() {
     );
   }
 
-  // Render Split Tickets View for Selected Project
   const ticketsList = thisProjectTickets?.tickets || [];
 
   return (
@@ -395,6 +589,52 @@ export default function Bugs() {
                 </ul>
               </div>
 
+              {/* AI Bug Analyst Section */}
+              <div className="bg-card p-6 rounded-2xl shadow-xl space-y-4 border border-purple-500/20 backdrop-blur-md shadow-purple-500/5">
+                <div className="flex items-center justify-between border-b border-default/20 pb-3">
+                  <h2 className="text-md font-bold flex items-center gap-2 bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                    <Sparkles className="text-purple-400 shrink-0" size={16} /> AI Bug Analyst
+                  </h2>
+                  {aiAnalysis && !loadingAi && (
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeBug}
+                      className="px-3 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/30 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <Sparkles size={12} className="animate-pulse" /> Re-Analyze Bug
+                    </button>
+                  )}
+                </div>
+
+                {loadingAi ? (
+                  <div className="flex flex-col items-center justify-center py-10 space-y-3">
+                    <div className="w-8 h-8 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
+                    <p className="text-xs text-secondary animate-pulse">Gemini is analyzing issue, root causes &amp; proposing a patch...</p>
+                  </div>
+                ) : aiAnalysis ? (
+                  <div className="bg-purple-950/20 border border-purple-500/25 p-5 rounded-2xl">
+                    <AIAnalysisRenderer text={aiAnalysis} />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-6 text-center space-y-4 animate-fade-in">
+                    <div className="p-2.5 bg-purple-500/10 rounded-full text-purple-400 border border-purple-500/20">
+                      <Sparkles size={24} />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-bold text-primary">Need help resolving this issue?</h3>
+                      <p className="text-[11px] text-secondary max-w-sm">Get instant code recommendations, root cause analysis, and patch steps from Gemini AI.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeBug}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs shadow-lg hover:scale-[1.02] flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Sparkles size={13} /> Analyze Bug with AI
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Activity Log */}
               <div className="bg-card p-6 rounded-2xl shadow-sm border border-default space-y-5">
                 <div className="flex items-center justify-between pb-3 border-b border-default/20">
@@ -413,7 +653,6 @@ export default function Bugs() {
                   {thisTicketActivities && thisTicketActivities.length > 0 ? (
                     thisTicketActivities.map((act, idx) => (
                       <div key={act._id || idx} className="relative group">
-                        {/* Timeline node */}
                         <div className="absolute -left-6 top-1.5 w-4 h-4 rounded-full bg-card border-2 border-[var(--border-neon)] shadow-sm z-10 flex items-center justify-center group-hover:scale-110 transition-transform">
                           <div className="w-1.5 h-1.5 rounded-full bg-neon"></div>
                         </div>
@@ -484,7 +723,6 @@ export default function Bugs() {
                   )}
                 </div>
 
-                {/* Add Comment Form */}
                 <form onSubmit={submitComment} className="pt-4 border-t border-default/20 space-y-3">
                   <textarea
                     rows={2}
@@ -539,8 +777,9 @@ export default function Bugs() {
                 <span className="font-mono text-primary flex items-center gap-1 text-[10px]">
                   {selectedTicket._id}
                   <button
+                    type="button"
                     onClick={() => copyID(selectedTicket._id)}
-                    className="px-1.5 py-0.5 bg-secondary text-secondary hover:text-primary rounded text-[9px] border border-default transition cursor-pointer"
+                    className="px-1.5 py-0.5 bg-secondary text-secondary hover:text-primary rounded text-[9px] border border-default transition cursor-pointer shrink-0"
                   >
                     Copy
                   </button>
@@ -558,13 +797,63 @@ export default function Bugs() {
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-default/10">
+                <span className="text-muted">Assigned To</span>
+                <span className="font-bold text-primary">
+                  {selectedTicket.doer ? `@${selectedTicket.doer.username}` : "Unassigned"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-b border-default/10">
                 <span className="text-muted">Assigned On</span>
                 <span className="font-bold text-primary">
                   {new Date(selectedTicket.assignedOn).toLocaleDateString()}
                 </span>
               </div>
 
+              {/* AI Assignee Suggestion Section */}
               <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleSuggestAssignee}
+                  disabled={loadingSuggestion}
+                  className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs shadow-md hover:scale-[1.02] flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles size={12} className={loadingSuggestion ? "animate-spin" : "animate-pulse"} />
+                  {loadingSuggestion ? "Finding best match..." : "Suggest Assignee (AI)"}
+                </button>
+              </div>
+
+              {recommendations && recommendations.length > 0 && (
+                <div className="space-y-3 mt-3">
+                  <div className="flex items-center gap-1.5 text-purple-400 font-bold">
+                    <Bot size={14} className="animate-pulse" /> AI Matches (Ranked):
+                  </div>
+                  
+                  {recommendations.map((rec) => (
+                    <div key={rec.suggestedUserId} className="p-3 bg-purple-950/20 border border-purple-500/30 rounded-xl text-xs space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-bold text-primary">{rec.suggestedName}</span>{" "}
+                          <span className="text-secondary text-[10px]">(@{rec.suggestedUsername})</span>
+                        </div>
+                        <span className="px-2 py-0.5 bg-purple-500/25 border border-purple-500/40 text-[9px] font-bold text-purple-300 rounded-full">
+                          Rank #{rec.rank}
+                        </span>
+                      </div>
+                      <p className="text-secondary leading-normal italic">"{rec.reasoning}"</p>
+                      <button
+                        type="button"
+                        onClick={() => handleAssignUser(rec.suggestedUserId)}
+                        className="w-full py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition cursor-pointer text-[10px] shadow"
+                      >
+                        Assign to {rec.suggestedUsername}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-default/10">
                 {daysLeft === 0 && (
                   <div className="p-3 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-xl flex items-center gap-2 text-xs font-bold">
                     <AlertTriangle size={14} /> Expires today!
@@ -663,6 +952,7 @@ export default function Bugs() {
                 <span className="font-mono text-primary flex items-center gap-1 text-[10px]">
                   {selectedTicket._id}
                   <button
+                    type="button"
                     onClick={() => copyID(selectedTicket._id)}
                     className="px-1.5 py-0.5 bg-secondary text-secondary hover:text-primary rounded text-[9px] border border-default transition"
                   >
@@ -682,13 +972,63 @@ export default function Bugs() {
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-default/10">
+                <span className="text-muted">Assigned To</span>
+                <span className="font-bold text-primary">
+                  {selectedTicket.doer ? `@${selectedTicket.doer.username}` : "Unassigned"}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-b border-default/10">
                 <span className="text-muted">Assigned On</span>
                 <span className="font-bold text-primary">
                   {new Date(selectedTicket.assignedOn).toLocaleDateString()}
                 </span>
               </div>
 
-              <div className="pt-2">
+              {/* AI Assignee Suggestion for Mobile */}
+              <div className="pt-2 border-t border-default/20">
+                <button
+                  type="button"
+                  onClick={handleSuggestAssignee}
+                  disabled={loadingSuggestion}
+                  className="w-full py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-bold text-xs shadow-md hover:scale-[1.02] flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles size={12} className={loadingSuggestion ? "animate-spin" : "animate-pulse"} />
+                  {loadingSuggestion ? "Finding..." : "Suggest Assignee (AI)"}
+                </button>
+              </div>
+
+              {recommendations && recommendations.length > 0 && (
+                <div className="space-y-3 mt-3">
+                  <div className="flex items-center gap-1.5 text-purple-400 font-bold">
+                    <Bot size={14} className="animate-pulse" /> AI Matches (Ranked):
+                  </div>
+                  
+                  {recommendations.map((rec) => (
+                    <div key={rec.suggestedUserId} className="p-3 bg-purple-950/20 border border-purple-500/30 rounded-xl text-xs space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="font-bold text-primary">{rec.suggestedName}</span>{" "}
+                          <span className="text-secondary text-[10px]">(@{rec.suggestedUsername})</span>
+                        </div>
+                        <span className="px-2 py-0.5 bg-purple-500/25 border border-purple-500/40 text-[9px] font-bold text-purple-300 rounded-full">
+                          Rank #{rec.rank}
+                        </span>
+                      </div>
+                      <p className="text-secondary leading-normal italic">"{rec.reasoning}"</p>
+                      <button
+                        type="button"
+                        onClick={() => handleAssignUser(rec.suggestedUserId)}
+                        className="w-full py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition cursor-pointer text-[10px] shadow"
+                      >
+                        Assign to {rec.suggestedUsername}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-default/10">
                 {daysLeft === 0 && (
                   <div className="p-3 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-xl flex items-center gap-2 text-xs font-bold">
                     <AlertTriangle size={14} /> Expires today!

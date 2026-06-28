@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { TrackForgeContextAPI } from '../ContextAPI/TrackForgeContextAPI';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import ProjectListPreview from '../Components/ProjectListPreview';
 import TeamListPreview from '../Components/TeamListPreview';
 import { toast } from 'react-toastify';
@@ -223,9 +223,18 @@ const Profile = () => {
                 </h2>
                 <p className="text-secondary text-sm font-medium">@{authUserData?.username}</p>
               </div>
-              <span className="self-center sm:self-start px-4 py-1.5 bg-neon/15 border border-neon/30 text-neon rounded-full font-bold text-xs shadow-sm uppercase tracking-wider">
-                {authUserData?.role}
-              </span>
+              <div className="flex items-center gap-3 self-center sm:self-start">
+                <span className="px-4 py-1.5 bg-neon/15 border border-neon/30 text-neon rounded-full font-bold text-xs shadow-sm uppercase tracking-wider">
+                  {authUserData?.role}
+                </span>
+                
+                <Link
+                  to={`/auth/${hash}/${authUserData?.username}/workspace/update-profile`}
+                  className="px-4 py-1.5 bg-secondary hover:bg-hover border border-default text-primary rounded-full font-bold text-xs shadow-sm flex items-center gap-1.5 transition hover:scale-[1.02] cursor-pointer"
+                >
+                  <Wrench size={12} className="text-neon" /> Edit Profile
+                </Link>
+              </div>
             </div>
 
             {/* Quick Stats Grid */}
@@ -253,8 +262,61 @@ const Profile = () => {
               </div>
             </div>
 
+            {/* Skills & Strengths Badges */}
+            {((authUserData?.skills && authUserData.skills.length > 0) || (authUserData?.strengths && authUserData.strengths.length > 0)) && (
+              <div className="space-y-3 pt-2">
+                {authUserData?.skills && authUserData.skills.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-secondary font-bold uppercase tracking-wider block mr-1">Skills:</span>
+                    {authUserData.skills.map((s, idx) => (
+                      <span key={idx} className="px-2.5 py-0.5 bg-secondary border border-default text-primary rounded-lg text-[10px] font-mono font-semibold">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {authUserData?.strengths && authUserData.strengths.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] text-secondary font-bold uppercase tracking-wider block mr-1">Strengths:</span>
+                    {authUserData.strengths.map((s, idx) => (
+                      <span key={idx} className="px-2.5 py-0.5 bg-neon/10 border border-neon/20 text-neon rounded-lg text-[10px] font-mono font-semibold">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Experience & Resume Link */}
+            {(authUserData?.experience || authUserData?.resumeUrl) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-default/20 text-xs">
+                {authUserData?.experience && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-secondary font-bold uppercase tracking-wider block">Experience</span>
+                    <p className="text-secondary leading-relaxed bg-secondary/30 border border-default p-3 rounded-xl italic whitespace-pre-wrap">
+                      "{authUserData.experience}"
+                    </p>
+                  </div>
+                )}
+                {authUserData?.resumeUrl && (
+                  <div className="space-y-1 self-start">
+                    <span className="text-[10px] text-secondary font-bold uppercase tracking-wider block">Resume Link</span>
+                    <a 
+                      href={authUserData.resumeUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center gap-1.5 text-neon hover:underline bg-neon/10 border border-neon/20 px-3 py-2 rounded-xl font-semibold mt-1 transition hover:scale-[1.02] shadow w-fit"
+                    >
+                      <Link2 size={12} /> View Professional Resume
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* GitHub Linkage Info */}
-            <div className="pt-2">
+            <div className="pt-4 border-t border-default/20">
               {authUserData && authUserData.githubAccessToken === null ? (
                 <LinkGithubButton />
               ) : (
