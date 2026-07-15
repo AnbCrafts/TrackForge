@@ -1872,4 +1872,176 @@ const saveFileContent = async (req, res) => {
   }
 };
 
-export {saveFileContent, getFileContent, getJoinRequest,checkUserRequestStatus,patchJoinRequests,requestToJoinProject,checkForProjectAuthorization,getUserProjectFolders,getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }
+const importGithubRepo = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { userId, repoOwner, repoName, branch = "main" } = req.body;
+
+    if (!projectId || !userId || !repoOwner || !repoName) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.githubAccessToken) {
+      return res.status(400).json({ success: false, message: "User has no GitHub token linked" });
+    }
+
+    const token = user.githubAccessToken;
+
+    // Fetch the repository recursive file tree from GitHub API
+    const treeUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/git/trees/${branch}?recursive=1`;
+    let response;
+    try {
+      response = await axios.get(treeUrl, {
+        headers: {
+          Authorization: `token ${token}`,
+          "User-Agent": "TrackForge",
+          Accept: "application/vnd.github.v3+json",
+        },
+      });
+    } catch (apiErr) {
+      console.error("Error fetching repository tree:", apiErr.message);
+      return res.status(400).json({
+        success: false,
+        message: `Failed to fetch repository tree. Check branch name or repo permissions.`,
+        error: apiErr.message,
+      });
+    }
+
+    const tree = response.data.tree;
+    if (!tree || !Array.isArray(tree)) {
+      return res.status(400).json({ success: false, message: "Invalid repository tree returned" });
+    }
+
+    // Filter files matching criteria: only files (type: blob) and exclude node_modules, .git, binary files, lock files, etc.
+    const ignoredRegex = /\.(png|jpe?g|gif|webp|ico|svg|pdf|zip|gz|tar|mp4|mp3|woff2?|ttf|eot|exe|dll|so|dylib|bin|map|DS_Store)$/i;
+    const ignoredDirs = ["node_modules/", ".git/", ".github/", "dist/", "build/", "out/"];
+
+    const filesToDownload = tree.filter((item) => {
+      if (item.type !== "blob") return false;
+      
+      // Check ignored directories
+      for (const dir of ignoredDirs) {
+        if (item.path.startsWith(dir) || item.path.includes("/" + dir)) {
+          return false;
+        }
+      }
+
+      // Check ignored extensions
+      if (ignoredRegex.test(item.path)) {
+        return false;
+      }
+
+      return true;
+    });
+
+    if (filesToDownload.length === 0) {
+      return res.status(400).json({ success: false, message: "No compatible files found in this repository to import" });
+    }
+
+    // Set up project local file directory
+    const projectDir = path.join(process.cwd(), "src/public/files/github-" + projectId);
+    
+    // Clear existing imported files for clean state
+    if (fs.existsSync(projectDir)) {
+      fs.rmSync(projectDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(projectDir, { recursive: true });
+
+    const serverHost = req.get("host") || "localhost:9000";
+    const fileList = [];
+
+    // Download each file blob and write it locally
+    for (const file of filesToDownload) {
+      try {
+        const blobUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/git/blobs/${file.sha}`;
+        const blobResp = await axios.get(blobUrl, {
+          headers: {
+            Authorization: `token ${token}`,
+            "User-Agent": "TrackForge",
+            Accept: "application/vnd.github.v3+json",
+          },
+        });
+
+        const base64Content = blobResp.data.content;
+        const fileContent = Buffer.from(base64Content, "base64");
+
+        const finalPath = path.join(projectDir, file.path);
+        fs.mkdirSync(path.dirname(finalPath), { recursive: true });
+        fs.writeFileSync(finalPath, fileContent);
+
+        const localUrl = `${req.protocol}://${serverHost}/public/files/github-${projectId}/${file.path}`;
+
+        // Get mimetype based on extension
+        let fileType = "text/plain";
+        if (file.path.endsWith(".js") || file.path.endsWith(".jsx")) fileType = "application/javascript";
+        else if (file.path.endsWith(".json")) fileType = "application/json";
+        else if (file.path.endsWith(".html")) fileType = "text/html";
+        else if (file.path.endsWith(".css")) fileType = "text/css";
+        else if (file.path.endsWith(".md")) fileType = "text/markdown";
+        else if (file.path.endsWith(".ts") || file.path.endsWith(".tsx")) fileType = "application/typescript";
+
+        fileList.push({
+          path: file.path,
+          filename: path.basename(file.path),
+          size: file.size || Buffer.byteLength(fileContent),
+          fileType,
+          localUrl,
+        });
+      } catch (err) {
+        console.error(`Failed to download file ${file.path}:`, err.message);
+      }
+    }
+
+    // Now organize these files by folder structures in MongoDB
+    const foldersMap = {};
+
+    for (const file of fileList) {
+      const parts = file.path.split("/");
+      const filename = parts.pop();
+      const folderName = parts.length > 0 ? parts.join("/") : project.name;
+
+      if (!foldersMap[folderName]) {
+        foldersMap[folderName] = [];
+      }
+
+      foldersMap[folderName].push({
+        filename: file.path, // relative path to make tree node building easy
+        path: file.localUrl,
+        size: file.size,
+        fileType: file.fileType,
+        uploadedBy: userId,
+        uploadedAt: new Date(),
+      });
+    }
+
+    const updatedFolders = Object.keys(foldersMap).map((folderName) => ({
+      name: folderName,
+      files: foldersMap[folderName],
+    }));
+
+    project.folders = updatedFolders;
+    project.markModified("folders");
+    await project.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Repository "${repoName}" imported successfully with ${fileList.length} files.`,
+      folders: project.folders,
+    });
+  } catch (error) {
+    console.error("importGithubRepo error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error during GitHub repository import",
+      error: error.message,
+    });
+  }
+};
+
+export {importGithubRepo, saveFileContent, getFileContent, getJoinRequest,checkUserRequestStatus,patchJoinRequests,requestToJoinProject,checkForProjectAuthorization,getUserProjectFolders,getProjectFiles,addFilesToProject, addNewProject, getProjectById, getAllProjects, deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats,getAllActivities }

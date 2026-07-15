@@ -18,6 +18,7 @@ import MeetingRoomRoutes from './src/Routes/MeetingRoom.Routes.js';
 
 import AIMailRoute from './src/Routes/AIMailer.Routes.js';
 import AIRoutes from './src/Routes/AI.Routes.js';
+import BusinessDetailsRoutes from './src/Routes/BusinessDetails.Routes.js';
 
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -95,6 +96,7 @@ app.use('/api/ai-mail', AIMailRoute);
 app.use('/api/message', MessageRoutes);
 app.use('/api/meeting', MeetingRoomRoutes);
 app.use('/api/ai', AIRoutes);
+app.use('/api/business-details', BusinessDetailsRoutes);
 
 app.get('/', (req, res) => {
   res.send("Server Started Successfully, you are in the homepage...");

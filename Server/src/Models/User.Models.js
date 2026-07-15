@@ -95,6 +95,10 @@ const UserSchema = new mongoose.Schema(
   type: String,
   default: null
 } ,
+githubUsername: {
+  type: String,
+  default: null
+} ,
 projectJoinRequests:[
   {
         type: mongoose.Schema.Types.ObjectId,

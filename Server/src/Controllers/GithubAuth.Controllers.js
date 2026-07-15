@@ -13,6 +13,29 @@ export const githubCallback = async (req, res) => {
     });
   }
 
+  const state = req.query.state;
+  if (state) {
+    try {
+      const user = await User.findById(state);
+      if (user) {
+        user.githubAccessToken = req.user.accessToken;
+        user.githubUsername = req.user.username || req.user.login;
+        await user.save();
+
+        const loginTime = Date.now();
+        const secret = getHashSecret(loginTime.toString().slice(-4));
+        const payload = user._id.toString() + loginTime + secret;
+        const secureHash = crypto.createHash("sha256").update(payload).digest("hex");
+
+        const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+        return res.redirect(`${clientUrl}/auth/${secureHash}/${user.username}/workspace/profile?githubLinked=true`);
+      }
+    } catch (err) {
+      console.error("Error linking GitHub account in callback:", err);
+      return res.status(500).json({ success: false, message: "Failed to link GitHub profile" });
+    }
+  }
+
   try {
     // Check if user already exists
     let existingUser = await User.findOne({ email: req.user.emails[0].value });
@@ -107,7 +130,7 @@ export const startGithubLink = async (req, res) => {
   }
 
   const serverUrl = process.env.SERVER_URL || "http://localhost:9000";
-  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_AUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent(serverUrl + "/api/authorize/github/link/callback")}&scope=user:email,repo&state=${userId}`;
+  const redirectUrl = `https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_AUTH_CLIENT_ID}&redirect_uri=${encodeURIComponent(serverUrl + "/api/authorize/github/callback")}&scope=user:email,repo&state=${userId}`;
   
   return res.redirect(redirectUrl);
 };
@@ -159,8 +182,14 @@ export const githubLinkCallback = async (req, res) => {
     user.githubUsername = githubProfile.login;
     await user.save();
 
+    // Generate secure hash to redirect back to user's workspace profile
+    const loginTime = Date.now();
+    const secret = getHashSecret(loginTime.toString().slice(-4));
+    const payload = user._id.toString() + loginTime + secret;
+    const secureHash = crypto.createHash("sha256").update(payload).digest("hex");
+
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
-    return res.redirect(`${clientUrl}/settings?githubLinked=true`);
+    return res.redirect(`${clientUrl}/auth/${secureHash}/${user.username}/workspace/profile?githubLinked=true`);
   } catch (err) {
     console.error("GitHub Linking Error:", err.message);
     return res.status(500).json({

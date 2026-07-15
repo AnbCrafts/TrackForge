@@ -1,5 +1,5 @@
-import {Router} from 'express';
-import { saveFileContent, getFileContent, addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities, addFilesToProject, getProjectFiles, getUserProjectFolders, checkForProjectAuthorization, requestToJoinProject, patchJoinRequests, checkUserRequestStatus, getJoinRequest} from '../Controllers/Project.Controllers.js';
+import { Router } from 'express';
+import { importGithubRepo, saveFileContent, getFileContent, addNewProject, getAllProjects, getProjectById ,deleteProject, updateProject, getProjectByProjectAndOwner, addMember, removeMember, getAllMembers, getAllProjectsOfUser, addTeam, removeTeam, getAllTeamsOfProject, getDeadline, expiredDeadlineProject, archiveProject, unArchiveProject, getArchivedList, getUnArchivedList, SearchProject, getProjectStats, getAllActivities, addFilesToProject, getProjectFiles, getUserProjectFolders, checkForProjectAuthorization, requestToJoinProject, patchJoinRequests, checkUserRequestStatus, getJoinRequest} from '../Controllers/Project.Controllers.js';
 import upload from '../Middlewares/ProjectFiles.Middleware.js';
 
 const projectRoutes = Router();
@@ -14,6 +14,11 @@ projectRoutes.put(
   "/:projectId/files",
   upload.array("files"),   
   addFilesToProject
+);
+
+projectRoutes.post(
+  "/:projectId/import-github",
+  importGithubRepo
 );
 
 projectRoutes.get("/:projectId/folder/files",getProjectFiles);
