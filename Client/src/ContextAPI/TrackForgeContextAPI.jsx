@@ -566,6 +566,29 @@ const linkThisUserGithub = async()=>{
 
 }
 
+const importGithubRepo = async (projectId, repoOwner, repoName, branch = "main") => {
+  const userId = localStorage.getItem("userId");
+  if (!userId) {
+    toast.warn("User ID is required to import repo");
+    return;
+  }
+  try {
+    const response = await axios.post(`${serverURL}/project/${projectId}/import-github`, {
+      userId,
+      repoOwner,
+      repoName,
+      branch,
+    });
+    verifyResponse(response);
+    if (response.data.success) {
+      toast.success(response.data.message);
+      await fetchProjectFiles(projectId);
+    }
+  } catch (error) {
+    throwError(error);
+  }
+};
+
 
 // projectRoutes.get("/list/project=:projectId/user=:userId/check-authorization",checkForProjectAuthorization)
 // projectRoutes.post("/list/project=:projectId/user=:userId/send-join-request",requestToJoinProject)
@@ -1690,7 +1713,7 @@ const createTeamMember = async (data) => {
   },[userData]);
 
 
-  const contextObj = {serverURL, unLinkThisUserGithub,linkThisUserGithub,getThisUserGithubRepo,githubRepo,getTeamJoinRequests,teamJoinReqList,getPendingProjectRequests,pendingProjectReqLists,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,checkProjectJoinRequest,reqStatus,patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,fetchProjectFiles,thisProjectFiles,uploadProjectFILES,uploadedFolders,createTeam,registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles, sendDirectMail,
+  const contextObj = {serverURL, importGithubRepo, unLinkThisUserGithub,linkThisUserGithub,getThisUserGithubRepo,githubRepo,getTeamJoinRequests,teamJoinReqList,getPendingProjectRequests,pendingProjectReqLists,sendTeamJoinRequest,teamReqStatus,patchTeamJoinRequest,checkAuthorityToViewTeam,hasAuthToSeeTeam,checkProjectJoinRequest,reqStatus,patchProjectJoinRequest,sendProjectJoinRequest,checkAuthorityToViewProject,hasAuthToSeeProject,fetchProjectFiles,thisProjectFiles,uploadProjectFILES,uploadedFolders,createTeam,registerUser,userData,getUserDataById,authUserData,getAllUsers,allUsers,deleteProfile,PatchUserProfile,userTeams,getUsersTeam,userLastSeen,getLastActiveTime,updateUserProfile,changeUserRole,userActivities,getUserActivities,formatDateTime,getCurrentUserData,currUserData,getTeamByID,teamData,getUserIDs,userIds,createProject,currProject,allProjects,getAllProjects,project,projectById,projectActivities,getActivitiesOfProject,projectTeam,getProjectTeam,allMembers,getAllMembers,addMember,removeMember,addTeam,removeTeam,getProjectStats,projectStats,getUserProjects,userProjects,getTeamIDByName,teamIds,getUserTickets,userTickets,createActivity,getProjectComments,projectComments,getTicketComments,ticketComments,postComment,searchUser,searchedUser,searchProjects,searchedProjects,searchTeams,searchedTeams,searchUserProfiles,allUserProfiles,updateTeam,createTicket,ticket,getUserAssignedTickets,userAssignedTickets,getFilteredTickets,filteredTickets,getThisProjectTickets,thisProjectTickets,getUserTicketsForNotification,userTicketsForNotification,getUserAssignedTicketsForNotification,userAssignedTicketsForNotification,getSingleTicket,singleTicket,getThisTicketActivities,thisTicketActivities,updateTicket,updateProject,deleteActivity,deleteTicket,patchTicketStatus,deleteProject,logoutUser,getProjectFiles,projectFiles,uploadFiles, sendDirectMail,
     sendComplaintMail,
     loading,
     lastResponse,

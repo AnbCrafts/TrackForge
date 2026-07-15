@@ -24,13 +24,15 @@ import {
   FileCode,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Github
 } from "lucide-react";
 import SearchUser from "../Components/SearchUser";
 import SearchTeam from "../Components/SearchTeams";
 import { toast } from "react-toastify";
 import RestrictedProjectCard from "../Components/RestrictedProjectCard";
 import { TreeNode, buildFileTree } from "../Components/TreeNode";
+import LinkGithubButton from "../Components/LinkGithubButton";
 
 const ProjectDetail = () => {
   const navigate = useNavigate();
@@ -47,7 +49,8 @@ const ProjectDetail = () => {
     getThisProjectTickets, thisProjectTickets,
     uploadProjectFILES, uploadedFolders,
     fetchProjectFiles, thisProjectFiles,
-    patchProjectJoinRequest, sendProjectJoinRequest, checkAuthorityToViewProject, hasAuthToSeeProject, reqStatus, getPendingProjectRequests, pendingProjectReqLists
+    patchProjectJoinRequest, sendProjectJoinRequest, checkAuthorityToViewProject, hasAuthToSeeProject, reqStatus, getPendingProjectRequests, pendingProjectReqLists,
+    authUserData, getUserDataById, getThisUserGithubRepo, githubRepo, importGithubRepo
   } = useContext(TrackForgeContextAPI);
 
   const { projectId, username, hash } = useParams();
@@ -96,6 +99,25 @@ const ProjectDetail = () => {
   const [selectedTeamIds, setSelectedTeamIds] = useState([]);
   const [uploadMode, setUploadMode] = useState("files"); // "files" or "directory"
   const [isUploading, setIsUploading] = useState(false);
+
+  const [selectedRepo, setSelectedRepo] = useState("");
+  const [repoBranch, setRepoBranch] = useState("main");
+  const [isImporting, setIsImporting] = useState(false);
+
+  // Fetch current user details to check GitHub connection status
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (userId) {
+      getUserDataById(userId);
+    }
+  }, []);
+
+  // Fetch GitHub repos if linked
+  useEffect(() => {
+    if (authUserData && authUserData.githubAccessToken !== null) {
+      getThisUserGithubRepo();
+    }
+  }, [authUserData]);
 
   const addUser = async (e) => {
     e.preventDefault();
@@ -261,6 +283,23 @@ const ProjectDetail = () => {
       toast.error("Failed to upload folder/files");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleImportGithubRepo = async () => {
+    if (!selectedRepo) {
+      toast.warn("Please select a repository to import");
+      return;
+    }
+    const [owner, name] = selectedRepo.split("/");
+    setIsImporting(true);
+    try {
+      await importGithubRepo(projectId, owner, name, repoBranch || "main");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to import repository");
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -703,6 +742,71 @@ const ProjectDetail = () => {
                   "Upload"
                 )}
               </button>
+            </div>
+
+            {/* GitHub Import Area */}
+            <div className="mt-6 border border-default rounded-xl p-5 bg-secondary/30 space-y-4">
+              <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                <Github className="h-4 w-4 text-neon" /> Connect & Import from GitHub
+              </h3>
+              
+              {authUserData && authUserData.githubAccessToken === null ? (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border border-dashed border-default rounded-xl bg-secondary/10">
+                  <div className="text-xs text-muted">
+                    Connect your GitHub account to import repositories directly.
+                  </div>
+                  <LinkGithubButton />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-xs text-emerald-500 font-semibold flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Linked GitHub: <span className="underline font-bold">@{authUserData?.githubUsername}</span>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <select
+                      value={selectedRepo}
+                      onChange={(e) => {
+                        const repo = githubRepo?.find(r => r.full_name === e.target.value);
+                        setSelectedRepo(e.target.value);
+                        if (repo) {
+                          setRepoBranch(repo.default_branch || "main");
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 bg-secondary border border-default text-primary rounded-xl text-xs outline-none cursor-pointer"
+                    >
+                      <option value="">Select a repository...</option>
+                      {githubRepo?.map((repo) => (
+                        <option key={repo.id} value={repo.full_name}>
+                          {repo.full_name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      value={repoBranch}
+                      onChange={(e) => setRepoBranch(e.target.value)}
+                      placeholder="Branch (e.g. main)"
+                      className="w-full sm:w-36 outline-none focus:ring-2 focus:ring-[var(--border-neon)]/45 transition rounded-xl px-3 py-2 bg-secondary border border-default text-primary text-xs"
+                    />
+                  </div>
+                  
+                  <button
+                    onClick={handleImportGithubRepo}
+                    disabled={isImporting || !selectedRepo}
+                    className="px-6 py-2 btn-gradient text-white rounded-xl text-sm font-bold shadow-md hover:opacity-90 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isImporting ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        Importing...
+                      </>
+                    ) : (
+                      "Import Repository"
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </section>
 

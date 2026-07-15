@@ -7,6 +7,7 @@ import {
   PauseCircle,
   Skull,
   User,
+  Briefcase,
 } from "lucide-react";
 import { Link, Outlet, useLocation, useParams } from "react-router-dom";
 
@@ -61,6 +62,20 @@ const Settings = () => {
             >
               Update profile
               <User className="h-5 w-5 text-gray-500" />
+            </Link>
+
+            <Link
+              to={"business"}
+              className={
+                linkBase +
+                " " +
+                (location.pathname === fullPath + "business"
+                  ? active
+                  : inactive)
+              }
+            >
+              Business details
+              <Briefcase className="h-5 w-5 text-gray-500" />
             </Link>
 
             <Link className={linkBase + " " + inactive}>

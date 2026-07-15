@@ -21,6 +21,7 @@ import EditActivity from './Pages/EditActivity'
 import Admin from './Pages/Admin'
 import Settings from './Pages/Settings'
 import EditProfile from './Pages/EditProfile'
+import BusinessDetails from './Pages/BusinessDetails'
 import CodeEditor from './Pages/CodeEditor'
 import GoogleOAuthCallback from './Pages/GoogleAuthCallback'
 import Members from './Pages/Members'
@@ -115,8 +116,7 @@ const App = () => {
         <Route path='settings' element={<Settings />}>
         <Route path='reset-password' element={<ResetPass want={false} />} />
         <Route path='update-profile' element={<EditProfile/>} />
-
-        
+        <Route path='business' element={<BusinessDetails />} />
         </Route>
 
 
